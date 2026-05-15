@@ -5,7 +5,7 @@
 > A 12-month prototype adapting CERN ALICE O² architecture to defense and industrial sensor data —
 > built for handoff to [Dataseed Yazılım Elektronik](https://dataseed.com.tr).
 
-[![CI](https://github.com/your-org/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dataforge/actions/workflows/ci.yml)
+[![CI](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Milestone](https://img.shields.io/badge/Milestone-1%20%E2%80%94%20Requirements-blue)](docs/milestones/)
 
