@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [develop, main]
 
+# Opt into Node.js 24 now — avoids the forced migration breaking CI on June 2, 2026
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ---------------------------------------------------------------------------
   # Stage 1: Lint (active from M1)
@@ -14,8 +18,8 @@ jobs:
     name: Lint Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.10"
       - name: Install flake8
@@ -31,10 +35,10 @@ jobs:
     name: Lint JavaScript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install and run ESLint (dashboard)
         working-directory: services/dashboard/frontend
         run: |
@@ -52,7 +56,7 @@ jobs:
     name: Docker Compose Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
       - name: Validate docker-compose syntax
         run: docker compose config --quiet
       - name: Build services (infrastructure only for now)
@@ -68,8 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint-python]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.10"
       - name: Run tests
@@ -89,6 +93,6 @@ jobs:
   #   name: Validate Model AUC ≥ 0.85
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v4.2.2
   #     - name: Run AUC validation
   #       run: python services/ai-ml/anomaly-detection/scripts/validate_model.py
