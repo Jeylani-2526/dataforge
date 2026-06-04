@@ -1,11 +1,6 @@
 # DataForge — Milestone 1 Package
 ## Dashboard & Database Section
 
-**Section Owner:** Beyza Ülkümen — Full-Stack Developer (Module 9)  
-**Assembled by:** Abdullah (M1 Package Lead)  
-**Milestone:** 1 · Weeks 1–3 · 11 May – 7 June 2026  
-**Submitted to:** Emrah Uysal — Dataseed Yazılım Elektronik  
-**Document path:** `/docs/milestone1/m1_dashboard_db_section.md`
 
 ---
 
@@ -191,7 +186,7 @@ Five pre-computed materialized views serve the most frequent dashboard polling q
 
 | View | Source | Bucket | Serves |
 |---|---|---|---|
-| `summary_1h` | `anomaly_alerts` | 1 hour | Home page `/api/v1/summary` (5s poll) |
+| `summary_1h` | `anomaly_alerts` | 1 hour | Home page `/api/v1/summary` (30s poll) |
 | `perf_1min` | `system_performance_metrics` | 1 minute | Performance page (15-min range) |
 | `perf_5min` | `perf_1min` (cascading) | 5 minutes | Performance page (1-hour range) |
 | `perf_15min` | `perf_5min` (cascading) | 15 minutes | Performance page (24-hour range) |
@@ -223,7 +218,7 @@ WebSocket maintains a persistent connection between the browser and the FastAPI 
 
 **REST Polling — used for all other pages:**
 
-REST polling sends a standard HTTP GET request at a fixed interval and closes the connection. This is simpler to implement, stateless, fault-tolerant, and appropriate when updates every 5–30 seconds are sufficient. Home page (5s), AI Alerts (5s), Fusion sensor data (10s), Performance metrics (10s), and Reports (on demand) all fall into this category. A missed poll simply retries on the next cycle — no session state to recover.
+REST polling sends a standard HTTP GET request at a fixed interval and closes the connection. This is simpler to implement, stateless, fault-tolerant, and appropriate when updates every 5–30 seconds are sufficient. Home page (30s), AI Alerts (5s), Fusion sensor data (10s), Performance metrics (10s), and Reports (on demand) all fall into this category. A missed poll simply retries on the next cycle — no session state to recover.
 
 The decision boundary: if the operator would notice a 5-second delay in the data, use WebSocket. If 5–30 seconds is acceptable, use REST polling.
 
@@ -349,5 +344,4 @@ This section, together with Abdalla's requirements document and Omer's infrastru
 
 ---
 
-*Prepared by Beyza Ülkümen — Full-Stack Developer, DataForge Module 9.*  
-*Milestone 1 · May 2026 · Dataseed Yazılım Elektronik.*
+
