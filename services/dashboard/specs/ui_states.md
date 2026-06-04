@@ -1,10 +1,6 @@
 # DataForge Dashboard — UI Edge States
 
-**Task:** M1W3T9 — Empty / Loading / Error States — All 7 Pages
-**Owner:** Beyza Ülkümen — Full-Stack Developer (Module 9)
-**Milestone:** 1 · Week 3 · May 2026
-**Output path:** `/services/dashboard/specs/ui_states.md`
-**Aligned with:** T8 (wireframes) · T10 (API endpoints) · T9 data fields (M1W2)
+
 
 ---
 
@@ -40,7 +36,7 @@ These rules apply to all 7 pages unless a page overrides them.
 
 ## Page 01 — Home
 
-**API:** `GET /api/v1/summary` (5s) + `GET /api/v1/alerts/recent?limit=5` (5s)
+**API:** `GET /api/v1/summary` (30s) + `GET /api/v1/alerts/recent?limit=5` (5s)
 
 ### Empty State
 **Trigger:** `/api/v1/summary` returns `active_sensors: 0`, `anomaly_count_1h: 0`, `system_status: "idle"`
