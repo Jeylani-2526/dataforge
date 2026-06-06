@@ -2,12 +2,10 @@
 
 **Real-Time Scientific and Sensor Data Processing Platform**
 
-> A 12-month prototype adapting CERN ALICE O² architecture to defense and industrial sensor data —
-> built for handoff to [Dataseed Yazılım Elektronik](https://dataseed.com.tr).
 
 [![CI](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Milestone](https://img.shields.io/badge/Milestone-1%20%E2%80%94%20Requirements-blue)](docs/milestones/)
+[![Milestone](https://img.shields.io/badge/Milestone-2%20%E2%80%94%20Schema%20%26%20Model%20Design-blue)](docs/milestones/)
 
 ---
 
@@ -30,7 +28,7 @@
 
 ## What is DataForge?
 
-DataForge ingests high-volume scientific event data (CERN ALICE Run 3) and synthetic sensor streams (radar, LIDAR, telemetry), processes them in real time through a unified pipeline, detects anomalies with an AI/ML model, explains those decisions using SHAP-based Explainable AI, and delivers results to a live operator dashboard.
+DataForge ingests high-volume scientific event data (CERN ALICE Run 1) and synthetic sensor streams (radar, LIDAR, telemetry), processes them in real time through a unified pipeline, detects anomalies with an AI/ML model, explains those decisions using SHAP-based Explainable AI, and delivers results to a live operator dashboard.
 
 The system is a **TRL 4–5 prototype** — designed to prove the correctness of the pipeline and AI logic on laptop hardware via Docker Compose. It is not a production deployment.
 
@@ -66,7 +64,7 @@ Full architecture documentation is in [`docs/architecture/`](docs/architecture/)
 
 | # | Type | Module | Tech |
 |---|------|---------|------|
-| 1 | Source | ALICE-like Event Data | CERN Open Data Portal (Run 3) |
+| 1 | Source | ALICE-like Event Data | CERN Open Data Portal (Run 1) |
 | 2 | Source | Sensor Data (synthetic) | Python generators (radar / LIDAR / telemetry) |
 | 3 | Pipeline | Data Adaptation Layer | Avro, Parquet, Schema Registry |
 | 4 | Pipeline | Streaming Layer | Apache Kafka (Docker Compose) |
@@ -83,14 +81,14 @@ Full architecture documentation is in [`docs/architecture/`](docs/architecture/)
 
 | Layer | Technology |
 |-------|-----------|
-| Streaming | Apache Kafka (Docker Compose) |
-| Processing | PySpark Structured Streaming |
-| Storage | TimescaleDB (PostgreSQL time-series) |
+| Streaming | Apache Kafka 3.7 — Confluent image (Docker Compose) |
+| Processing | PySpark 3.5 Structured Streaming |
+| Storage | TimescaleDB ≥2.9 (PostgreSQL time-series) |
 | Backend | FastAPI (Python) |
 | Frontend | ReactJS |
 | AI/XAI | scikit-learn · PyTorch (TBD) · SHAP |
 | Serialization | Apache Avro · Parquet |
-| Infrastructure | Docker Compose |
+| Infrastructure | Docker Compose (Docker Desktop 4.x+) |
 
 ---
 
@@ -100,13 +98,13 @@ Full architecture documentation is in [`docs/architecture/`](docs/architecture/)
 
 - Docker Desktop ≥ 4.x installed and running
 - Git
-- Python 3.10+
-- Node.js 18+
+- Python 3.11+
+- Node.js 20+
 
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-org/dataforge.git
+git clone https://github.com/Jeylani-2526/dataforge.git
 cd dataforge
 ```
 
@@ -153,13 +151,17 @@ npm install && npm test
 ```
 dataforge/
 ├── .github/
-│   ├── workflows/          # CI/CD — ci.yml, lint.yml, docker-build.yml
+│   ├── workflows/          # CI/CD — ci.yml
 │   └── ISSUE_TEMPLATE/     # Bug report, feature request, milestone task
 ├── docs/
 │   ├── architecture/       # Architecture diagram + description
 │   ├── milestones/         # M1–M10 milestone documents
+│   ├── requirements/       # FR/NFR docs, prototype performance bar (M1)
 │   ├── schemas/            # Avro schema specs (M2 deliverable)
-│   └── api/                # API contract specs (M2 deliverable)
+│   ├── api/                # API contracts and requirements
+│   ├── database/           # Database schema sketches
+│   ├── research/           # Research notes — TimescaleDB, CERN data
+│   └── glossary.md         # Project-wide glossary (28 terms)
 ├── services/
 │   ├── data-sources/
 │   │   ├── alice-ingestion/     # Module 1: CERN Open Data ingestion
@@ -174,7 +176,9 @@ dataforge/
 │   │   └── xai/                 # Module 8: SHAP explainability
 │   ├── dashboard/
 │   │   ├── frontend/            # Module 9a: ReactJS dashboard
-│   │   └── backend/             # Module 9b: FastAPI backend
+│   │   ├── backend/             # Module 9b: FastAPI backend
+│   │   └── specs/               # Dashboard field specs and UI states
+│   │   └── wireframes/          # wireframe images for all 7 pages
 │   └── testing/                 # Module 10: Performance & validation
 ├── infrastructure/
 │   ├── docker/             # Dockerfiles per service
@@ -184,7 +188,9 @@ dataforge/
 │   └── schemas/            # Avro .avsc schema files (M2)
 ├── docker-compose.yml      # Full stack orchestration
 ├── .env.example            # Environment variable template
+├── .gitignore
 ├── CONTRIBUTING.md         # Branching strategy, commit conventions
+├── LICENSE
 └── README.md
 ```
 
@@ -207,8 +213,8 @@ dataforge/
 
 | # | Milestone | Dates | Status |
 |---|-----------|-------|--------|
-| M1 | Project Understanding & Requirements | 11 May – 7 Jun 2026 | 🔄 In Progress |
-| M2 | Data Schema & Model Design | 8 Jun – 5 Jul 2026 | ⏳ Upcoming |
+| M1 | Project Understanding & Requirements | 11 May – 7 Jun 2026 | ✅ Complete |
+| M2 | Data Schema & Model Design | 8 Jun – 5 Jul 2026 | 🔄 In Progress |
 | M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | ⏳ Upcoming |
 | M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | ⏳ Upcoming |
 | M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | ⏳ Upcoming |
@@ -243,6 +249,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full branching strategy, commit m
 
 **Quick summary:**
 - Branch from `develop`, never commit directly to `main`
+- Both `main` and `develop` are branch-protected — PRs are required for both
 - Branch naming: `feature/short-description` or `milestone/m2-schema-design`
 - Commit format: `type(scope): message` — e.g. `feat(kafka): add topic config for sensor stream`
 - All PRs require at least one review before merging to `develop`
@@ -255,4 +262,3 @@ MIT License — see [LICENSE](LICENSE).
 
 ---
 
-*DataForge Prototype · Team: Abdalla · Beyza · Omer · Supervisor: Emrah Uysal · Scientific Advisor: Prof. Dr. Ayben Karasu Uysal*
