@@ -1,0 +1,64 @@
+{
+  "type": "record",
+  "name": "AliceEvent",
+  "namespace": "dataforge.alice",
+  "doc": "Per-event ALICE Run 1 record with aggregated track fields. One record per collision event. Source: AliESDs.root, esdTree. Full field documentation in /docs/data/alice_run1_field_inventory.md.",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "System-assigned unique event identifier. Format: EVT-{run_number}-{event_number_zero_padded_6}. Example: EVT-139038-000042. No ROOT source."
+    },
+    {
+      "name": "run_number",
+      "type": "int",
+      "doc": "ALICE LHC run number. ROOT source: AliESDRun.fRunNumber (int32_t). Readable by uproot."
+    },
+    {
+      "name": "timestamp_ms",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since Unix epoch. ROOT source: AliESDHeader.fTimeStamp (uint32_t, seconds) x 1000. Readable by uproot. Sub-second component is software-assigned from event index."
+    },
+    {
+      "name": "track_count",
+      "type": "int",
+      "doc": "Number of reconstructed charged tracks in the event. Derived from length of Tracks/Tracks.fFlags array. Readable by uproot."
+    },
+    {
+      "name": "net_momentum_x",
+      "type": "float",
+      "doc": "Net x-momentum summed across all tracks. Unit: GeV/c. Derived from Tracks/Tracks.fP[5] and fAlpha via ROOT/PyROOT. See /docs/data/alice_run1_field_inventory.md Section 4.",
+      "default": 0.0
+    },
+    {
+      "name": "net_momentum_y",
+      "type": "float",
+      "doc": "Net y-momentum summed across all tracks. Unit: GeV/c. Same derivation as net_momentum_x. See /docs/data/alice_run1_field_inventory.md Section 4.",
+      "default": 0.0
+    },
+    {
+      "name": "net_momentum_z",
+      "type": "float",
+      "doc": "Net z-momentum summed across all tracks. Unit: GeV/c. Same derivation as net_momentum_x. See /docs/data/alice_run1_field_inventory.md Section 4.",
+      "default": 0.0
+    },
+    {
+      "name": "max_energy_gev",
+      "type": "float",
+      "doc": "Energy of the highest-energy track in the event. Unit: GeV. Derived via ROOT/PyROOT using pion mass convention (m=0.13957 GeV/c^2). See /docs/data/alice_run1_field_inventory.md Section 4.",
+      "default": 0.0
+    },
+    {
+      "name": "total_energy_gev",
+      "type": "float",
+      "doc": "Total energy summed across all tracks in the event. Unit: GeV. Same derivation as max_energy_gev. See /docs/data/alice_run1_field_inventory.md Section 4.",
+      "default": 0.0
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version in MAJOR.MINOR format. v0.x = provisional draft. v1.0 = locked (target: 25 June 2026). MINOR = backward-compatible addition; MAJOR = breaking change + new filename.",
+      "default": "0.1"
+    }
+  ]
+}
