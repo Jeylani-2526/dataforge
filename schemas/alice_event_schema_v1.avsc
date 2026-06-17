@@ -1,0 +1,64 @@
+{
+  "type": "record",
+  "name": "AliceEvent",
+  "namespace": "dataforge.alice",
+  "doc": "Per-event ALICE Run 1 record with aggregated track fields. One record per collision event from AliESDs.root esdTree. Full field documentation: /docs/data/alice_run1_field_inventory.md.",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "System-assigned unique event identifier (UUID v4). Generated at ingestion time; no ROOT source. PostgreSQL storage type: uuid."
+    },
+    {
+      "name": "run_number",
+      "type": "int",
+      "doc": "ALICE LHC run number. ROOT source: AliESDRun.fRunNumber (int32_t). Direct uproot read. Value for LHC10h prototype file (run 139038): 139038."
+    },
+    {
+      "name": "timestamp_ms",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since Unix epoch. ROOT source: AliESDHeader.fTimeStamp (uint32_t, seconds) x 1000. Sub-second component is software-assigned from AliESDHeader.fEventNumberInFile, satisfying the +/-1 ms precision requirement."
+    },
+    {
+      "name": "track_count",
+      "type": "int",
+      "doc": "Number of reconstructed charged tracks in the event. Derived from len(Tracks/Tracks.fFlags) per event. Direct uproot read."
+    },
+    {
+      "name": "net_momentum_x",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Net x-momentum across all tracks in the event (GeV/c). Formula: sum(|1/fP[4]_i| * cos(fAlpha_i + arcsin(fP[2]_i))). Requires ROOT/PyROOT (Double32_t encoding); full derivation in /docs/data/alice_run1_field_inventory.md Section 4."
+    },
+    {
+      "name": "net_momentum_y",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Net y-momentum across all tracks in the event (GeV/c). Formula: sum(|1/fP[4]_i| * sin(fAlpha_i + arcsin(fP[2]_i))). Requires ROOT/PyROOT (Double32_t encoding); full derivation in /docs/data/alice_run1_field_inventory.md Section 4."
+    },
+    {
+      "name": "net_momentum_z",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Net z-momentum across all tracks in the event (GeV/c). Formula: sum(|1/fP[4]_i| * fP[3]_i). Requires ROOT/PyROOT (Double32_t encoding); full derivation in /docs/data/alice_run1_field_inventory.md Section 4."
+    },
+    {
+      "name": "max_energy_gev",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Highest track energy in the event (GeV). Formula: max(sqrt(px_i^2 + py_i^2 + pz_i^2 + 0.13957^2)) using pion mass convention (m_pi = 0.13957 GeV/c^2, ALICE standard for unidentified tracks). Requires ROOT/PyROOT; see /docs/data/alice_run1_field_inventory.md Section 4."
+    },
+    {
+      "name": "total_energy_gev",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Total energy summed across all tracks in the event (GeV). Formula: sum(sqrt(px_i^2 + py_i^2 + pz_i^2 + 0.13957^2)) using pion mass convention. Requires ROOT/PyROOT; see /docs/data/alice_run1_field_inventory.md Section 4."
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "default": "1.0",
+      "doc": "Schema version in MAJOR.MINOR format. v1.0 = first locked version (25 June 2026). MINOR = backward-compatible field addition (same filename); MAJOR = breaking change requiring a new file (alice_event_schema_v2.avsc)."
+    }
+  ]
+}

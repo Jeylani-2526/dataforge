@@ -1,0 +1,12 @@
+{
+  "event_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "run_number": 139038,
+  "timestamp_ms": 1283299200042,
+  "track_count": 427,
+  "net_momentum_x": 0.5,
+  "net_momentum_y": -0.125,
+  "net_momentum_z": 1.25,
+  "max_energy_gev": 4.875,
+  "total_energy_gev": 89.5,
+  "schema_version": "1.0"
+}
