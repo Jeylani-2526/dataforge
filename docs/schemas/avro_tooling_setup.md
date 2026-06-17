@@ -28,11 +28,63 @@ python schemas/validate_schema.py sample.avsc test_record.json
 
 Example output:
 
-```text
-Original record: {'id': 1, 'name': 'Alice'}
-Decoded record: {'id': 1, 'name': 'Alice'}
-PASS - Round trip successful
+## Example
+
+Example test record:
+
+```json
+{
+  "event_id": "EVT-139038-000042",
+  "run_number": 139038,
+  "timestamp_ms": 1710000000000,
+  "track_count": 12,
+  "net_momentum_x": 1.25,
+  "net_momentum_y": -0.75,
+  "net_momentum_z": 3.5,
+  "max_energy_gev": 4.0,
+  "total_energy_gev": 18.5,
+  "schema_version": "0.1"
+}
 ```
+
+Run:
+
+```bash
+python schemas/validate_schema.py schemas/alice_event_schema_v0.avsc schemas/test_record.json
+```
+
+Example output:
+
+```text
+Original record:
+{
+  'event_id': 'EVT-139038-000042',
+  'run_number': 139038,
+  'timestamp_ms': 1710000000000,
+  'track_count': 12,
+  'net_momentum_x': 1.25,
+  'net_momentum_y': -0.75,
+  'net_momentum_z': 3.5,
+  'max_energy_gev': 4.0,
+  'total_energy_gev': 18.5,
+  'schema_version': '0.1'
+}
+
+Decoded record:
+{
+  'event_id': 'EVT-139038-000042',
+  'run_number': 139038,
+  'timestamp_ms': 1710000000000,
+  'track_count': 12,
+  'net_momentum_x': 1.25,
+  'net_momentum_y': -0.75,
+  'net_momentum_z': 3.5,
+  'max_energy_gev': 4.0,
+  'total_energy_gev': 18.5,
+  'schema_version': '0.1'
+}
+
+PASS: Round-trip validation successful
 
 ## Validation Process
 
