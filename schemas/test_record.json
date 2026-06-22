@@ -1,0 +1,12 @@
+{
+  "event_id": "EVT-139038-000042",
+  "run_number": 139038,
+  "timestamp_ms": 1710000000000,
+  "track_count": 12,
+  "net_momentum_x": 1.25,
+  "net_momentum_y": -0.75,
+  "net_momentum_z": 3.5,
+  "max_energy_gev": 4.0,
+  "total_energy_gev": 18.5,
+  "schema_version": "0.1"
+}

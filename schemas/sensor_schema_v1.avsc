@@ -1,0 +1,159 @@
+{
+  "type": "record",
+  "name": "SensorEvent",
+  "namespace": "dataforge.sensor",
+  "doc": "Unified sensor event record covering radar, LIDAR, and telemetry sources. One record per sensor event. Subtype-specific fields carry values only for the matching sensor_type; all others are null. Field documentation: /docs/data/sensor_field_spec.md.",
+  "fields": [
+
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "System-assigned unique sensor event identifier (UUID v4). Generated at ingestion time. PostgreSQL storage type: uuid. FK source for fused_events.sensor_event_id."
+    },
+    {
+      "name": "sensor_id",
+      "type": "string",
+      "doc": "Physical sensor device identifier (UUID v4). Identifies the hardware unit producing this event, not the individual event record. PostgreSQL storage type: uuid."
+    },
+    {
+      "name": "sensor_type",
+      "type": {
+        "type": "enum",
+        "name": "SensorType",
+        "namespace": "dataforge.sensor",
+        "symbols": ["RADAR", "LIDAR", "TELEMETRY"]
+      },
+      "doc": "Sensor type discriminator. Determines which subtype-specific fields carry values; all fields belonging to the other two subtypes are null in the same record."
+    },
+    {
+      "name": "timestamp_ms",
+      "type": "long",
+      "doc": "Event timestamp in milliseconds since Unix epoch. Software-assigned by the M3 synthetic generator. Satisfies the +/-1 ms precision requirement for stream-stream join in Module 6."
+    },
+
+    {
+      "name": "target_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "RADAR only. Per-scan target identifier string. Null for LIDAR and TELEMETRY records."
+    },
+    {
+      "name": "range_m",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "RADAR only. Distance to target (metres). Null for LIDAR and TELEMETRY records."
+    },
+    {
+      "name": "bearing_deg",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "RADAR only. Angular direction to target in degrees (0-360). Null for LIDAR and TELEMETRY records."
+    },
+    {
+      "name": "elevation_deg",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "RADAR only. Vertical angle to target in degrees (-90 to +90). Null for LIDAR and TELEMETRY records."
+    },
+    {
+      "name": "velocity_ms",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "RADAR only. Radial velocity via Doppler effect (m/s). Null for LIDAR and TELEMETRY records."
+    },
+    {
+      "name": "signal_strength_db",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "RADAR only. Received signal strength (dBm). Key SHAP feature for signal_loss anomaly pattern. Null for LIDAR and TELEMETRY records."
+    },
+
+    {
+      "name": "scan_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "LIDAR only. Unique identifier for this scan. Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "point_count",
+      "type": ["null", "int"],
+      "default": null,
+      "doc": "LIDAR only. Total points captured in this scan. Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "centroid_x_m",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Mean X position across all scan points (metres). Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "centroid_y_m",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Mean Y position across all scan points (metres). Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "centroid_z_m",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Mean Z / altitude across all scan points (metres). Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "max_range_m",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Distance to the farthest detected point in this scan (metres). Key SHAP feature for obstruction anomaly pattern. Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "avg_intensity",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Mean return intensity across all scan points (0-255 scale). Null for RADAR and TELEMETRY records."
+    },
+    {
+      "name": "min_intensity",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "LIDAR only. Minimum return intensity in this scan (0-255 scale). Low values indicate obstruction; key SHAP feature. Null for RADAR and TELEMETRY records."
+    },
+
+    {
+      "name": "device_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "TELEMETRY only. Physical device identifier (e.g., UAV-07, SENSOR-UNIT-12). Null for RADAR and LIDAR records."
+    },
+    {
+      "name": "parameter_name",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "TELEMETRY only. Name of the measured parameter (e.g., cpu_temp_c, battery_pct). Null for RADAR and LIDAR records."
+    },
+    {
+      "name": "value",
+      "type": ["null", "float"],
+      "default": null,
+      "doc": "TELEMETRY only. Measured parameter value in the unit defined by the unit field. Null for RADAR and LIDAR records."
+    },
+    {
+      "name": "unit",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "TELEMETRY only. Unit string for display purposes (e.g., C, %, V). Null for RADAR and LIDAR records."
+    },
+    {
+      "name": "sequence_number",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "TELEMETRY only. Monotonically increasing counter per device. A gap in sequence enables Module 5 to compute data_loss_pct. Null for RADAR and LIDAR records."
+    },
+
+    {
+      "name": "schema_version",
+      "type": "string",
+      "default": "1.0",
+      "doc": "Schema version in MAJOR.MINOR format. v1.0 = first locked version (25 June 2026). MINOR = backward-compatible field addition (same filename); MAJOR = breaking change requiring a new file (sensor_schema_v2.avsc)."
+    }
+
+  ]
+}
