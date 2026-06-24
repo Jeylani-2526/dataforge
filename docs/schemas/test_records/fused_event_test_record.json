@@ -1,0 +1,11 @@
+{
+  "fused_event_id":  "a1b2c3d4-e5f6-4789-abcd-ef1234567890",
+  "alice_event_id":  "b2c3d4e5-f6a7-4891-bcde-f12345678901",
+  "sensor_event_id": "c3d4e5f6-a7b8-4902-cdef-123456789012",
+  "timestamp_ms":    1750000000000,
+  "fusion_window_ms": 500,
+  "sensor_type":     "RADAR",
+  "data_loss_pct":   0.5,
+  "latency_ms":      120,
+  "schema_version":  "1.0"
+}
