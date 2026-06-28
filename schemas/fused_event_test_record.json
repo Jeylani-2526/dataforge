@@ -1,12 +1,11 @@
 {
-  "_comment": "alice_event_id and sensor_event_id intentionally reuse UUIDs from alice_event_test_record.json and sensor_test_record.json (RADAR variant) for cross-schema traceability",
-  "fused_event_id":   "d7e8f9a0-b1c2-3456-defa-bc0123456789",
-  "alice_event_id":   "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "sensor_event_id":  "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "timestamp_ms":     1283299200150,
+  "fused_event_id": "d7e8f9a0-b1c2-3456-defa-bc0123456789",
+  "alice_event_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "sensor_event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp_ms": 1283299200150,
   "fusion_window_ms": 500,
-  "sensor_type":      "RADAR",
-  "data_loss_pct":    0.125,
-  "latency_ms":       47,
-  "schema_version":   "0.1"
+  "sensor_type": "RADAR",
+  "data_loss_pct": 0.125,
+  "latency_ms": 47,
+  "schema_version": "1.0"
 }
