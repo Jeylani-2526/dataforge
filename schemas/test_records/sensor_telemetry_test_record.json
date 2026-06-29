@@ -1,15 +1,11 @@
 {
-  "event_id": "e5f6a7b8-c9d0-1234-efab-234567890104",
   "sensor_id": "f6a7b8c9-d0e1-2345-fabc-345678901015",
   "sensor_type": "TELEMETRY",
   "timestamp_ms": 1283299200300,
   "target_id": null,
   "range_m": null,
   "bearing_deg": null,
-  "elevation_deg": null,
   "velocity_ms": null,
-  "signal_strength_db": null,
-  "scan_id": null,
   "point_count": null,
   "centroid_x_m": null,
   "centroid_y_m": null,
@@ -21,6 +17,5 @@
   "parameter_name": "cpu_temp_c",
   "value": 72.5,
   "unit": "C",
-  "sequence_number": 1001,
   "schema_version": "1.0"
 }
