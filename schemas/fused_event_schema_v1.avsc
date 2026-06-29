@@ -1,0 +1,64 @@
+{
+  "type": "record",
+  "name": "FusedEvent",
+  "namespace": "dataforge.fused",
+  "doc": "Locked v1.0 of the fused event record. Merges one ALICE event with one matched sensor event on a shared software timestamp via Module 6 stream-stream join. Contains join metadata only — ALICE and sensor payload fields are retrieved via TimescaleDB FK joins. Schema locked 25 June 2026 following full team review.",
+  "fields": [
+
+    {
+      "name": "fused_event_id",
+      "type": "string",
+      "doc": "System-assigned unique fused event identifier (UUID v4). Primary key for this record in TimescaleDB fused_events hypertable. FK source for anomaly_alerts.fused_event_id and xai_explanations.fused_event_id. PostgreSQL storage type: uuid."
+    },
+    {
+      "name": "alice_event_id",
+      "type": "string",
+      "doc": "UUID v4 identifier of the matched ALICE event. FK to alice_event_schema_v1.avsc event_id and TimescaleDB events.event_id for ALICE records. PostgreSQL storage type: uuid."
+    },
+    {
+      "name": "sensor_event_id",
+      "type": "string",
+      "doc": "UUID v4 identifier of the matched sensor event. FK to sensor_schema_v1.avsc event_id and TimescaleDB events.event_id for sensor records. PostgreSQL storage type: uuid."
+    },
+    {
+      "name": "timestamp_ms",
+      "type": "long",
+      "doc": "Fusion timestamp in milliseconds since Unix epoch. Software-assigned by Module 6 at join time. Serves as the shared timeline anchor for the matched ALICE-sensor pair and the partitioning key in the fused_events hypertable. Precision: ±1 ms (software clock; no hardware PTP)."
+    },
+    {
+      "name": "fusion_window_ms",
+      "type": "int",
+      "default": 500,
+      "doc": "Configurable time window for the Module 6 stream-stream join in milliseconds. Default 500 ms matches the prototype bar watermark window. A pair is matched when |alice.timestamp_ms - sensor.timestamp_ms| <= fusion_window_ms."
+    },
+    {
+      "name": "sensor_type",
+      "type": {
+        "type": "enum",
+        "name": "SensorType",
+        "namespace": "dataforge.fused",
+        "symbols": ["RADAR", "LIDAR", "TELEMETRY"]
+      },
+      "doc": "Sensor type of the matched sensor event. Mirrors dataforge.sensor.SensorType symbols; redefined here for schema-file independence so this schema can be validated without loading sensor_schema_v1.avsc. Carried forward from the sensor record to enable per-type anomaly analysis in Module 7."
+    },
+    {
+      "name": "data_loss_pct",
+      "type": "float",
+      "default": 0.0,
+      "doc": "Pipeline-computed data loss percentage at fusion time (range 0.0–100.0). Written by Module 3 (Data Adaptation). NOT sourced from the ALICE or sensor generators. Feeds the data_loss NFR metric (prototype bar: <=1%). Uses Avro float (32-bit); values must be float32-safe to avoid fastavro round-trip precision loss."
+    },
+    {
+      "name": "latency_ms",
+      "type": "long",
+      "default": 0,
+      "doc": "Pipeline-computed end-to-end processing latency in milliseconds. Written by Module 5 (Cleaning and Sync). NOT sourced from the ALICE or sensor generators. Feeds the p95 latency NFR metric (prototype bar: <=500 ms)."
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "default": "1.0",
+      "doc": "Schema version in MAJOR.MINOR format. v1.0 = locked production schema (25 June 2026). MINOR bump = backward-compatible addition (new optional field, new enum value). MAJOR bump = breaking change (field removal, type change) — requires new filename (fused_event_schema_v2.avsc) and a migration note in schema_evolution_policy.md."
+    }
+
+  ]
+}
