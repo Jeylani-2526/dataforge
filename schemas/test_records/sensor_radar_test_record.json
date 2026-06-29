@@ -1,11 +1,15 @@
 {
+  "event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "sensor_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   "sensor_type": "RADAR",
   "timestamp_ms": 1283299200100,
   "target_id": "TGT-042",
   "range_m": 1500.0,
   "bearing_deg": 135.0,
+  "elevation_deg": 15.0,
   "velocity_ms": -25.5,
+  "signal_strength_db": -65.5,
+  "scan_id": null,
   "point_count": null,
   "centroid_x_m": null,
   "centroid_y_m": null,
@@ -17,5 +21,6 @@
   "parameter_name": null,
   "value": null,
   "unit": null,
+  "sequence_number": null,
   "schema_version": "1.0"
 }
