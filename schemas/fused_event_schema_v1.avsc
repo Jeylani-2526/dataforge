@@ -18,7 +18,7 @@
     {
       "name": "sensor_event_id",
       "type": "string",
-      "doc": "UUID v4 identifier of the matched sensor event. FK to sensor_schema_v1.avsc sensor_id and TimescaleDB events.event_id for sensor records. PostgreSQL storage type: uuid."
+      "doc": "UUID v4 identifier of the matched sensor event. FK to sensor_schema_v1.avsc event_id and TimescaleDB events.event_id for sensor records. PostgreSQL storage type: uuid."
     },
     {
       "name": "timestamp_ms",
