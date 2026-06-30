@@ -18,8 +18,8 @@ erDiagram
         REAL net_momentum_z "NULL until M3 ROOT Docker"
         REAL max_energy_gev "NULL until M3 ROOT Docker"
         REAL total_energy_gev "NULL until M3 ROOT Docker"
-        FLOAT latency_ms "Pipeline-written Module 3"
-        FLOAT data_loss_pct "Pipeline-written Module 5"
+        FLOAT latency_ms "Pipeline-written Module 5"
+        FLOAT data_loss_pct "Pipeline-written Module 3"
         VARCHAR20 quality_flag "Pipeline-written Module 5"
         INT8 anomaly_label "NULL until M7"
         FLOAT risk_score "NULL until M7"
@@ -55,8 +55,8 @@ erDiagram
     }
 
     xai_explanations {
+        TIMESTAMPTZ time PK "Hypertable partition col — matches anomaly_alerts"
         uuid fused_event_id PK FK
-        TIMESTAMPTZ time
         TEXT explanation_text
         JSONB shap_values
         JSONB top_features
@@ -85,21 +85,6 @@ erDiagram
         VARCHAR20 status
     }
 
-    report_snapshots {
-        uuid snapshot_id PK
-        TIMESTAMPTZ created_at
-        VARCHAR64 filter_hash
-        TIMESTAMPTZ date_from
-        TIMESTAMPTZ date_to
-        VARCHAR20 source_type_filter
-        FLOAT min_risk_filter
-        JSONB summary_json
-        JSONB top_events_json
-        JSONB sensor_perf_json
-        JSONB anomaly_trend_json
-        TIMESTAMPTZ expires_at
-    }
-
     events ||--o{ fused_events : "alice_event_id"
     events ||--o{ fused_events : "sensor_event_id"
     fused_events ||--o{ anomaly_alerts : "fused_event_id"
@@ -115,10 +100,9 @@ erDiagram
 | `events` | ✅ **(HT)** | `time` | 1 day | **30 days** | Covers the M10 testing window. Raw events are the highest-volume table (~600K rows/min); beyond 30 days, continuous aggregates serve all historical queries. |
 | `fused_events` | ✅ **(HT)** | `time` | 1 day | **90 days** | Multi-week anomaly analysis requires joined ALICE+sensor records beyond the raw event window. 90 days covers the full M7 ML training period. |
 | `anomaly_alerts` | ✅ **(HT)** | `time` | 1 day | **365 days** | Full 12-month prototype trend analysis. Alerts are low-volume (~3K rows/min) and represent the primary operator record — long retention has negligible storage cost. |
-| `xai_explanations` | ❌ | — | — | **365 days** | Follows anomaly_alerts retention — every alert has a corresponding XAI record. Accessed by event_id lookup, not time range scan. |
+| `xai_explanations` | ✅ **(HT)** | `time` | 1 day | **365 days** | Hypertable, partitioned on the same timestamp as its paired anomaly_alerts row. An explanation has no standalone value once its alert has expired, so the two are retained together. |
 | `system_performance_metrics` | ✅ **(HT)** | `time` | 1 hour | **30 days** | Matched to events retention. Continuous aggregates (perf_1min, pipeline_health_1min) serve all long-term performance queries. Raw snapshots beyond 30 days add no value. |
-| `fusion_status` | ✅ **(HT)** | `time` | 1 hour | **30 days** | Heartbeat data only — 30 days is sufficient for fusion health trend analysis. Low volume (~24 rows/min). |
-| `report_snapshots` | ❌ | — | — | **24 hours** | On-demand cache only. Stale reports are misleading — auto-expire after 24h forces fresh generation. |
+| `fusion_status` | ✅ **(HT)** | `time` | 1 hour | **7 days** | High-frequency heartbeat table — already load-bearing across six endpoints/components (GET /summary, GET /stream/info, WS /ws/fusion, GET /fusion/sensors, GET /fusion/events, Fusion Monitor page). Only the latest row per sensor matters for live display; 7 days covers operational debugging. |
 
 ---
 
@@ -140,8 +124,8 @@ erDiagram
 | `net_momentum_z` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
 | `max_energy_gev` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
 | `total_energy_gev` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `latency_ms` | FLOAT | NOT NULL | Pipeline-written by Module 3 |
-| `data_loss_pct` | FLOAT | NOT NULL | Pipeline-written by Module 5 |
+| `latency_ms` | FLOAT | NOT NULL | Pipeline-written by Module 5 |
+| `data_loss_pct` | FLOAT | NOT NULL | Pipeline-written by Module 3 |
 | `quality_flag` | VARCHAR(20) | NULL | Pipeline-written by Module 5; clean / incomplete / dropout |
 | `anomaly_label` | INT8 | NULL | NULL until M7 |
 | `risk_score` | FLOAT | NULL | NULL until M7 |
@@ -179,12 +163,12 @@ erDiagram
 | `status_updated_at` | TIMESTAMPTZ | NULL | Set on PATCH |
 | `explanation_summary` | TEXT | NULL | From Module 8 |
 
-### `xai_explanations`
+### `xai_explanations` (HT)
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
+| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column — matches anomaly_alerts.time for paired row |
 | `fused_event_id` | uuid | NOT NULL | PK + FK → fused_events.fused_event_id |
-| `time` | TIMESTAMPTZ | NOT NULL | Denormalized for retention policy |
 | `explanation_text` | TEXT | NOT NULL | |
 | `shap_values` | JSONB | NOT NULL | [{feature, shap_value, direction}] |
 | `top_features` | JSONB | NOT NULL | Top 3 precomputed |
@@ -216,23 +200,6 @@ erDiagram
 | `latency` | FLOAT | NOT NULL | |
 | `status` | VARCHAR(20) | NOT NULL | online / degraded / offline |
 
-### `report_snapshots`
-
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `snapshot_id` | uuid | NOT NULL | PK |
-| `created_at` | TIMESTAMPTZ | NOT NULL | |
-| `filter_hash` | VARCHAR(64) | NOT NULL | SHA256 of filter params |
-| `date_from` | TIMESTAMPTZ | NOT NULL | |
-| `date_to` | TIMESTAMPTZ | NOT NULL | |
-| `source_type_filter` | VARCHAR(20) | NULL | |
-| `min_risk_filter` | FLOAT | NOT NULL | Default 0.0 |
-| `summary_json` | JSONB | NOT NULL | |
-| `top_events_json` | JSONB | NOT NULL | |
-| `sensor_perf_json` | JSONB | NOT NULL | |
-| `anomaly_trend_json` | JSONB | NOT NULL | |
-| `expires_at` | TIMESTAMPTZ | NOT NULL | created_at + 24h |
-
 ---
 
 ## Composite Indexes
@@ -258,7 +225,7 @@ SELECT
     time_bucket('1 minute', time)                                        AS bucket,
     source_type,
     COUNT(*)                                                             AS event_count,
-    percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)            AS latency_p95,
+    percentile_agg(latency_ms)                                           AS latency_p95_agg,
     AVG(data_loss_pct)                                                   AS avg_data_loss
 FROM events
 GROUP BY bucket, source_type;
@@ -275,7 +242,7 @@ SELECT add_continuous_aggregate_policy('perf_1min',
 | Refresh interval | 1 minute |
 | Lag offset | 1 minute |
 | Serves | `/api/v1/performance` — throughput + latency |
-| Requires | timescaledb-toolkit (`percentile_cont`) |
+| Requires | timescaledb-toolkit (`percentile_agg`) |
 
 ---
 
