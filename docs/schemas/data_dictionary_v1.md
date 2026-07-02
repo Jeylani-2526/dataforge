@@ -1,13 +1,13 @@
 # DataForge — Data Dictionary
 
-**Document version:** 1.0 (in progress — fused event section to be completed in Week 8)
+**Document version:** 1.0 (complete — all three schemas documented)
 **Scope:** All fields across all three locked DataForge Avro schemas
 
 | Schema | File | Status in this document |
 |---|---|---|
 | ALICE event | `alice_event_schema_v1.avsc` | ✓ Complete (10 fields) |
 | Sensor | `sensor_schema_v1.avsc` | ✓ Complete (19 fields across 3 subtypes) |
-| Fused event | `fused_event_schema_v1.avsc` | ⏳ Placeholder — to be completed in Week 8 |
+| Fused event | `fused_event_schema_v1.avsc` | ✓ Complete (9 fields) |
 
 ---
 
@@ -126,8 +126,25 @@ Avro type for all subtype fields: `["null", <type>]` with `default: null`.
 **Namespace:** `dataforge.fused`
 **Record name:** `FusedEvent`
 
-> ⏳ **This section is a placeholder. It will be completed in Week 8 (M2W8) once the fused event schema v1 is fully confirmed post-lock.**
->
-> The fused event schema has nine fields: `fused_event_id`, `alice_event_id`, `sensor_event_id`, `timestamp_ms`, `fusion_window_ms`, `sensor_type`, `data_loss_pct`, `latency_ms`, and `schema_version`. Field-level dictionary entries — including source module assignments and plain-language descriptions — will be added here during the Week 8 data dictionary completion task (M2W8, Abdullah).
+**Granularity:** One record per matched ALICE–sensor pair, produced by the Module 6 stream-stream join. Contains join metadata only — ALICE and sensor payload fields are retrieved via TimescaleDB foreign-key joins, not duplicated in this record.
+
+| Field Name | Avro Type | Unit | Description | Source Module |
+|---|---|---|---|---|
+| `fused_event_id` | `string` (UUID v4) | — | System-assigned unique identifier for this fused event record, generated as a UUID v4 string by Module 6 at join time. Primary key in the TimescaleDB `fused_events` hypertable and the FK source for both `anomaly_alerts.fused_event_id` and `xai_explanations.fused_event_id`. Per locked decision, `fused_event_id` — not `event_id` — is the required linkage key across all hypertables, API response payloads, and M2 documents. PostgreSQL storage type: `uuid`. | 6 |
+| `alice_event_id` | `string` (UUID v4) | — | UUID v4 identifier of the matched ALICE event, assigned by the Module 6 join. Foreign key to the ALICE event's own `event_id` (see Section 1) and to `events.event_id` for ALICE-sourced rows in TimescaleDB. Only the reference is stored here — the full ALICE payload (momentum, energy, track count) is retrieved via a FK join. PostgreSQL storage type: `uuid`. | 6 |
+| `sensor_event_id` | `string` (UUID v4) | — | UUID v4 identifier of the matched sensor event, assigned by the Module 6 join. Foreign key to the sensor event's `event_id`¹ and to `events.event_id` for sensor-sourced rows in TimescaleDB. As with `alice_event_id`, only the reference is stored here — the full sensor payload is retrieved via a FK join. PostgreSQL storage type: `uuid`. | 6 |
+| `timestamp_ms` | `long` | ms | Fusion timestamp in milliseconds since the Unix epoch, software-assigned by Module 6 at join time. Serves as the shared timeline anchor for the matched ALICE–sensor pair and as the partitioning key for the `fused_events` hypertable. Precision: ±1 ms (software clock; no hardware PTP synchronization), consistent with the ALICE and sensor timestamp precision so the two streams can be reliably joined. | 6 |
+| `fusion_window_ms` | `int` | ms | Configurable time window for the Module 6 stream-stream join. Locked default: 500 ms. A sensor event is matched to an ALICE event when \|`alice.timestamp_ms - sensor.timestamp_ms`\| ≤ `fusion_window_ms`. This value is taken directly from the locked schema and supersedes any other figure referenced elsewhere in project notes. | 6 |
+| `sensor_type` | `enum` (`RADAR` \| `LIDAR` \| `TELEMETRY`) | — | Sensor type of the matched sensor event, carried forward unchanged from the matched sensor record. Redefined locally within the fused schema (rather than referencing the sensor schema's enum directly) so the fused schema can be validated independently without loading `sensor_schema_v1.avsc`. Used by Module 7 to run per-sensor-type anomaly analysis. | 6 |
+| `data_loss_pct` | `float` | % | Pipeline-computed data loss percentage at fusion time (range 0.0–100.0, default 0.0). Written by **Module 3 (Data Adaptation)** — this is not a value produced by the ALICE or sensor generators. Feeds the data-loss NFR metric (prototype bar: ≤1%). Stored as Avro `float` (32-bit); test records for this field must use float32-safe values to avoid fastavro round-trip precision loss. | 3 |
+| `latency_ms` | `long` | ms | Pipeline-computed end-to-end processing latency in milliseconds (default 0). Written by **Module 5 (Cleaning and Sync)** — like `data_loss_pct`, this is not sourced from the ALICE or sensor generators. Feeds the p95 latency NFR metric (prototype bar: ≤500 ms). | 5 |
+| `schema_version` | `string` | — | Version of the fused event Avro schema used to encode this record, in MAJOR.MINOR format (default `"1.0"`). A MINOR increment indicates a backward-compatible addition (new optional field, new enum value); a MAJOR increment indicates a breaking change and requires a new filename (`fused_event_schema_v2.avsc`) plus a migration note in `schema_evolution_policy.md`. Assigned by Module 6 at fusion time — distinct from the ALICE and sensor sections, where `schema_version` is assigned by Module 3 at ingestion. | 6 |
+
+### Fused Event Section — Notes
+
+- **Module attribution for `data_loss_pct` and `latency_ms` is critical:** these are pipeline-written fields, not sensor- or ALICE-sourced outputs. `data_loss_pct` = Module 3 (Data Adaptation); `latency_ms` = Module 5 (Cleaning and Sync). This matches the locked schema doc-strings and must stay consistent with the ERD and the M2 Database & API contribution document.
+- **`fused_event_id` is the sole linkage key:** any reference to `event_id` as a linkage key in an M2 deliverable is an error, per the locked team decision.
+- **`fusion_window_ms` = 500 ms per schema.** This value takes precedence over any different figure that may appear in older project notes or discussions.
+- **¹ Open dependency on `sensor_event_id`'s FK target:** the description above names the sensor event's `event_id` field, which is present in the current `sensor_schema_v1.avsc` file but was added post-lock without the required version bump, migration note, or Abdalla sign-off — this is the schema evolution violation already tracked as a carried-forward issue. If that field is renamed, reverted, or formally versioned as part of the corrective action, this entry and the fused schema's own doc-string for `sensor_event_id` will both need to be updated to match. This entry is accurate to the schema file as it exists today, not a statement that the underlying process gap is resolved.
 
 ---

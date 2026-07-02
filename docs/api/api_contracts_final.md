@@ -1,5 +1,7 @@
 # DataForge — API Response Contracts (Final)
 
+> **Revision note (2 July 2026):** Three corrections applied: (1) Endpoint 3 `latency_ms`/`data_loss_pct` module attribution corrected (was swapped, inconsistent with Endpoints 4/11/12/15 in this same document), (2) Endpoint 13 `latency_p95_ms` source updated to reflect the `perf_1min` CAGG's corrected `percentile_agg` implementation (extraction via `approx_percentile`, not a direct float read), (3) explicit WebSocket M1-design-rationale confirmation note added ahead of Endpoint 5, per the Week 8 locked decision.
+
 **Cross-check rules:**
 - `fused_event_id` = primary linkage key in all alerts and XAI responses (not `event_id`)
 - `data_loss_pct` and `latency_ms` = pipeline-written in all payloads
@@ -55,8 +57,8 @@
 | `anomaly_label` | int | `events.anomaly_label` | Omitted if null (pre-M7) |
 | `risk_score` | float | `events.risk_score` | Omitted if null (pre-M7) |
 | `quality_flag` | string | `events.quality_flag` | Pipeline-written Module 5 |
-| `latency_ms` | float | `events.latency_ms` | **Pipeline-written Module 3** |
-| `data_loss_pct` | float | `events.data_loss_pct` | **Pipeline-written Module 5** |
+| `latency_ms` | float | `events.latency_ms` | **Pipeline-written Module 5** |
+| `data_loss_pct` | float | `events.data_loss_pct` | **Pipeline-written Module 3** |
 
 ---
 
@@ -73,6 +75,10 @@
 | `data_loss_pct` | float | `fusion_status.data_loss` | **Pipeline-written Module 5** |
 | `latency_ms` | float | `fusion_status.latency` | **Pipeline-written Module 5** |
 | `status` | string | `fusion_status.status` | online / degraded / offline |
+
+---
+
+> **WebSocket design confirmation:** `WS /api/v1/ws/stream` (Endpoint 3) and `WS /api/v1/ws/fusion` (Endpoint 4) are consistent with the original M1 design decision (`ui_api_requirements_final.docx`) — WebSocket was specifically chosen over REST polling for Live Stream and Fusion Monitor because 5-second polling would miss events at the 10K events/sec prototype throughput bar. This was a documentation gap at Week 7, not an open architecture question; no change to either endpoint's design is required.
 
 ---
 
@@ -243,7 +249,7 @@
 |---|---|---|---|
 | `series[].timestamp_ms` | long | `perf_1min.bucket` | |
 | `series[].event_count` | int | `perf_1min.event_count` | From `events` HT |
-| `series[].latency_p95_ms` | float | `perf_1min.latency_p95` | From `events` HT — timescaledb-toolkit |
+| `series[].latency_p95_ms` | float | `approx_percentile(0.95, perf_1min.latency_p95_agg)` | From `events` HT — timescaledb-toolkit; `latency_p95_agg` is a `percentile_agg` state, not a plain float |
 | `series[].avg_data_loss_pct` | float | `perf_1min.avg_data_loss` | From `events` HT — **pipeline-written** |
 | `series[].avg_time_sync_ms` | float | `pipeline_health_1min.avg_time_sync` | From `system_performance_metrics` |
 | `series[].avg_pipeline_latency` | float | `pipeline_health_1min.avg_pipeline_latency` | From `system_performance_metrics` — **pipeline-written** |
