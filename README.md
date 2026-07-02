@@ -156,7 +156,7 @@ dataforge/
 |   └── pull_request_template.md
 |   data/
 │   ├── samples/            # Small ALICE sample + synthetic data examples
-│   └── schemas/            # Avro .avsc schema files (M2)
+│   └── schemas/            
 |   └── cern_exploration_notes_beyza (1).md
 ├── docs/
 |   ├── Infrastructure/
@@ -191,7 +191,7 @@ dataforge/
 │   ├── data-sources/
 │   │   ├── alice-ingestion/     # Module 1: CERN Open Data ingestion
 │   │   └── sensor-generators/  # Module 2: Radar / LIDAR / telemetry generators
-│   ├── fusion/        
+│   ├── fusion/                 # Module 6: Data fusion engine        
 │   ├── streaming/
 │   │   ├── kafka/               # Module 4: Kafka config & topics
 │   │   └── spark/               # Module 5: PySpark cleaning & sync
