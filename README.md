@@ -174,20 +174,20 @@ dataforge/
 |   └── Dataforge Testing Strategy.md
 │   └── glossary.md         # Project-wide glossary (28 terms)
 ├── infrastructure/
-|   ├── docker/
-|   ├── scripts/
+|   ├── docker/            # Dockerfiles per service
+|   ├── scripts/           # Setup, seed, and utility scripts
 ├── schemas/
 │   ├── test_records/
 ├── services/
-│   ├── adaptation-layer/
+│   ├── adaptation-layer/                 # Module 3: Avro/Parquet conversion
 │   ├── ai-ml/
-│   │   ├── anomaly-detection/models/
-│   │   ├── xai
+│   │   ├── anomaly-detection/models/     # Module 7: ML model training & inference
+│   │   ├── xai                           # Module 8: SHAP explainability
 │   ├── dashboard/
-│   │   ├── backend/
-│   │   ├── frontend/
-│   │   ├── specs/
-│   │   ├── wireframes/
+│   │   ├── backend/                      # Module 9b: FastAPI backend
+│   │   ├── frontend/                     # Module 9a: ReactJS dashboard
+│   │   ├── specs/                        # Dashboard field specs and UI states
+│   │   ├── wireframes/                   # wireframe images for all 7 pages
 │   ├── data-sources/
 │   │   ├── alice-ingestion/     # Module 1: CERN Open Data ingestion
 │   │   └── sensor-generators/  # Module 2: Radar / LIDAR / telemetry generators
@@ -195,7 +195,7 @@ dataforge/
 │   ├── streaming/
 │   │   ├── kafka/               # Module 4: Kafka config & topics
 │   │   └── spark/               # Module 5: PySpark cleaning & sync
-│   ├── testing/                 
+│   ├── testing/                 # Module 10: Performance & validation
 ├── .env.example # Environment variable template         
 ├── .gitignore            
 ├── CONTRIBUTING.md  # Branching strategy, commit conventions
