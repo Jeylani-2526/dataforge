@@ -306,6 +306,31 @@ SELECT add_continuous_aggregate_policy('summary_5min',
 
 ---
 
+### `alerts_daily` — over `anomaly_alerts` (HT)
+
+```sql
+CREATE MATERIALIZED VIEW alerts_daily
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 day', time)   AS bucket,
+    COUNT(*)                     AS anomaly_count
+FROM anomaly_alerts
+GROUP BY bucket;
+
+SELECT add_continuous_aggregate_policy('alerts_daily',
+    start_offset      => INTERVAL '2 days',
+    end_offset        => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+```
+
+| Property | Value |
+|---|---|
+| Bucket | 1 day |
+| Refresh interval | 1 hour |
+| Lag offset | 1 hour |
+| Serves | `GET /api/v1/reports` — `anomaly_trend[].bucket_ms`, `anomaly_trend[].anomaly_count` |
+---
+
 ## CAGG Summary
 
 | View | Source | Bucket | Refresh | Serves |
@@ -313,8 +338,9 @@ SELECT add_continuous_aggregate_policy('summary_5min',
 | `perf_1min` | `events` | 1 min | 1 min | `/api/v1/performance` — throughput + latency |
 | `pipeline_health_1min` | `system_performance_metrics` | 1 min | 1 min | `/api/v1/performance` — time sync + data loss |
 | `summary_5min` | `fused_events` | 5 min | **30s** | `/api/v1/summary` — Home cards |
+| `alerts_daily` | `anomaly_alerts` | 1 day | 1 hour | `/api/v1/reports` — anomaly trend |
 
-> No cascading CAGGs in this ERD — all three views query raw hypertables directly. TimescaleDB ≥ 2.9 is listed in infrastructure requirements as a precaution for future cascading CAGG additions.
+> No cascading CAGGs in this ERD — all four views query raw hypertables directly. TimescaleDB ≥ 2.9 is listed in infrastructure requirements as a precaution for future cascading CAGG additions.
 
 ---
 
