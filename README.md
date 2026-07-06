@@ -153,45 +153,55 @@ dataforge/
 ├── .github/
 │   ├── workflows/          # CI/CD — ci.yml
 │   └── ISSUE_TEMPLATE/     # Bug report, feature request, milestone task
+|   └── pull_request_template.md
+|   data/
+│   ├── samples/            # Small ALICE sample + synthetic data examples
+│   └── schemas/            
+|   └── cern_exploration_notes_beyza (1).md
 ├── docs/
+|   ├── Infrastructure/
+|   ├── api/                # API contracts and requirements
 │   ├── architecture/       # Architecture diagram + description
+|   ├── data/
+|   ├── database/           # Database schema sketches
+|   ├── learning/
+|   ├── milestone2
 │   ├── milestones/         # M1–M10 milestone documents
 │   ├── requirements/       # FR/NFR docs, prototype performance bar (M1)
-│   ├── schemas/            # Avro schema specs (M2 deliverable)
-│   ├── api/                # API contracts and requirements
-│   ├── database/           # Database schema sketches
-│   ├── research/           # Research notes — TimescaleDB, CERN data
+|   ├── research/          # Research notes — TimescaleDB, CERN data
+│   ├── schemas/           # Avro schema specs (M2 deliverable)
+│   │   ├── test_records/
+|   └── Dataforge Testing Strategy.md
 │   └── glossary.md         # Project-wide glossary (28 terms)
+├── infrastructure/
+|   ├── docker/            # Dockerfiles per service
+|   ├── scripts/           # Setup, seed, and utility scripts
+├── schemas/
+│   ├── test_records/
 ├── services/
+│   ├── adaptation-layer/                 # Module 3: Avro/Parquet conversion
+│   ├── ai-ml/
+│   │   ├── anomaly-detection/models/     # Module 7: ML model training & inference
+│   │   ├── xai                           # Module 8: SHAP explainability
+│   ├── dashboard/
+│   │   ├── backend/                      # Module 9b: FastAPI backend
+│   │   ├── frontend/                     # Module 9a: ReactJS dashboard
+│   │   ├── specs/                        # Dashboard field specs and UI states
+│   │   ├── wireframes/                   # wireframe images for all 7 pages
 │   ├── data-sources/
 │   │   ├── alice-ingestion/     # Module 1: CERN Open Data ingestion
 │   │   └── sensor-generators/  # Module 2: Radar / LIDAR / telemetry generators
-│   ├── adaptation-layer/        # Module 3: Avro/Parquet conversion
+│   ├── fusion/                 # Module 6: Data fusion engine        
 │   ├── streaming/
 │   │   ├── kafka/               # Module 4: Kafka config & topics
 │   │   └── spark/               # Module 5: PySpark cleaning & sync
-│   ├── fusion/                  # Module 6: Data fusion engine
-│   ├── ai-ml/
-│   │   ├── anomaly-detection/   # Module 7: ML model training & inference
-│   │   └── xai/                 # Module 8: SHAP explainability
-│   ├── dashboard/
-│   │   ├── frontend/            # Module 9a: ReactJS dashboard
-│   │   ├── backend/             # Module 9b: FastAPI backend
-│   │   └── specs/               # Dashboard field specs and UI states
-│   │   └── wireframes/          # wireframe images for all 7 pages
-│   └── testing/                 # Module 10: Performance & validation
-├── infrastructure/
-│   ├── docker/             # Dockerfiles per service
-│   └── scripts/            # Setup, seed, and utility scripts
-├── data/
-│   ├── samples/            # Small ALICE sample + synthetic data examples
-│   └── schemas/            # Avro .avsc schema files (M2)
-├── docker-compose.yml      # Full stack orchestration
-├── .env.example            # Environment variable template
-├── .gitignore
-├── CONTRIBUTING.md         # Branching strategy, commit conventions
+│   ├── testing/                 # Module 10: Performance & validation
+├── .env.example # Environment variable template         
+├── .gitignore            
+├── CONTRIBUTING.md  # Branching strategy, commit conventions
 ├── LICENSE
 └── README.md
+└── docker-compose.yml # Full stack orchestration
 ```
 
 ---
