@@ -1,12 +1,14 @@
 # DataForge — Data Dictionary
 
-**Document version:** 1.0 (complete — all three schemas documented)
+**Document version:** 1.1 (correction — 5 sensor fields added post-lock restored to Section 2; see note below)
 **Scope:** All fields across all three locked DataForge Avro schemas
+
+> **Correction note (M3 Week 9):** Section 2 (Sensor Schema) previously omitted 5 fields present in the locked `sensor_schema_v1.avsc` — `event_id` (common), `elevation_deg` and `signal_strength_db` (RADAR), `scan_id` (LIDAR), and `sequence_number` (TELEMETRY). These fields were added to the schema post-lock as part of a schema-evolution correction already signed off by Abdalla, but this dictionary was never regenerated to match. All 5 are now documented below. No schema change accompanies this correction — this is a documentation-only fix bringing the dictionary back into agreement with the schema file, which remains the sole source of truth.
 
 | Schema | File | Status in this document |
 |---|---|---|
 | ALICE event | `alice_event_schema_v1.avsc` | ✓ Complete (10 fields) |
-| Sensor | `sensor_schema_v1.avsc` | ✓ Complete (19 fields across 3 subtypes) |
+| Sensor | `sensor_schema_v1.avsc` | ✓ Complete (24 fields across 3 subtypes) |
 | Fused event | `fused_event_schema_v1.avsc` | ✓ Complete (9 fields) |
 
 ---
@@ -57,10 +59,11 @@ Fields are organised as: system-assigned fields first, then ROOT-readable fields
 
 ### 2.1 Common Fields
 
-These four fields are present and non-null in every sensor record regardless of `sensor_type`.
+These five fields are present and non-null in every sensor record regardless of `sensor_type`.
 
 | Field Name | Avro Type | Unit | Description | Source Module |
 |---|---|---|---|---|
+| `event_id` | `string` (UUID v4) | — | System-assigned unique identifier for this sensor event record, generated as a UUID v4 string at ingestion time. Distinct from `sensor_id` — `event_id` identifies this individual record, while `sensor_id` identifies the physical sensor hardware that produced it. Used as the primary key in the TimescaleDB `events` hypertable and as the foreign key source for `fused_events.sensor_event_id`. PostgreSQL storage type: `uuid`. | 3 |
 | `sensor_id` | `string` (UUID v4) | — | Unique identifier for the physical sensor device (or synthetic sensor instance) that produced this record, generated as a UUID v4 string by the synthetic data generator. Identifies which sensor unit reported this measurement. Distinct from `device_id` (Telemetry subtype) — `sensor_id` identifies the sensor hardware unit; `device_id` identifies a subsystem being monitored by that sensor. | 2 |
 | `timestamp_ms` | `long` | ms | Sensor measurement timestamp in milliseconds since the Unix epoch, assigned by the synthetic data generator using a software clock. Precision: ±1 ms, consistent with the ALICE event timestamp precision to enable the stream-stream join in Module 6. | 2 |
 | `sensor_type` | `enum` (`RADAR` \| `LIDAR` \| `TELEMETRY`) | — | Identifies the category of sensor that produced this record. Determines which subtype-specific fields are populated (non-null) and which carry `null` values. Used by Module 6 for fusion routing — each sensor type is matched to ALICE events independently — and by Module 7 for per-type anomaly analysis. | 2 |
@@ -78,7 +81,9 @@ Avro type for all subtype fields: `["null", <type>]` with `default: null`.
 | `target_id` | `["null", "string"]` | — | Identifier for the radar-detected target, assigned by the synthetic radar generator. Allows tracking of the same physical target across consecutive radar scans. Null for LIDAR and TELEMETRY records. | 2 |
 | `range_m` | `["null", "float"]` | m | Estimated slant distance from the radar sensor to the detected target, in metres. Null for LIDAR and TELEMETRY records. | 2 |
 | `bearing_deg` | `["null", "float"]` | degrees | Horizontal angle to the detected target measured clockwise from north, in degrees (range 0–360). Null for LIDAR and TELEMETRY records. | 2 |
+| `elevation_deg` | `["null", "float"]` | degrees | Vertical angle to the detected target, in degrees (range -90 to +90). Together with `bearing_deg`, fully describes the target's angular position relative to the sensor. Null for LIDAR and TELEMETRY records. | 2 |
 | `velocity_ms` | `["null", "float"]` | m/s | Radial velocity of the detected target relative to the sensor, in metres per second. Positive values indicate the target is moving away from the sensor; negative values indicate approach. Null for LIDAR and TELEMETRY records. | 2 |
+| `signal_strength_db` | `["null", "float"]` | dBm | Received signal strength of the radar return, in dBm. A key feature for detecting the `sensor_dropout` anomaly pattern (see `anomaly_injection_design.md`) — an abnormally weak return indicates signal loss rather than a genuine absence of targets. Null for LIDAR and TELEMETRY records. | 2 |
 
 ---
 
@@ -90,6 +95,7 @@ Avro type for all subtype fields: `["null", <type>]` with `default: null`.
 
 | Field Name | Avro Type | Unit | Description | Source Module |
 |---|---|---|---|---|
+| `scan_id` | `["null", "string"]` | — | Unique identifier for this LIDAR scan, assigned by the synthetic data generator. Allows a single scan's aggregate fields to be traced back to one physical sweep, distinct from `event_id` which identifies the record itself. Null for RADAR and TELEMETRY records. | 2 |
 | `point_count` | `["null", "int"]` | — | Total number of point returns captured in this LIDAR scan. Gives a measure of scan density. Individual point coordinates are not retained in this schema — only scan-level aggregates are stored. Null for RADAR and TELEMETRY records. | 2 |
 | `centroid_x_m` | `["null", "float"]` | m | X-coordinate of the geometric centroid (average position) of all point returns in this scan, in metres. Represents the approximate horizontal centre of the scanned scene along the x-axis. Null for RADAR and TELEMETRY records. | 2 |
 | `centroid_y_m` | `["null", "float"]` | m | Y-coordinate of the geometric centroid of all point returns in this scan, in metres. Represents the approximate horizontal centre of the scanned scene along the y-axis. Null for RADAR and TELEMETRY records. | 2 |
@@ -111,6 +117,7 @@ Avro type for all subtype fields: `["null", <type>]` with `default: null`.
 | `parameter_name` | `["null", "string"]` | — | Name of the telemetry parameter being reported in this record (for example, `"engine_temp_c"`, `"fuel_pressure_bar"`, `"rpm"`). The unit of the corresponding `value` field is determined by this field. Null for RADAR and LIDAR records. | 2 |
 | `value` | `["null", "float"]` | variable (see `parameter_name`) | Measured value of the telemetry parameter. The unit is defined by the `parameter_name` field — for example, a value of `85.0` with `parameter_name = "engine_temp_c"` means 85 degrees Celsius. Null for RADAR and LIDAR records. | 2 |
 | `unit` | `["null", "string"]` | — | Unit of measurement for the `value` field, expressed as a plain string (for example, `"celsius"`, `"bar"`, `"rpm"`). Included explicitly alongside `parameter_name` so API consumers do not need to maintain a parameter-to-unit lookup table. Null for RADAR and LIDAR records. | 2 |
+| `sequence_number` | `["null", "long"]` | — | Monotonically increasing counter assigned per device by the synthetic telemetry generator. A gap in this sequence is how Module 5 (Cleaning & Sync) computes `data_loss_pct`, and is also the mechanism the `missing_reading` anomaly pattern uses (see `anomaly_injection_design.md`). Null for RADAR and LIDAR records. | 2 |
 
 ### Sensor Section — Notes
 
