@@ -4,7 +4,7 @@
 
 ## 1. Executive Summary
 
-The ALICE ESD ROOT file was successfully opened with uproot. The file contains **228 collision events** across one main data tree (`esdTree`). The structure was fully enumerated — 20+ detector subsystems with hundreds of branches.
+The ALICE ESD ROOT file was successfully opened with uproot. The file contains **287 collision events** across one main data tree (`esdTree`). The structure was fully enumerated — 20+ detector subsystems with hundreds of branches.
 
 **Key finding for schema design:** The fields required for the DataForge per-event Avro schema split into two groups:
 
@@ -24,11 +24,11 @@ The momentum and energy fields are stored in AliRoot's compressed `Double32_t` h
 | Property | Value |
 |---|---|
 | **Source URL** | `http://opendata.cern.ch/eos/opendata/alice/2010/LHC10h/000139038/ESD/0003/AliESDs.root` |
-| **File size** | 376,822,741 bytes (~359 MB) |
+| **File size** | 126 MB |
 | **Collision system** | Pb-Pb at √sNN = 2.76 TeV |
-| **Run number** | 139038 |
+| **Run number** | 139465 |
 | **Run period** | LHC10h (Run 1, 2010) |
-| **Trees in file** | `esdTree` (228 events), `HLTesdTree` (HLT trigger data) |
+| **Trees in file** | `esdTree` (287 events), `HLTesdTree` (HLT trigger data) |
 | **Primary tree** | `esdTree` — used for all DataForge ingestion |
 | **Detector subsystems** | 20+ (AliESDRun, AliESDHeader, Tracks, Vertices, ZDC, V0, FMD, T0, VZERO, EMCAL, PHOS, TRD, TOF, Muon, …) |
 
@@ -40,8 +40,8 @@ This table is the authoritative mapping. Every DataForge Avro schema field is tr
 
 | Avro Field | Avro Type | Unit | ROOT Source Branch | ROOT Type | Readable by uproot? | Notes |
 |---|---|---|---|---|---|---|
-| `event_id` | string | — | *None* | — | N/A | System-generated UUID at ingestion. Format: `EVT-{run_number}-{event_index_zero_padded_6}`. Example: `EVT-139038-000001`. |
-| `run_number` | int | — | `AliESDRun./AliESDRun.fRunNumber` | `int32_t` | ✓ **YES** | Direct read. Unique LHC fill run identifier. Value for this file: 139038. |
+| `event_id` | string | — | *None* | — | N/A | System-generated UUID at ingestion. Format: `EVT-{run_number}-{event_index_zero_padded_6}`. Example: `EVT-139465-000001`. |
+| `run_number` | int | — | `AliESDRun./AliESDRun.fRunNumber` | `int32_t` | ✓ **YES** | Direct read. Unique LHC fill run identifier. Value for this file: 139465. |
 | `timestamp_ms` | long | ms | `AliESDHeader./AliESDHeader.fTimeStamp` | `uint32_t` | ✓ **YES** | Unix timestamp in **seconds**. Must multiply by 1000 at ingestion to produce ms. Precision is ±1s from the hardware clock; sub-second component is software-assigned. This satisfies the ±1ms software timestamp requirement. |
 | `track_count` | int | — | `Tracks/Tracks.fFlags` (array length) | `uint64_t[]` | ✓ **YES** | `fFlags` is a per-track readable array. Its length per event equals the number of reconstructed charged tracks. Direct `len()` call in Python. |
 | `net_momentum_x` | float | GeV/c | `Tracks/Tracks.fP[5]` + `Tracks/Tracks.fAlpha` | `Double32_t[]` | ✗ **NO** | Both branches are `[unreadable: 0]`. Derivation requires ROOT/PyROOT. See Section 4 for formula. |
@@ -327,9 +327,9 @@ File:          AliESDs.root
 Experiment:    ALICE, CERN LHC Run 1
 Period:        LHC10h (Heavy-ion run, October 2010)
 Collision:     Pb-Pb at √sNN = 2.76 TeV
-Run number:    139038
-Events:        228
-File size:     376,822,741 bytes (359 MB)
+Run number:    139465
+Events:        287
+File size:     126 MB
 Trees:         esdTree (data), HLTesdTree (HLT trigger)
 Detector:      Full ALICE (ITS, TPC, TRD, TOF, EMCAL, PHOS, ZDC, V0, T0, FMD, MUON, ACORDE)
 Inspection:    uproot 4.x — branch listing complete; Double32_t branches not decodable

@@ -174,10 +174,9 @@ If the change affects a milestone deliverable or alters a field visible in the A
 ## Migration Log
 
 *This section is append-only. Each entry records a post-lock schema change. No entries may be modified or deleted.*
-
 | Date | Schema | Old Version | New Version | Change Summary | New Topic Required? | Sign-off |
 |---|---|---|---|---|---|---|
-| — | — | — | — | No changes since lock (25 June 2026) | — | — |
+| 14 July 2026 | alice_event_schema_v1.avsc | 1.0 | 1.0 (no bump — doc-only per Section 2) | Corrected `run_number` doc string from 139038 to 139465 to match the verified acquired ALICE sample, per M3W10T1 team decision (see alice_discrepancy_resolution.md) | No | Abdullah |
 
 ---
 
