@@ -4,12 +4,12 @@
 
 | Stream | Files | Total | Validated | Failed |
 |---|---|---|---|---|
-| alice | — | — | — | ALICE batch henüz yüklenmedi (AliESDs.root mevcut, M4'te işlenecek) |
+| alice | 1 | 287 | 287 | 0 |
 | radar | 1 | 50,000 | 50,000 | 0 |
 | lidar | 1 | 50,000 | 50,000 | 0 |
 | telemetry | 1 | 50,000 | 50,000 | 0 |
 
-**Toplam:** 150,000 kayıt yüklendi · 0 failed · DB doğrulandı (19 Temmuz 2026)
+**Toplam:** 150,287 kayıt yüklendi · 0 failed · DB doğrulandı (19 Temmuz 2026)
 
 ---
 
@@ -18,13 +18,13 @@
 | Staging Field | `events` Column | Status |
 |---|---|---|
 | `event_id` | `event_id` (uuid) | ✅ Eşleşti |
-| `run_number` | `run_number` (int) | ✅ ALICE için hazır |
+| `run_number` | `run_number` (int) | ✅ Eşleşti — run 139465 |
 | `timestamp_ms` | `timestamp_ms` (bigint) | ✅ Eşleşti |
-| `track_count` | `track_count` (int) | ✅ ALICE için hazır |
-| `net_momentum_x/y/z` | `net_momentum_x/y/z` (real) | ✅ ALICE için hazır |
-| `max_energy_gev` | `max_energy_gev` (real) | ✅ ALICE için hazır |
-| `total_energy_gev` | `total_energy_gev` (real) | ✅ ALICE için hazır |
-| `sensor_type` | `source_type` (lowercased) | ✅ Eşleşti — lowercase dönüşümü script'te uygulandı |
+| `track_count` | `track_count` (int) | ✅ Eşleşti |
+| `net_momentum_x/y/z` | `net_momentum_x/y/z` (real) | ✅ 0.0 — PyROOT M4'te |
+| `max_energy_gev` | `max_energy_gev` (real) | ✅ 0.0 — PyROOT M4'te |
+| `total_energy_gev` | `total_energy_gev` (real) | ✅ 0.0 — PyROOT M4'te |
+| `sensor_type` | `source_type` (lowercased) | ✅ Eşleşti |
 | RADAR fields (6) | staging only | ✅ Tümü doğru yüklendi |
 | LIDAR fields (8) | staging only | ✅ Tümü doğru yüklendi |
 | TELEMETRY fields (5) | staging only | ✅ Tümü doğru yüklendi |
@@ -51,9 +51,8 @@
 
 | # | Stream | Field | Beklenen | Gerçek | Severity | Çözüm |
 |---|---|---|---|---|---|---|
-| 1 | all | dosya uzantısı | `.ndjson` | `.jsonl` | INFO | staging_ingestion_script.py güncellendi — `.jsonl` desteklenir |
-| 2 | all | DB_URL kullanıcı | `postgres` | `dataforge` | INFO | staging_ingestion_script.py güncellendi — doğru credentials |
+| 1 | all | dosya uzantısı | `.ndjson` | `.jsonl` | INFO | staging_ingestion_script.py güncellendi |
+| 2 | all | DB_URL kullanıcı | `postgres` | `dataforge` | INFO | staging_ingestion_script.py güncellendi |
+| 3 | alice | momentum/energy | gerçek değer | 0.0 | INFO | PyROOT Docker M4'te eklenecek |
 
-**Severity:** BLOCK — yükleme engeller · WARN — M4 promote'u etkiler · INFO — kozmetik
-
-**Sonuç:** BLOCK veya WARN seviyesinde mismatch yok. 2 INFO-level uyumsuzluk script'te düzeltildi.
+**Sonuç:** BLOCK veya WARN seviyesinde mismatch yok. 3 INFO-level uyumsuzluk — hepsi beklenen veya düzeltildi.
