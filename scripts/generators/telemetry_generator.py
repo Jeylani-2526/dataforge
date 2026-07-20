@@ -1,6 +1,7 @@
 import argparse
 import random
 
+from scripts.generators.anomaly_injection import inject_anomaly
 from scripts.generators.common import (
     SCHEMA_VERSION,
     current_timestamp_ms,
@@ -65,7 +66,9 @@ def generate_telemetry_record() -> dict:
     """
 
     # Select one supported telemetry parameter at random.
-    parameter_name = random.choice(list(TELEMETRY_PARAMETERS.keys()))
+    parameter_name = random.choice(
+        list(TELEMETRY_PARAMETERS.keys())
+    )
 
     # Retrieve the matching unit and normal base-signal range.
     parameter_config = TELEMETRY_PARAMETERS[parameter_name]
@@ -79,7 +82,8 @@ def generate_telemetry_record() -> dict:
         2,
     )
 
-    return {
+    # Create a normal TELEMETRY record
+    record = {
         # Common fields required for every SensorEvent record.
         "event_id": new_uuid(),
         "sensor_id": SENSOR_ID,
@@ -114,6 +118,11 @@ def generate_telemetry_record() -> dict:
         # Locked schema version from sensor_schema_v1.avsc.
         "schema_version": SCHEMA_VERSION,
     }
+
+    # Apply anomaly injection before returning the record
+    record = inject_anomaly(record)
+
+    return record
 
 
 def parse_args() -> argparse.Namespace:

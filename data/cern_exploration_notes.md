@@ -1,27 +1,7 @@
 # DataForge — CERN Open Data Exploration Notes
 
-**Task:** M1W2T17 (was Omer's, reassigned to Beyza by Abdullah — Beyza now owns Module 1 ALICE Data Source)
-**Owner:** Beyza Ülkümen
-**Milestone:** 1 · Week 2
-**Output path:** `/docs/data/cern_exploration_notes.md`
-**Deadline:** Friday 23 May 2026
-**Status:** v2 — Practical walk-through completed 22 May 2026; screenshots to be added before Friday commit
 
----
 
-## ⚠️ Critical Finding — Discuss with Abdullah Before Proceeding
-
-**ALICE Run 3 data is NOT publicly available on the CERN Open Data Portal.**
-
-The portal explicitly states: *"The available primary ALICE datasets contain a limited sample of specially selected interaction events recorded from pp and PbPb collisions collected in **2010**."* (Source: [opendata.cern.ch/docs/about-alice](https://opendata.cern.ch/docs/about-alice))
-
-ALICE Run 3 (which started after the 2021 detector upgrade) is being collected by the experiment but is not yet released as public open data — it is currently restricted to ALICE collaboration members. Per ALICE collaboration statements, Run 3 / Run 4 data taking continues until end of 2032; open release timeline is not announced.
-
-**Recommendation:** Use 2010 Run 1 data as a proxy for the prototype. The ESD format and field semantics are compatible with Abdullah's Module 1 output schema (`event_id`, `timestamp_ms`, `position_x/y/z`, `momentum_x/y/z`, `energy_gev`, `source_type`). Operationally identical for prototype purposes; only the physics regime differs (Run 1 was 7 TeV pp + 2.76 TeV PbPb, Run 3 is 13.6 TeV pp + 5.36 TeV PbPb).
-
-**Action item:** Confirm with Abdullah at next sync that "Run 3" in his `data_flow_spec.md` should be amended to "Run 1 (2010 sample, used as proxy)" or similar. If he requires actual Run 3 data, the project blocker is at the CERN collaboration level, not our scope.
-
----
 
 ## Q1 — Which datasets are available, what sizes?
 
@@ -262,7 +242,7 @@ A 30-minute hands-on to confirm everything works end-to-end:
    ```cmd
    mkdir %USERPROFILE%\dataforge\data\alice\raw
    cd %USERPROFILE%\dataforge\data\alice\raw
-   curl -O http://opendata.cern.ch/eos/opendata/alice/2010/LHC10h/000139038/ESD/0003/AliESDs.root
+   curl -O https://opendata.cern.ch/record/1106
    ```
    Or use the in-page Download button (simpler).
 4. **Install uproot:**
@@ -272,17 +252,9 @@ A 30-minute hands-on to confirm everything works end-to-end:
 5. **Open in Python:** Run `inspect_esd.py` against the downloaded file. Confirm `esdTree` is listed and branch names appear. Take 1 screenshot of the terminal output.
 6. **Commit notes:** This file + screenshots to `/docs/data/` on GitHub by Friday 23 May (per M1W2T16 deadline).
 
----
 
-## Open Questions for Abdullah (raise at Wednesday sync)
 
-1. **Run 3 vs Run 1:** Spec says "Run 3", reality is Run 1 (2010 ESD data). Confirm Run 1 as proxy is OK for prototype.
-2. **Nested ESD vs flat Avro schema:** ESD is a serialized C++ object hierarchy (707 branches, nested paths like `AliESDRun./AliESDRun.fRunNumber`). Module 3 must do real flattening, not just format conversion. Confirm Module 3 scope includes flattening — affects effort estimate.
-3. **Event vs track granularity:** Module 1 output schema mixes event-level (`event_id`, `timestamp_ms`) and track-level (`momentum_x/y/z`) fields. In ESD, tracks are inside `AliESDtracks` array (typically 100s per event), clusters inside `AliESDcaloClusters` array. One record per event with momentum/energy arrays, or one record per track with parent event_id? This decision shapes Module 6 fusion logic.
-4. **`event_id` synthesis:** ALICE doesn't have native UUIDs. Synthesize from `runNumber + periodNumber + eventNumberInFile` as deterministic hash? Or use `uuid4()` random?
-5. **Calorimeter energy:** `energy_gev` per record — total calorimeter sum per event, or per individual cluster? Affects record count significantly.
-6. **Sample size for prototype:** This 126.5 MiB PbPb file holds 287 events. For prototype throughput testing (≥10K events/sec), we need at least 10–20 files (~1.3–2.6 GiB) to sustain a 1-second burst. Confirm acceptable for laptop-based Docker Compose stack.
-7. **ALICE VM:** Portal's "How to use these data?" section recommends ALICE Virtual Machine (multi-GB image). We are explicitly bypassing this in favour of uproot. Confirm this aligns with tech-stack-locked-in-Week-1 decision.
+
 
 ---
 
@@ -301,18 +273,5 @@ A 30-minute hands-on to confirm everything works end-to-end:
 
 ---
 
-## Screenshots to attach
 
-To be committed to `/docs/data/screenshots/`:
-
-| File | Status | What it shows |
-|---|---|---|
-| `01_alice_search_page.png` | TODO | ALICE-filtered dataset search results |
-| `02_record_1106_overview.png` | TODO | Record 1106 detail page (DOI + dataset characteristics) |
-| `03_download_provenance.png` | ✅ ready | Browser download manager showing AliESDs.root from opendata.cern.ch |
-| `04_uproot_inspection.png` | TODO | Terminal output of `inspect_esd.py` (STEP 1-2-3 visible) |
-| `05_connection_speed.png` | ✅ ready | fast.com result showing 3.5 Mbps |
-
----
-
-*Draft prepared 21 May 2026. Practical walk-through executed by Beyza on 22 May 2026 (Python 3.12 / Windows 10). To be finalised with remaining 3 screenshots, then committed to /docs/data/ by Friday 23 May.*
+*Draft updated 14 july 2026. Practical walk-through executed by Beyza on 22 May 2026 (Python 3.12 / Windows 10).*

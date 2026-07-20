@@ -12,7 +12,7 @@
     {
       "name": "run_number",
       "type": "int",
-      "doc": "ALICE LHC run number. ROOT source: AliESDRun.fRunNumber (int32_t). Direct uproot read. Value for LHC10h prototype file (run 139038): 139038."
+      "doc": "ALICE LHC run number. ROOT source: AliESDRun.fRunNumber (int32_t). Direct uproot read. Value for LHC10h prototype file: 139465 (corrected M3W10T1, 14 July 2026; previously documented as 139038 pending acquisition verification)."
     },
     {
       "name": "timestamp_ms",

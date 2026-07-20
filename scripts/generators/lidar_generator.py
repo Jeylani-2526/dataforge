@@ -1,6 +1,7 @@
 import argparse
 import random
 
+from scripts.generators.anomaly_injection import inject_anomaly
 from scripts.generators.common import (
     SCHEMA_VERSION,
     current_timestamp_ms,
@@ -23,7 +24,9 @@ def generate_lidar_record() -> dict:
     RADAR and TELEMETRY fields are explicitly set to None
     to match the unified SensorEvent Avro schema.
     """
-    return {
+
+    # Create a normal LIDAR record
+    record = {
         # Common fields required for every SensorEvent record.
         "event_id": new_uuid(),
         "sensor_id": SENSOR_ID,
@@ -58,6 +61,11 @@ def generate_lidar_record() -> dict:
         # Locked schema version from sensor_schema_v1.avsc.
         "schema_version": SCHEMA_VERSION,
     }
+
+    # Apply anomaly injection before returning the record
+    record = inject_anomaly(record)
+
+    return record
 
 
 def parse_args() -> argparse.Namespace:
