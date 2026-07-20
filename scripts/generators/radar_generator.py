@@ -1,6 +1,7 @@
 import argparse
 import random
 
+from scripts.generators.anomaly_injection import inject_anomaly
 from scripts.generators.common import (
     SCHEMA_VERSION,
     current_timestamp_ms,
@@ -18,19 +19,17 @@ SENSOR_ID = new_uuid()
 def generate_radar_record() -> dict:
     """
     Generate one synthetic RADAR base-signal event.
-
-    Only RADAR-specific fields contain values.
-    LIDAR and TELEMETRY fields are explicitly set to None
-    to match the unified SensorEvent Avro schema.
     """
-    return {
+
+    # Create a normal RADAR record
+    record = {
         # Common fields required for every SensorEvent record.
         "event_id": new_uuid(),
         "sensor_id": SENSOR_ID,
         "sensor_type": "RADAR",
         "timestamp_ms": current_timestamp_ms(),
 
-        # RADAR-specific base-signal fields.
+        # RADAR-specific fields.
         "target_id": f"TARGET-{random.randint(1, 500):04d}",
         "range_m": round(random.uniform(50.0, 5000.0), 2),
         "bearing_deg": round(random.uniform(0.0, 360.0), 2),
@@ -38,7 +37,7 @@ def generate_radar_record() -> dict:
         "velocity_ms": round(random.uniform(-100.0, 300.0), 2),
         "signal_strength_db": round(random.uniform(-90.0, -20.0), 2),
 
-        # LIDAR fields must be null for RADAR records.
+        # LIDAR fields
         "scan_id": None,
         "point_count": None,
         "centroid_x_m": None,
@@ -48,16 +47,21 @@ def generate_radar_record() -> dict:
         "avg_intensity": None,
         "min_intensity": None,
 
-        # TELEMETRY fields must be null for RADAR records.
+        # TELEMETRY fields
         "device_id": None,
         "parameter_name": None,
         "value": None,
         "unit": None,
         "sequence_number": None,
 
-        # Locked schema version from sensor_schema_v1.avsc.
         "schema_version": SCHEMA_VERSION,
     }
+
+    # Apply anomaly injection before returning the record
+    record = inject_anomaly(record)
+
+    return record
+
 def parse_args() -> argparse.Namespace:
     """
     Parse command-line arguments for fixed-file and continuous modes.
@@ -102,6 +106,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
 def main() -> None:
     """
     Run the RADAR generator in the selected output mode.
