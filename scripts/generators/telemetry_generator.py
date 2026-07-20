@@ -1,7 +1,11 @@
 import argparse
 import random
+from functools import partial
 
-from scripts.generators.anomaly_injection import inject_anomaly
+from scripts.generators.anomaly_injection import (
+    DEFAULT_INJECTION_RATE,
+    inject_anomaly,
+)
 from scripts.generators.common import (
     SCHEMA_VERSION,
     current_timestamp_ms,
@@ -11,21 +15,24 @@ from scripts.generators.common import (
 )
 
 
-# One synthetic physical TELEMETRY sensor per generator process.
-# The sensor ID stays stable while individual event IDs change.
+# One synthetic physical TELEMETRY sensor is used per generator process.
+# The sensor ID remains stable while each event receives a unique event ID.
 SENSOR_ID = new_uuid()
 
-# Human-readable identifier for the synthetic device.
+# Human-readable identifier of the synthetic telemetry device.
 DEVICE_ID = "SENSOR-UNIT-01"
 
-# Monotonically increasing sequence counter for this device.
-# Starting at zero allows the first emitted record to use sequence number 1.
+# Sequence numbering starts at zero so the first record receives number one.
 SEQUENCE_NUMBER = 0
 
+# The base timestamp remains stable throughout the generator process.
+BASE_TIME_MS = current_timestamp_ms()
 
-# Base-signal definitions for supported telemetry parameters.
-# Each parameter is mapped to its unit and a normal synthetic value range.
-# These ranges represent base behavior only; no anomaly injection is applied.
+# Each consecutive sequence number advances simulated event time by one second.
+TIMESTAMP_INTERVAL_MS = 1_000
+
+
+# Normal base-signal definitions for supported telemetry parameters.
 TELEMETRY_PARAMETERS = {
     "cpu_temp_c": {
         "unit": "C",
@@ -47,8 +54,10 @@ TELEMETRY_PARAMETERS = {
 
 def next_sequence_number() -> int:
     """
-    Return the next monotonically increasing sequence number
-    for the current synthetic telemetry device.
+    Return the next sequence number for the synthetic telemetry device.
+
+    Returns:
+        A monotonically increasing integer sequence number.
     """
     global SEQUENCE_NUMBER
 
@@ -56,24 +65,77 @@ def next_sequence_number() -> int:
     return SEQUENCE_NUMBER
 
 
-def generate_telemetry_record() -> dict:
+def synchronize_sequence_number(record: dict) -> None:
     """
-    Generate one synthetic TELEMETRY base-signal event.
+    Synchronize the generator counter after a sequence gap is injected.
 
-    Only TELEMETRY-specific fields contain values.
-    RADAR and LIDAR fields are explicitly set to None
-    to match the unified SensorEvent Avro schema.
+    This ensures that records following a missing_reading anomaly continue
+    from the mutated sequence number instead of returning to the old counter.
+
+    Args:
+        record: Generated and labeled TELEMETRY record.
     """
+    global SEQUENCE_NUMBER
 
-    # Select one supported telemetry parameter at random.
+    if record.get("anomaly_type") != "missing_reading":
+        return
+
+    sequence_number = record.get("sequence_number")
+
+    if not isinstance(sequence_number, int):
+        raise ValueError(
+            "A missing_reading anomaly requires an integer sequence_number."
+        )
+
+    SEQUENCE_NUMBER = max(
+        SEQUENCE_NUMBER,
+        sequence_number,
+    )
+
+
+def calculate_timestamp_ms(sequence_number: int) -> int:
+    """
+    Calculate a deterministic timestamp for a sequence number.
+
+    The deterministic formula allows the timestamp_stall anomaly to replace
+    the current timestamp with the timestamp corresponding to the previous
+    sequence number without maintaining cross-record state.
+
+    Args:
+        sequence_number: Current telemetry sequence number.
+
+    Returns:
+        Timestamp calculated from the generator base time and fixed interval.
+    """
+    return BASE_TIME_MS + sequence_number * TIMESTAMP_INTERVAL_MS
+
+
+def generate_telemetry_record(
+    anomaly_rate: float = DEFAULT_INJECTION_RATE,
+) -> dict:
+    """
+    Generate one labeled synthetic TELEMETRY sensor record.
+
+    A normal base-signal record is generated first. The record timestamp is
+    calculated deterministically from its sequence number. An anomaly is then
+    injected with the configured probability.
+
+    Args:
+        anomaly_rate: Probability of injecting an anomaly into the record.
+            The default value is 0.03.
+
+    Returns:
+        A labeled TELEMETRY record containing either normal values or one of
+        the configured TELEMETRY anomaly patterns.
+
+    Raises:
+        ValueError: If anomaly_rate is outside the inclusive range [0.0, 1.0].
+    """
     parameter_name = random.choice(
         list(TELEMETRY_PARAMETERS.keys())
     )
-
-    # Retrieve the matching unit and normal base-signal range.
     parameter_config = TELEMETRY_PARAMETERS[parameter_name]
 
-    # Generate a value inside the configured normal range.
     parameter_value = round(
         random.uniform(
             parameter_config["min"],
@@ -82,15 +144,17 @@ def generate_telemetry_record() -> dict:
         2,
     )
 
-    # Create a normal TELEMETRY record
+    sequence_number = next_sequence_number()
+    timestamp_ms = calculate_timestamp_ms(sequence_number)
+
     record = {
-        # Common fields required for every SensorEvent record.
+        # Common SensorEvent fields.
         "event_id": new_uuid(),
         "sensor_id": SENSOR_ID,
         "sensor_type": "TELEMETRY",
-        "timestamp_ms": current_timestamp_ms(),
+        "timestamp_ms": timestamp_ms,
 
-        # RADAR fields must be null for TELEMETRY records.
+        # RADAR-specific fields are not applicable to TELEMETRY records.
         "target_id": None,
         "range_m": None,
         "bearing_deg": None,
@@ -98,7 +162,7 @@ def generate_telemetry_record() -> dict:
         "velocity_ms": None,
         "signal_strength_db": None,
 
-        # LIDAR fields must be null for TELEMETRY records.
+        # LIDAR-specific fields are not applicable to TELEMETRY records.
         "scan_id": None,
         "point_count": None,
         "centroid_x_m": None,
@@ -108,64 +172,71 @@ def generate_telemetry_record() -> dict:
         "avg_intensity": None,
         "min_intensity": None,
 
-        # TELEMETRY-specific base-signal fields.
+        # TELEMETRY-specific fields.
         "device_id": DEVICE_ID,
         "parameter_name": parameter_name,
         "value": parameter_value,
         "unit": parameter_config["unit"],
-        "sequence_number": next_sequence_number(),
+        "sequence_number": sequence_number,
 
-        # Locked schema version from sensor_schema_v1.avsc.
+        # Locked SensorEvent schema version.
         "schema_version": SCHEMA_VERSION,
     }
 
-    # Apply anomaly injection before returning the record
-    record = inject_anomaly(record)
+    record = inject_anomaly(
+        record,
+        anomaly_rate=anomaly_rate,
+        timestamp_interval_ms=TIMESTAMP_INTERVAL_MS,
+    )
+
+    synchronize_sequence_number(record)
 
     return record
 
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse command-line arguments for fixed-file and continuous modes.
+    Parse command-line arguments for telemetry generation.
+
+    Returns:
+        Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Generate synthetic TELEMETRY base-signal events."
+        description="Generate labeled synthetic TELEMETRY sensor events.",
     )
 
-    # Required output mode:
-    # fixed      -> write a finite JSONL corpus
-    # continuous -> emit records continuously
     parser.add_argument(
         "--mode",
         choices=["fixed", "continuous"],
         required=True,
-        help="Generation mode: fixed file or continuous stream.",
+        help="Generation mode: fixed JSONL file or continuous output.",
     )
 
-    # Output path used by fixed-file mode.
     parser.add_argument(
         "--output",
         default="data/synthetic/telemetry.jsonl",
-        help="Output JSONL path for fixed-file mode.",
+        help="Output JSONL path used in fixed mode.",
     )
 
-    # The task requires a locked 50,000-record corpus by default.
-    # A smaller value can still be passed explicitly for smoke tests.
     parser.add_argument(
         "--count",
         type=int,
         default=50_000,
-        help="Number of records to generate in fixed mode.",
+        help="Number of records generated in fixed mode.",
     )
 
-    # Optional delay between events in continuous mode.
-    # Zero means no intentional delay.
     parser.add_argument(
         "--interval-ms",
         type=int,
         default=0,
-        help="Delay between continuous events in milliseconds.",
+        help="Delay between emitted records in continuous mode.",
+    )
+
+    parser.add_argument(
+        "--anomaly-rate",
+        type=float,
+        default=DEFAULT_INJECTION_RATE,
+        help="Anomaly injection probability per record; default: 0.03.",
     )
 
     return parser.parse_args()
@@ -173,23 +244,29 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     """
-    Run the TELEMETRY generator in the selected output mode.
+    Run the TELEMETRY generator in fixed-file or continuous mode.
+
+    Both modes use the same configurable anomaly-injection logic.
     """
     args = parse_args()
 
+    record_factory = partial(
+        generate_telemetry_record,
+        anomaly_rate=args.anomaly_rate,
+    )
+
     if args.mode == "fixed":
-        # Generate a finite JSONL corpus.
         write_fixed_file(
             output_path=args.output,
-            record_factory=generate_telemetry_record,
+            record_factory=record_factory,
             count=args.count,
         )
-    else:
-        # Continuously emit fresh base-signal records.
-        run_continuous(
-            record_factory=generate_telemetry_record,
-            interval_ms=args.interval_ms,
-        )
+        return
+
+    run_continuous(
+        record_factory=record_factory,
+        interval_ms=args.interval_ms,
+    )
 
 
 if __name__ == "__main__":
