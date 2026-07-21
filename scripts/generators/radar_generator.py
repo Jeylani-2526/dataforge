@@ -1,7 +1,11 @@
 import argparse
 import random
+from functools import partial
 
-from scripts.generators.anomaly_injection import inject_anomaly
+from scripts.generators.anomaly_injection import (
+    DEFAULT_INJECTION_RATE,
+    inject_anomaly,
+)
 from scripts.generators.common import (
     SCHEMA_VERSION,
     current_timestamp_ms,
@@ -11,19 +15,34 @@ from scripts.generators.common import (
 )
 
 
-# One synthetic physical RADAR device per generator process.
-# The sensor ID stays stable while individual event IDs change.
+# One synthetic physical RADAR device is used per generator process.
+# The sensor ID remains stable while each event receives a unique event ID.
 SENSOR_ID = new_uuid()
 
 
-def generate_radar_record() -> dict:
+def generate_radar_record(
+    anomaly_rate: float = DEFAULT_INJECTION_RATE,
+) -> dict:
     """
-    Generate one synthetic RADAR base-signal event.
-    """
+    Generate one labeled synthetic RADAR sensor record.
 
-    # Create a normal RADAR record
+    A normal base-signal record is created first. An anomaly is then injected
+    with the configured probability. The returned record always carries the
+    generator-assigned ``label`` and ``anomaly_type`` metadata fields.
+
+    Args:
+        anomaly_rate: Probability of injecting an anomaly into the record.
+            The default value is 0.03.
+
+    Returns:
+        A labeled RADAR record containing either normal base-signal values or
+        one of the configured RADAR anomaly patterns.
+
+    Raises:
+        ValueError: If anomaly_rate is outside the inclusive range [0.0, 1.0].
+    """
     record = {
-        # Common fields required for every SensorEvent record.
+        # Common SensorEvent fields.
         "event_id": new_uuid(),
         "sensor_id": SENSOR_ID,
         "sensor_type": "RADAR",
@@ -37,7 +56,7 @@ def generate_radar_record() -> dict:
         "velocity_ms": round(random.uniform(-100.0, 300.0), 2),
         "signal_strength_db": round(random.uniform(-90.0, -20.0), 2),
 
-        # LIDAR fields
+        # LIDAR-specific fields are not applicable to RADAR records.
         "scan_id": None,
         "point_count": None,
         "centroid_x_m": None,
@@ -47,84 +66,97 @@ def generate_radar_record() -> dict:
         "avg_intensity": None,
         "min_intensity": None,
 
-        # TELEMETRY fields
+        # TELEMETRY-specific fields are not applicable to RADAR records.
         "device_id": None,
         "parameter_name": None,
         "value": None,
         "unit": None,
         "sequence_number": None,
 
+        # Locked schema version carried by every SensorEvent record.
         "schema_version": SCHEMA_VERSION,
     }
 
-    # Apply anomaly injection before returning the record
-    record = inject_anomaly(record)
+    return inject_anomaly(
+        record,
+        anomaly_rate=anomaly_rate,
+    )
 
-    return record
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse command-line arguments for fixed-file and continuous modes.
+    Parse command-line arguments for fixed-file and continuous generation.
+
+    Returns:
+        Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Generate synthetic RADAR base-signal events."
+        description="Generate labeled synthetic RADAR sensor events.",
     )
 
-    # Required output mode:
-    # fixed      -> write a finite JSONL corpus
-    # continuous -> emit records continuously
     parser.add_argument(
         "--mode",
         choices=["fixed", "continuous"],
         required=True,
-        help="Generation mode: fixed file or continuous stream.",
+        help="Generation mode: fixed JSONL file or continuous output.",
     )
 
-    # Output path used by fixed-file mode.
     parser.add_argument(
         "--output",
         default="data/synthetic/radar.jsonl",
-        help="Output JSONL path for fixed-file mode.",
+        help="Output JSONL path used in fixed mode.",
     )
 
-    # The task requires a locked 50,000-record corpus by default.
-    # A smaller value can still be passed explicitly for smoke tests.
     parser.add_argument(
         "--count",
         type=int,
         default=50_000,
-        help="Number of records to generate in fixed mode.",
+        help="Number of records generated in fixed mode.",
     )
 
-    # Optional delay between events in continuous mode.
-    # Zero means no intentional delay.
     parser.add_argument(
         "--interval-ms",
         type=int,
         default=0,
-        help="Delay between continuous events in milliseconds.",
+        help="Delay between records in continuous mode, in milliseconds.",
+    )
+
+    parser.add_argument(
+        "--anomaly-rate",
+        type=float,
+        default=DEFAULT_INJECTION_RATE,
+        help="Anomaly injection probability per record; default: 0.03.",
     )
 
     return parser.parse_args()
 
+
 def main() -> None:
     """
-    Run the RADAR generator in the selected output mode.
+    Run the RADAR generator in fixed-file or continuous mode.
+
+    The same configurable anomaly-injection logic is used in both modes.
     """
     args = parse_args()
 
+    record_factory = partial(
+        generate_radar_record,
+        anomaly_rate=args.anomaly_rate,
+    )
+
     if args.mode == "fixed":
-        # Generate a finite JSONL corpus.
         write_fixed_file(
             output_path=args.output,
-            record_factory=generate_radar_record,
+            record_factory=record_factory,
             count=args.count,
         )
-    else:
-        # Continuously emit fresh base-signal records.
-        run_continuous(
-            record_factory=generate_radar_record,
-            interval_ms=args.interval_ms,
-        )
+        return
+
+    run_continuous(
+        record_factory=record_factory,
+        interval_ms=args.interval_ms,
+    )
+
+
 if __name__ == "__main__":
     main()

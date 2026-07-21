@@ -1,5 +1,14 @@
 # DataForge — Anomaly Injection & Labeling Design
 
+**Document:** `anomaly_injection_design.md`
+**Task ID:** M3W9T1 (amended M3W10 — see Section 9)
+**Owner:** Abdalla
+**Milestone:** M3 · Week 9 (amendment: Week 10)
+**Version:** 1.1 — amended 20 July 2026 (v1.0 ratified 7 July 2026 kickoff)
+**Status:** Locked — v1.1 supersedes v1.0 for Section 5.3 (TELEMETRY) only; all other sections unchanged
+**GitHub Path:** `/docs/data/anomaly_injection_design.md`
+**Depends on:** `sensor_schema_v1.avsc` (locked, authoritative), `data_dictionary_v1.md` (v1.1, corrected — see Section 2)
+
 ---
 
 ## 1. Purpose
@@ -60,12 +69,12 @@ Every generated sensor record — fixed-file or continuous, regardless of stream
 | `point_cloud_dropout` | `point_count`, `min_intensity` | `point_count` collapses toward zero, `min_intensity` degrades. Implements the schema's own doc-string on `min_intensity` ("low values indicate obstruction; key SHAP feature"). |
 | `ghost_point` | `point_count`, `centroid_x/y/z_m`, `max_range_m` | `point_count = 1` with a centroid/`max_range_m` combination geometrically inconsistent with a real single-point return. |
 
-### 5.3 TELEMETRY
+### 5.3 TELEMETRY — **Amended in v1.1 (see Section 9)**
 
 | `anomaly_type` | Fields Mutated | Injection Logic |
 |---|---|---|
 | `out_of_range_value` | `value` | `value` exceeds the physically valid bound for the record's `parameter_name` (e.g., an `engine_temp_c` reading beyond operational max). |
-| `sensor_freeze` | `value` | `value` repeats identically across consecutive records for the same `device_id` + `parameter_name`, while `sequence_number` continues incrementing normally — the device keeps reporting but stops sensing. |
+| ~~`sensor_freeze`~~ → **`timestamp_stall`** *(replaced — v1.1)* | `timestamp_ms` | `timestamp_ms` is held at the value the generator's own deterministic formula (`base_time_ms + sequence_number × interval_ms`) would have produced for the *previous* `sequence_number`, while `sequence_number` itself continues incrementing normally. Because the generator computes `timestamp_ms` from this formula rather than from a stored prior record, the anomalous value is derivable within the single record being generated — no cross-record state is required. Simulates a device clock stall or reporting desync: the device keeps incrementing its internal counter but its timestamp source has stopped advancing. |
 | `missing_reading` | `sequence_number` | A gap is introduced in `sequence_number`. Directly implements the schema's own doc-string ("a gap in sequence enables Module 5 to compute `data_loss_pct`"). |
 
 ---
@@ -78,18 +87,39 @@ Every generated sensor record — fixed-file or continuous, regardless of stream
 4. Apply the corresponding field mutation(s) from Section 5.
 5. For records not selected (`label = 0`), leave `anomaly_type = null` and all fields at base-signal values.
 6. This logic is identical for fixed-file and continuous/repeat modes — only the total record count and the file-vs-stream output target differ.
+7. **(v1.1)** For `timestamp_stall` specifically: the generator must compute the intended (non-anomalous) `timestamp_ms` for the current `sequence_number` first using its standard formula, then substitute the formula's output for `sequence_number - 1` instead. This keeps the mutation deterministic and reproducible from the record's own `sequence_number` field, with no external state or lookback required.
 
 ---
 
-## 7. Open Items Carried to Week 10
+## 7. Open Items
 
 - **Per-type weighting**: currently uniform (1% each of the 3 types per stream at 3% total) — confirmed as matching intent.
-- **Train/test split convention** (what fraction of the ~1,500 anomalies/stream are held out, and how): explicitly scoped to Week 10 (`M3W10` — Abdalla finalizes the labeled training data specification), not decided here.
+- **Train/test split convention** (what fraction of the ~1,500 anomalies/stream are held out, and how): finalized in `labeled_training_data_spec.md` (M3W10T2).
+- **`sensor_freeze` (deferred, not cancelled)** — see Section 9. To be revisited at M4 (Data Adaptation) or M7 (AI/ML feature engineering) planning, contingent on adding a derived temporal feature (e.g., a rolling "ticks/time since value last changed" feature per `device_id` + `parameter_name`) to the pipeline. This is out of scope for M3 data generation.
 
 ---
 
 ## 8. Distribution
 
-Per the Week 9 plan, this design is shared with the full team by **Thursday 9 July**, giving a full working day before Omer's Week 10 label-assignment implementation begins.
+Per the Week 9 plan, this design was shared with the full team on **Thursday 9 July**. This v1.1 amendment (Section 9) was shared with the team on **20 July 2026**, ahead of Omer's re-implementation work following the M3W10T3 verification failure.
+
+---
+
+## 9. Amendment Log
+
+### v1.1 — 20 July 2026 — `sensor_freeze` replaced with `timestamp_stall` (TELEMETRY)
+
+**Trigger:** M3W10T3 (Label-Assignment Verification) returned a **FAIL** to Omer on 19 July 2026, citing two blocking findings: (1) committed sample files contained no `label`/`anomaly_type` fields, and (2) the implemented anomaly taxonomy in `anomaly_injection.py` matched this design on only 1 of 9 locked `anomaly_type` values across all three streams. During root-cause review of finding (2), it was confirmed that `sensor_freeze` as originally specified is **not implementable** in the generator's current architecture, independent of the broader taxonomy fix.
+
+**Root cause:** `sensor_freeze` was specified in v1.0 as "`value` repeats identically across **consecutive** records for the same `device_id` + `parameter_name`." This requires comparing a record to a previously generated record for the same device/parameter — i.e., cross-record state. Omer's generator (scaffolded M3W9T6, confirmed in the committed `anomaly_injection.py`) applies anomaly mutations through single-record, stateless functions (`f(record) -> record`) with no memory of prior output. The v1.0 design was locked without cross-checking this constraint against the scaffolding, which was already stateless at the time of the Week 9 kickoff.
+
+**Secondary finding:** Even if the generator were modified to track per-device state, the resulting label would not currently be learnable downstream. Module 7 (AI/ML Anomaly Detection) is a scikit-learn Isolation Forest operating on single fused-event feature vectors (per the System Module List and `fused_event_schema_v1.avsc`); neither schema carries a derived temporal feature (e.g., "value unchanged for N samples") that would let a per-record model distinguish a genuinely frozen reading from an ordinary repeated value. Implementing `sensor_freeze` faithfully therefore requires schema and feature-engineering work in Module 3/5/7 — out of scope for M3 data generation — in addition to the generator change.
+
+**Decision:** Replace `sensor_freeze` with `timestamp_stall` for M3 (Section 5.3). `timestamp_stall` preserves the intent of the original anomaly (device continues reporting but something has desynced) while being derivable from the record's own `sequence_number` via the generator's existing deterministic timestamp formula — no cross-record state needed, and no schema change required.
+
+**Disposition of `sensor_freeze`:** Deferred, not dropped. Logged as an open item (Section 7) to be revisited at M4 or M7 planning alongside the temporal-feature work it depends on.
+
+**Sign-off:** Abdalla — 20 July 2026.
+**Communicated to:** Team (20 July 2026); to be included in the Week 10/11 update to Emrah as a documented, reasoned prototype scope decision, consistent with project reporting practice of surfacing gaps rather than resolving them silently.
 
 *End of `anomaly_injection_design.md`*
