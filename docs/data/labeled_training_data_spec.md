@@ -16,7 +16,7 @@ Every training-ready record must contain:
 | Field | Source | Notes |
 |---|---|---|
 | `label` | Generator-assigned | int, `0` (normal) or `1` (anomalous). Never null. |
-| `anomaly_type` | Generator-assigned | string, one of the nine locked anomaly types (Section 3) when `label=1`; **null when `label=0`**. Never populated for normal records. |
+| `anomaly_type` | Generator-assigned | string, one of the nine locked anomaly types (Section 2) when `label=1`; **null when `label=0`**. Never populated for normal records. Values are the `snake_case` identifiers locked in `anomaly_injection_design.md` §5 (e.g., `ghost_target`, `timestamp_stall`). |
 | All `sensor_schema_v1.avsc` fields | Generator-assigned | `event_id`, `sensor_id`, `sensor_type`, `timestamp_ms`, plus the subtype-specific fields for the record's `sensor_type` (RADAR: `target_id`, `range_m`, `bearing_deg`, `elevation_deg`, `velocity_ms`, `signal_strength_db`; LIDAR: `scan_id`, `point_count`, `centroid_x/y/z_m`, `max_range_m`, `avg_intensity`, `min_intensity`; TELEMETRY: `device_id`, `parameter_name`, `value`, `unit`, `sequence_number`), and `schema_version`. |
 
 **Rule:** `label` and `anomaly_type` are additive to the locked `sensor_schema_v1.avsc` field set — they are not schema fields themselves (they live in the generator's labeled output file, not the Avro wire schema, since inference-time production sensor data has no ground-truth label). No schema version bump is implicated by this spec.
@@ -25,31 +25,35 @@ Every training-ready record must contain:
 
 ---
 
-## 2. Class-Balance Target
+## 2. Class-Balance Target & Realized Counts
 
-Consistent with the locked 3% injection rate and 50,000-record-per-stream volume (Week 9, confirmed unchanged):
+Consistent with the locked 3% injection rate and 50,000-record-per-stream volume (Week 9, confirmed unchanged). The **Realized** columns below are measured from the generated labeled corpus files (`radar50000data.jsonl`, `lidar50000data.jsonl`, `telemetry50000data.jsonl`); all three streams land within the ±0.3pp tolerance defined at the end of this section.
 
-| Stream | Total Records | Normal (`label=0`) | Anomalous (`label=1`) | Anomalous % |
+| Stream | Total Records | Normal (`label=0`) | Anomalous (`label=1`) | Anomalous % | Status |
+|---|---|---|---|---|---|
+| Radar | 50,000 | 48,518 | 1,482 | 2.96% | within tolerance |
+| LIDAR | 50,000 | 48,514 | 1,486 | 2.97% | within tolerance |
+| Telemetry | 50,000 | 48,517 | 1,483 | 2.97% | within tolerance |
+
+(Target per stream: 48,500 normal / 1,500 anomalous / 3.0%. Realized counts differ because `label` is drawn per-record from a Bernoulli(0.03) trial per `anomaly_injection_design.md` §6, not fixed-count.)
+
+**Per-type breakdown** (uniform 1% weighting per anomaly type, locked at Week 9 kickoff; `anomaly_type` values per `anomaly_injection_design.md` §5):
+
+| Stream | Anomaly Type | `anomaly_type` value | Target (1% of 50,000) | Realized |
 |---|---|---|---|---|
-| Radar | 50,000 | 48,500 | 1,500 | 3.0% |
-| LIDAR | 50,000 | 48,500 | 1,500 | 3.0% |
-| Telemetry | 50,000 | 48,500 | 1,500 | 3.0% |
+| Radar | Ghost target | `ghost_target` | 500 | 513 |
+| Radar | Velocity spike | `velocity_spike` | 500 | 471 |
+| Radar | Sensor dropout | `sensor_dropout` | 500 | 498 |
+| LIDAR | Noise burst | `noise_burst` | 500 | 502 |
+| LIDAR | Point-cloud dropout | `point_cloud_dropout` | 500 | 486 |
+| LIDAR | Ghost point | `ghost_point` | 500 | 498 |
+| Telemetry | Out-of-range value | `out_of_range_value` | 500 | 496 |
+| Telemetry | Timestamp stall | `timestamp_stall` | 500 | 522 |
+| Telemetry | Missing reading | `missing_reading` | 500 | 465 |
 
-**Per-type breakdown** (uniform 1% weighting per anomaly type, locked at Week 9 kickoff):
+> **Note — `timestamp_stall` supersedes `sensor_freeze`:** Per `anomaly_injection_design.md` v1.1 (§5.3, §9), the telemetry anomaly originally specified as `sensor_freeze` was replaced by `timestamp_stall` after the M3W10T3 verification failure (`sensor_freeze` required cross-record state the stateless generator cannot provide). The generated data confirms `timestamp_stall` — no `sensor_freeze` records exist. This spec tracks the design source of record.
 
-| Stream | Anomaly Type | Target Count (1% of 50,000) |
-|---|---|---|
-| Radar | Ghost target | 500 |
-| Radar | Velocity spike | 500 |
-| Radar | Sensor dropout | 500 |
-| LIDAR | Noise burst | 500 |
-| LIDAR | Point-cloud dropout | 500 |
-| LIDAR | Ghost point | 500 |
-| Telemetry | Out-of-range value | 500 |
-| Telemetry | Sensor freeze | 500 |
-| Telemetry | Missing reading | 500 |
-
-**Tolerance:** M3W10T3 verification checks the *realized* injection rate is "close to" the configured 3% target (per Week 10 plan wording) — this spec sets a tolerance band of **±0.3 percentage points** (i.e., 2.7%–3.3% realized anomalous rate per stream) as passing. Anything outside that band is flagged back to Omer per the plan's existing rule (fix at the source, don't patch labels).
+**Tolerance:** M3W10T3 verification checks the *realized* injection rate is "close to" the configured 3% target (per Week 10 plan wording) — this spec sets a tolerance band of **±0.3 percentage points** (i.e., 2.7%–3.3% realized anomalous rate per stream) as passing. All three streams (2.96%–2.97%) pass. Anything outside that band is flagged back to Omer per the plan's existing rule (fix at the source, don't patch labels).
 
 ---
 
@@ -63,12 +67,14 @@ Consistent with the locked 3% injection rate and 50,000-record-per-stream volume
 
 ### Resulting record counts per stream (50,000 total)
 
-| Split | Normal | Ghost target / Noise burst / Out-of-range (500 each) | Velocity spike / PC dropout / Sensor freeze (500 each) | Sensor dropout / Ghost point / Missing reading (500 each) | Total |
-|---|---|---|---|---|---|
-| Train (80%) | 38,800 | 400 each (×3 types) = 1,200 | — | — | 40,000 |
-| Test (20%) | 9,700 | 100 each (×3 types) = 300 | — | — | 10,000 |
+The 80/20 split is applied to the **realized** labeled corpus (Section 2), stratified per `anomaly_type`. Because realized anomaly counts are not exactly 1,500/stream, the resulting anomalous train/test counts differ slightly from the round target figures. Target vs. approximate realized:
 
-(Table collapses to: **per stream**, train = 38,800 normal + 1,200 anomalous across the three types at 400 each; test = 9,700 normal + 300 anomalous across the three types at 100 each.)
+| Split | Normal (target) | Anomalous (target) | Total | Realized anomalous (Radar / LIDAR / Telemetry) |
+|---|---|---|---|---|
+| Train (80%) | 38,800 | 1,200 (400 × 3 types) | 40,000 | ≈1,186 / ≈1,189 / ≈1,186 |
+| Test (20%) | 9,700 | 300 (100 × 3 types) | 10,000 | ≈296 / ≈297 / ≈297 |
+
+(Per stream, target: train = 38,800 normal + 1,200 anomalous; test = 9,700 normal + 300 anomalous. Realized anomalous = 20% of each stream's actual `label=1` count from Section 2, stratified across its three types.)
 
 **Rationale for per-stream (not combined) splitting:** Radar, LIDAR, and telemetry have structurally different fields (only the subtype-specific columns are populated per `sensor_type`) and will very likely be modeled with stream-aware features or even separate model instances at M7 — pooling before splitting risks an uneven per-stream test set if one stream's records happen to cluster differently in a combined shuffle. Per-stream splitting guarantees each stream independently hits the 80/20 target with clean anomaly-type stratification.
 
@@ -78,7 +84,7 @@ Consistent with the locked 3% injection rate and 50,000-record-per-stream volume
 
 ## 4. Downstream Use — M7 AUC / FPR Targets
 
-The test set (300 anomalous + 9,700 normal per stream = 10,000 records/stream) is what M7 model evaluation measures AUC ≥0.85 and FPR ≤5% against, per the locked Prototype Performance Bar. 300 anomalous test examples per stream (900 total across all three streams) is the sample size available for that evaluation — worth flagging now, not discovering at M7, in case a larger anomalous test sample becomes necessary for statistically stable AUC/FPR estimates.
+The test set (≈300 anomalous + ≈9,700 normal per stream ≈ 10,000 records/stream) is what M7 model evaluation measures AUC ≥0.85 and FPR ≤5% against, per the locked Prototype Performance Bar. ≈300 anomalous test examples per stream (≈890 total across all three streams, given realized counts of 296/297/297) is the sample size available for that evaluation — worth flagging now, not discovering at M7, in case a larger anomalous test sample becomes necessary for statistically stable AUC/FPR estimates.
 
 ---
 
