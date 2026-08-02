@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -54,26 +55,44 @@ def write_fixed_file(
 def run_continuous(
     record_factory: Callable[[], dict[str, Any]],
     interval_ms: int = 0,
+    batch_size: int = 1_000,
 ) -> None:
     """
-    Continuously generate base-signal records until interrupted.
+    Continuously generate records until interrupted.
 
-    This mode is intended for later M5 throughput and load testing.
-    An optional interval can be used to slow down event generation.
+    Records are emitted in batches when no interval is configured. Batching
+    reduces stdout overhead during M5 throughput tests. When an interval is
+    configured, records are emitted individually to preserve the delay.
     """
+    if interval_ms < 0:
+        raise ValueError("interval_ms must not be negative.")
+
+    if batch_size <= 0:
+        raise ValueError("batch_size must be greater than zero.")
+
+    buffered_lines: list[str] = []
+
     try:
         while True:
-            # Generate one new sensor-specific base-signal record.
             record = record_factory()
+            serialized_record = json.dumps(record) + "\n"
 
-            # Emit the record immediately to standard output.
-            # flush=True prevents buffering delays in streaming scenarios.
-            print(json.dumps(record), flush=True)
-
-            # Sleep only when an interval is explicitly configured.
             if interval_ms > 0:
+                sys.stdout.write(serialized_record)
+                sys.stdout.flush()
                 time.sleep(interval_ms / 1000)
+                continue
+
+            buffered_lines.append(serialized_record)
+
+            if len(buffered_lines) >= batch_size:
+                sys.stdout.write("".join(buffered_lines))
+                sys.stdout.flush()
+                buffered_lines.clear()
 
     except KeyboardInterrupt:
-        # Allow clean shutdown with Ctrl+C during continuous generation.
-        print("\nContinuous generation stopped.")
+        if buffered_lines:
+            sys.stdout.write("".join(buffered_lines))
+            sys.stdout.flush()
+
+        print("Continuous generation stopped.", file=sys.stderr)
