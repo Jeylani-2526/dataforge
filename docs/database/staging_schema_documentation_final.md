@@ -2,9 +2,9 @@
 
 ## Tables
 
-| Table | Source | Promotes to |
-|---|---|---|
-| `raw_alice_events_staging` | ALICE ESD extraction | `events` (source_type='alice') |
+| Table                       | Source               | Promotes to                                  |
+| --------------------------- | -------------------- | -------------------------------------------- |
+| `raw_alice_events_staging`  | ALICE ESD extraction | `events` (source_type='alice')               |
 | `raw_sensor_events_staging` | Synthetic generators | `events` (source_type=radar/lidar/telemetry) |
 
 ---
@@ -77,10 +77,10 @@ CREATE TABLE raw_sensor_events_staging (
 
 ## Anomaly Taxonomy (v1.1)
 
-| Stream | Types |
-|---|---|
-| RADAR | ghost_target · velocity_spike · sensor_dropout |
-| LIDAR | noise_burst · point_cloud_dropout · ghost_point |
+| Stream    | Types                                                  |
+| --------- | ------------------------------------------------------ |
+| RADAR     | ghost_target · velocity_spike · sensor_dropout         |
+| LIDAR     | noise_burst · point_cloud_dropout · ghost_point        |
 | TELEMETRY | out_of_range_value · timestamp_stall · missing_reading |
 
 `sensor_freeze` retired — replaced by `timestamp_stall`
@@ -89,17 +89,17 @@ CREATE TABLE raw_sensor_events_staging (
 
 ## API-Contract Alignment
 
-| Endpoint | Status |
-|---|---|
-| `GET /api/v1/events/live` | ✅ PASS |
+| Endpoint                    | Status  |
+| --------------------------- | ------- |
+| `GET /api/v1/events/live`   | ✅ PASS |
 | `GET /api/v1/alerts/recent` | ✅ PASS |
 
 ---
 
 ## Open Items for M4
 
-| # | Item | Owner |
-|---|---|---|
-| 1 | momentum/energy → PyROOT | Abdalla |
-| 2 | PHYSICS_EVENT filter → ALICE extraction | Beyza |
-| 3 | Promote staging → production `events` | M4 |
+| #   | Item                                    | Owner   |
+| --- | --------------------------------------- | ------- |
+| 1   | momentum/energy → PyROOT                | Abdalla |
+| 2   | PHYSICS_EVENT filter → ALICE extraction | Beyza   |
+| 3   | Promote staging → production `events`   | M4      |
