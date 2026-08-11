@@ -26,7 +26,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── DB Connection ─────────────────────────────────────────────────────────────
-DB_URL = "postgresql://postgres:dataforge@localhost:5432/dataforge_db"
+DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5432/dataforge"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 VALID_SCHEMA_VERSION = "1.0"
@@ -264,7 +264,7 @@ def ingest_directory(data_dir: str, stream_type: str):
     stream_type: 'alice' | 'radar' | 'lidar' | 'telemetry'
     """
     path = Path(data_dir)
-    files = sorted(path.glob("*.ndjson"))
+    files = sorted(set(path.glob("*.ndjson")) | set(path.glob("*.jsonl")))
     if not files:
         log.warning("No .ndjson files found in %s", data_dir)
         return
