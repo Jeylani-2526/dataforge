@@ -1,6 +1,5 @@
 -- DataForge — TimescaleDB Staging Table Init
 -- Source: docs/database/staging_table_design.md
--- NOTE: not yet reviewed/committed — created ad hoc to unblock M4W13T3 verification.
 
 CREATE TABLE IF NOT EXISTS raw_alice_events_staging (
     load_id           BIGSERIAL       PRIMARY KEY,
