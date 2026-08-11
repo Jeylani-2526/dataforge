@@ -1,12 +1,14 @@
 """
 DataForge — Staging Ingestion Script
-Task: M3W10T5
+Task: M3W10T5 / M4W13T3
 Owner: Beyza Ülkümen
 Output: /scripts/ingestion/staging_ingestion_script.py
 
-Loads Omer's generator NDJSON batches into:
+Loads generator NDJSON batches into:
   - raw_alice_events_staging
   - raw_sensor_events_staging
+
+Stream type is auto-detected from file content (content-based detection).
 """
 
 import json
@@ -18,7 +20,7 @@ from datetime import datetime, timezone
 import psycopg2
 from psycopg2.extras import execute_batch
 
-# ── Logging ──────────────────────────────────────────────────────────────────
+# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)s  %(message)s",
@@ -26,7 +28,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── DB Connection ─────────────────────────────────────────────────────────────
-DB_URL = "postgresql://postgres:dataforge@localhost:5432/dataforge_db"
+DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5432/dataforge"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 VALID_SCHEMA_VERSION = "1.0"
@@ -51,10 +53,27 @@ SENSOR_REQUIRED_BY_TYPE = {
 }
 
 
+# ── Stream Type Detection ─────────────────────────────────────────────────────
+
+def detect_stream_type(records: list[dict]) -> str:
+    """
+    Peeks at first record to detect stream type from content.
+    run_number + track_count → alice
+    sensor_type present      → radar / lidar / telemetry
+    """
+    if not records:
+        return "unknown"
+    first = records[0]
+    if "run_number" in first and "track_count" in first:
+        return "alice"
+    if "sensor_type" in first:
+        return first["sensor_type"].lower()
+    return "unknown"
+
+
 # ── Validation ────────────────────────────────────────────────────────────────
 
 def validate_alice(record: dict) -> str | None:
-    """Returns error string if invalid, None if valid."""
     if record.get("schema_version") != VALID_SCHEMA_VERSION:
         return f"schema_version must be '{VALID_SCHEMA_VERSION}'"
     for field in ALICE_REQUIRED:
@@ -70,7 +89,6 @@ def validate_alice(record: dict) -> str | None:
 
 
 def validate_sensor(record: dict) -> str | None:
-    """Returns error string if invalid, None if valid."""
     if record.get("schema_version") != VALID_SCHEMA_VERSION:
         return f"schema_version must be '{VALID_SCHEMA_VERSION}'"
     for field in SENSOR_REQUIRED_COMMON:
@@ -118,7 +136,7 @@ SENSOR_INSERT = """
         scan_id, point_count, centroid_x_m, centroid_y_m, centroid_z_m,
         max_range_m, avg_intensity, min_intensity,
         device_id, parameter_name, value, unit, sequence_number,
-        schema_version, load_status
+        schema_version, label, anomaly_type, load_status
     ) VALUES (
         %(load_timestamp)s, %(batch_id)s,
         %(event_id)s, %(sensor_id)s, %(sensor_type)s, %(timestamp_ms)s,
@@ -127,14 +145,13 @@ SENSOR_INSERT = """
         %(scan_id)s, %(point_count)s, %(centroid_x_m)s, %(centroid_y_m)s,
         %(centroid_z_m)s, %(max_range_m)s, %(avg_intensity)s, %(min_intensity)s,
         %(device_id)s, %(parameter_name)s, %(value)s, %(unit)s, %(sequence_number)s,
-        %(schema_version)s, %(load_status)s
+        %(schema_version)s, %(label)s, %(anomaly_type)s, %(load_status)s
     )
 """
 
 
 def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int]:
-    """Returns (loaded_count, failed_count)."""
-    load_ts  = datetime.now(timezone.utc)
+    load_ts = datetime.now(timezone.utc)
     valid, failed = [], []
 
     for rec in records:
@@ -144,19 +161,19 @@ def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int
             failed.append(rec)
             continue
         valid.append({
-            "load_timestamp":  load_ts,
-            "batch_id":        batch_id,
-            "event_id":        rec["event_id"],
-            "run_number":      rec["run_number"],
-            "timestamp_ms":    rec["timestamp_ms"],
-            "track_count":     rec["track_count"],
-            "net_momentum_x":  rec["net_momentum_x"],
-            "net_momentum_y":  rec["net_momentum_y"],
-            "net_momentum_z":  rec["net_momentum_z"],
-            "max_energy_gev":  rec["max_energy_gev"],
+            "load_timestamp":   load_ts,
+            "batch_id":         batch_id,
+            "event_id":         rec["event_id"],
+            "run_number":       rec["run_number"],
+            "timestamp_ms":     rec["timestamp_ms"],
+            "track_count":      rec["track_count"],
+            "net_momentum_x":   rec["net_momentum_x"],
+            "net_momentum_y":   rec["net_momentum_y"],
+            "net_momentum_z":   rec["net_momentum_z"],
+            "max_energy_gev":   rec["max_energy_gev"],
             "total_energy_gev": rec["total_energy_gev"],
-            "schema_version":  rec["schema_version"],
-            "load_status":     "validated",
+            "schema_version":   rec["schema_version"],
+            "load_status":      "validated",
         })
 
     if valid:
@@ -168,8 +185,7 @@ def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int
 
 
 def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int]:
-    """Returns (loaded_count, failed_count)."""
-    load_ts  = datetime.now(timezone.utc)
+    load_ts = datetime.now(timezone.utc)
     valid, failed = [], []
 
     for rec in records:
@@ -179,33 +195,35 @@ def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, in
             failed.append(rec)
             continue
         valid.append({
-            "load_timestamp":    load_ts,
-            "batch_id":          batch_id,
-            "event_id":          rec["event_id"],
-            "sensor_id":         rec["sensor_id"],
-            "sensor_type":       rec["sensor_type"].upper(),
-            "timestamp_ms":      rec["timestamp_ms"],
-            "target_id":         rec.get("target_id"),
-            "range_m":           rec.get("range_m"),
-            "bearing_deg":       rec.get("bearing_deg"),
-            "elevation_deg":     rec.get("elevation_deg"),
-            "velocity_ms":       rec.get("velocity_ms"),
+            "load_timestamp":     load_ts,
+            "batch_id":           batch_id,
+            "event_id":           rec["event_id"],
+            "sensor_id":          rec["sensor_id"],
+            "sensor_type":        rec["sensor_type"].upper(),
+            "timestamp_ms":       rec["timestamp_ms"],
+            "target_id":          rec.get("target_id"),
+            "range_m":            rec.get("range_m"),
+            "bearing_deg":        rec.get("bearing_deg"),
+            "elevation_deg":      rec.get("elevation_deg"),
+            "velocity_ms":        rec.get("velocity_ms"),
             "signal_strength_db": rec.get("signal_strength_db"),
-            "scan_id":           rec.get("scan_id"),
-            "point_count":       rec.get("point_count"),
-            "centroid_x_m":      rec.get("centroid_x_m"),
-            "centroid_y_m":      rec.get("centroid_y_m"),
-            "centroid_z_m":      rec.get("centroid_z_m"),
-            "max_range_m":       rec.get("max_range_m"),
-            "avg_intensity":     rec.get("avg_intensity"),
-            "min_intensity":     rec.get("min_intensity"),
-            "device_id":         rec.get("device_id"),
-            "parameter_name":    rec.get("parameter_name"),
-            "value":             rec.get("value"),
-            "unit":              rec.get("unit"),
-            "sequence_number":   rec.get("sequence_number"),
-            "schema_version":    rec["schema_version"],
-            "load_status":       "validated",
+            "scan_id":            rec.get("scan_id"),
+            "point_count":        rec.get("point_count"),
+            "centroid_x_m":       rec.get("centroid_x_m"),
+            "centroid_y_m":       rec.get("centroid_y_m"),
+            "centroid_z_m":       rec.get("centroid_z_m"),
+            "max_range_m":        rec.get("max_range_m"),
+            "avg_intensity":      rec.get("avg_intensity"),
+            "min_intensity":      rec.get("min_intensity"),
+            "device_id":          rec.get("device_id"),
+            "parameter_name":     rec.get("parameter_name"),
+            "value":              rec.get("value"),
+            "unit":               rec.get("unit"),
+            "sequence_number":    rec.get("sequence_number"),
+            "schema_version":     rec["schema_version"],
+            "label":              rec.get("label", 0),
+            "anomaly_type":       rec.get("anomaly_type"),
+            "load_status":        "validated",
         })
 
     if valid:
@@ -218,14 +236,13 @@ def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, in
 
 # ── File Loader ───────────────────────────────────────────────────────────────
 
-def load_ndjson_file(filepath: Path, stream_type: str, conn) -> dict:
+def load_ndjson_file(filepath: Path, conn) -> dict:
     """
     Loads a single NDJSON file into the appropriate staging table.
-    stream_type: 'alice' | 'radar' | 'lidar' | 'telemetry'
-    Returns summary dict.
+    Stream type is auto-detected from file content.
     """
-    batch_id   = str(uuid.uuid4())
-    records    = []
+    batch_id = str(uuid.uuid4())
+    records  = []
 
     with open(filepath, "r", encoding="utf-8") as f:
         for i, line in enumerate(f, 1):
@@ -237,43 +254,49 @@ def load_ndjson_file(filepath: Path, stream_type: str, conn) -> dict:
             except json.JSONDecodeError as e:
                 log.warning("JSON parse error line %d in %s: %s", i, filepath.name, e)
 
-    if stream_type == "alice":
+    detected = detect_stream_type(records)
+
+    if detected == "unknown":
+        log.warning("Cannot detect stream type for %s — skipping", filepath.name)
+        return {"file": filepath.name, "stream": "unknown", "loaded": 0, "failed": 0, "total": 0}
+
+    if detected == "alice":
         loaded, failed = load_alice_batch(conn, records, batch_id)
     else:
         loaded, failed = load_sensor_batch(conn, records, batch_id)
 
     log.info(
         "%-30s  stream=%-10s  batch=%s  loaded=%d  failed=%d",
-        filepath.name, stream_type, batch_id[:8], loaded, failed
+        filepath.name, detected, batch_id[:8], loaded, failed
     )
     return {
-        "file":       filepath.name,
-        "stream":     stream_type,
-        "batch_id":   batch_id,
-        "loaded":     loaded,
-        "failed":     failed,
-        "total":      loaded + failed,
+        "file":     filepath.name,
+        "stream":   detected,
+        "batch_id": batch_id,
+        "loaded":   loaded,
+        "failed":   failed,
+        "total":    loaded + failed,
     }
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def ingest_directory(data_dir: str, stream_type: str):
+def ingest_directory(data_dir: str):
     """
-    Ingests all .ndjson files in data_dir for the given stream_type.
-    stream_type: 'alice' | 'radar' | 'lidar' | 'telemetry'
+    Ingests all .jsonl files in data_dir.
+    Stream type is auto-detected per file from content.
     """
-    path = Path(data_dir)
-    files = sorted(path.glob("*.ndjson"))
+    path  = Path(data_dir)
+    files = sorted(path.glob("*.jsonl"))
     if not files:
-        log.warning("No .ndjson files found in %s", data_dir)
+        log.warning("No .jsonl files found in %s", data_dir)
         return
 
     conn = psycopg2.connect(DB_URL)
     results = []
     try:
         for f in files:
-            result = load_ndjson_file(f, stream_type, conn)
+            result = load_ndjson_file(f, conn)
             results.append(result)
     finally:
         conn.close()
@@ -281,8 +304,8 @@ def ingest_directory(data_dir: str, stream_type: str):
     total_loaded = sum(r["loaded"] for r in results)
     total_failed = sum(r["failed"] for r in results)
     log.info(
-        "DONE — stream=%s  files=%d  total_loaded=%d  total_failed=%d",
-        stream_type, len(files), total_loaded, total_failed
+        "DONE — files=%d  total_loaded=%d  total_failed=%d",
+        len(files), total_loaded, total_failed
     )
     return results
 
@@ -291,8 +314,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="DataForge Staging Ingestion Script")
-    parser.add_argument("stream_type", choices=["alice", "radar", "lidar", "telemetry"])
-    parser.add_argument("data_dir", help="Directory containing .ndjson batch files")
+    parser.add_argument("data_dir", help="Directory containing .jsonl batch files")
     args = parser.parse_args()
 
-    ingest_directory(args.data_dir, args.stream_type)
+    ingest_directory(args.data_dir)
