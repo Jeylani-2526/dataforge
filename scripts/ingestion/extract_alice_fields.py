@@ -1,12 +1,4 @@
-"""
-DataForge — ALICE ESD Extraction Script
-Task: M3W10
-Owner: Beyza Ülkümen
-Source: docs/data/root_to_avro_mapping.md
 
-Extracts uproot-readable fields from AliESDs.root and writes NDJSON.
-Momentum/energy fields require PyROOT (set to 0.0 until ROOT Docker available).
-"""
 
 import json
 import uuid
@@ -19,6 +11,7 @@ from pathlib import Path
 def extract_alice_events(root_file_path: str, output_path: str) -> int:
     """
     Extract ALICE events from AliESDs.root using uproot.
+    Filters to fEventType=7 (genuine physics events only).
     Returns number of records written.
     """
     with uproot.open(root_file_path) as f:
@@ -35,34 +28,43 @@ def extract_alice_events(root_file_path: str, output_path: str) -> int:
             for i in range(len(timestamps_s))
         ]
 
+        # event_type — fEventType=7 means genuine physics event
+        event_types = tree["AliESDHeader./AliESDHeader.fEventType"].array(library="np")
+
         # track_count — length of per-track fFlags array per event
         flags_per_event = tree["Tracks/Tracks.fFlags"].array(library="np")
         track_counts    = [int(len(flags)) for flags in flags_per_event]
 
     n_events = len(timestamps_ms)
 
-    # Write NDJSON
+    # Write NDJSON — fEventType=7 only
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
+    written = 0
     with open(output, "w", encoding="utf-8") as out:
         for i in range(n_events):
+            if int(event_types[i]) != 7:
+                continue
             record = {
                 "event_id":         str(uuid.uuid4()),
                 "run_number":       run_number,
                 "timestamp_ms":     timestamps_ms[i],
                 "track_count":      track_counts[i],
-                "net_momentum_x":   0.0,  # PyROOT required — ROOT Docker M4
-                "net_momentum_y":   0.0,  # PyROOT required — ROOT Docker M4
-                "net_momentum_z":   0.0,  # PyROOT required — ROOT Docker M4
-                "max_energy_gev":   0.0,  # PyROOT required — ROOT Docker M4
-                "total_energy_gev": 0.0,  # PyROOT required — ROOT Docker M4
+                "net_momentum_x":   0.0,  # PyROOT required — M4W13T1 (Abdalla)
+                "net_momentum_y":   0.0,  # PyROOT required — M4W13T1 (Abdalla)
+                "net_momentum_z":   0.0,  # PyROOT required — M4W13T1 (Abdalla)
+                "max_energy_gev":   0.0,  # PyROOT required — M4W13T1 (Abdalla)
+                "total_energy_gev": 0.0,  # PyROOT required — M4W13T1 (Abdalla)
                 "schema_version":   "1.0"
             }
             out.write(json.dumps(record) + "\n")
+            written += 1
 
-    print(f"Generated {n_events} records -> {output}")
-    return n_events
+    print(f"Total events in file : {n_events}")
+    print(f"Physics events (fEventType=7): {written}")
+    print(f"Output: {output}")
+    return written
 
 
 if __name__ == "__main__":
