@@ -125,6 +125,7 @@ ALICE_INSERT = """
         %(max_energy_gev)s, %(total_energy_gev)s,
         %(schema_version)s, %(load_status)s
     )
+    ON CONFLICT (event_id) DO NOTHING
 """
 
 SENSOR_INSERT = """
@@ -147,10 +148,11 @@ SENSOR_INSERT = """
         %(device_id)s, %(parameter_name)s, %(value)s, %(unit)s, %(sequence_number)s,
         %(schema_version)s, %(label)s, %(anomaly_type)s, %(load_status)s
     )
+    ON CONFLICT (event_id) DO NOTHING
 """
 
 
-def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int]:
+def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int, int]:
     load_ts = datetime.now(timezone.utc)
     valid, failed = [], []
 
@@ -176,15 +178,21 @@ def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int
             "load_status":      "validated",
         })
 
+    inserted = 0
     if valid:
         with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM raw_alice_events_staging")
+            before = cur.fetchone()[0]
             execute_batch(cur, ALICE_INSERT, valid, page_size=500)
+            cur.execute("SELECT count(*) FROM raw_alice_events_staging")
+            inserted = cur.fetchone()[0] - before
         conn.commit()
 
-    return len(valid), len(failed)
+    duplicates = len(valid) - inserted
+    return inserted, len(failed), duplicates
 
 
-def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int]:
+def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int, int]:
     load_ts = datetime.now(timezone.utc)
     valid, failed = [], []
 
@@ -226,12 +234,18 @@ def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, in
             "load_status":        "validated",
         })
 
+    inserted = 0
     if valid:
         with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM raw_sensor_events_staging")
+            before = cur.fetchone()[0]
             execute_batch(cur, SENSOR_INSERT, valid, page_size=500)
+            cur.execute("SELECT count(*) FROM raw_sensor_events_staging")
+            inserted = cur.fetchone()[0] - before
         conn.commit()
 
-    return len(valid), len(failed)
+    duplicates = len(valid) - inserted
+    return inserted, len(failed), duplicates
 
 
 # ── File Loader ───────────────────────────────────────────────────────────────
@@ -258,24 +272,25 @@ def load_ndjson_file(filepath: Path, conn) -> dict:
 
     if detected == "unknown":
         log.warning("Cannot detect stream type for %s — skipping", filepath.name)
-        return {"file": filepath.name, "stream": "unknown", "loaded": 0, "failed": 0, "total": 0}
+        return {"file": filepath.name, "stream": "unknown", "loaded": 0, "failed": 0, "duplicates": 0, "total": 0}
 
     if detected == "alice":
-        loaded, failed = load_alice_batch(conn, records, batch_id)
+        loaded, failed, duplicates = load_alice_batch(conn, records, batch_id)
     else:
-        loaded, failed = load_sensor_batch(conn, records, batch_id)
+        loaded, failed, duplicates = load_sensor_batch(conn, records, batch_id)
 
     log.info(
-        "%-30s  stream=%-10s  batch=%s  loaded=%d  failed=%d",
-        filepath.name, detected, batch_id[:8], loaded, failed
+        "%-30s  stream=%-10s  batch=%s  loaded=%d  failed=%d  duplicates=%d",
+        filepath.name, detected, batch_id[:8], loaded, failed, duplicates
     )
     return {
-        "file":     filepath.name,
-        "stream":   detected,
-        "batch_id": batch_id,
-        "loaded":   loaded,
-        "failed":   failed,
-        "total":    loaded + failed,
+        "file":       filepath.name,
+        "stream":     detected,
+        "batch_id":   batch_id,
+        "loaded":     loaded,
+        "failed":     failed,
+        "duplicates": duplicates,
+        "total":      loaded + failed + duplicates,
     }
 
 
@@ -301,11 +316,12 @@ def ingest_directory(data_dir: str):
     finally:
         conn.close()
 
-    total_loaded = sum(r["loaded"] for r in results)
-    total_failed = sum(r["failed"] for r in results)
+    total_loaded     = sum(r["loaded"] for r in results)
+    total_failed     = sum(r["failed"] for r in results)
+    total_duplicates = sum(r["duplicates"] for r in results)
     log.info(
-        "DONE — files=%d  total_loaded=%d  total_failed=%d",
-        len(files), total_loaded, total_failed
+        "DONE — files=%d  total_loaded=%d  total_failed=%d  total_duplicates=%d",
+        len(files), total_loaded, total_failed, total_duplicates
     )
     return results
 
