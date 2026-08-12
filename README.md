@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Milestone](https://img.shields.io/badge/Milestone-3%20%E2%80%94%20Data%20%20Generation%20&%20Preprocessing-blue)](docs/milestones/)
+[![Milestone](https://img.shields.io/badge/Milestone-4%20%E2%80%94%20Data%20Adaptation%20Layer-blue)](docs/milestones/)
 
 ---
 
@@ -225,8 +225,8 @@ dataforge/
 |---|-----------|-------|--------|
 | M1 | Project Understanding & Requirements | 11 May – 7 Jun 2026 | ✅ Completed |
 | M2 | Data Schema & Model Design | 8 Jun – 5 Jul 2026 | ✅ Completed |
-| M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | 🔄 In Progress |
-| M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | ⏳ Upcoming |
+| M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | ✅ Completed |
+| M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | 🔄 In Progress |
 | M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | ⏳ Upcoming |
 | M6 | Data Fusion & Synchronization | 28 Sep – 25 Oct 2026 | ⏳ Upcoming |
 | M7 | AI/ML Anomaly Detection | 26 Oct – 22 Nov 2026 | ⏳ Upcoming |
