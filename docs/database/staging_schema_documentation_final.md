@@ -20,17 +20,17 @@ CREATE TABLE raw_alice_events_staging (
     run_number        INTEGER         NOT NULL,
     timestamp_ms      BIGINT          NOT NULL,
     track_count       INTEGER         NOT NULL,
-    net_momentum_x    REAL            NOT NULL DEFAULT 0.0,
-    net_momentum_y    REAL            NOT NULL DEFAULT 0.0,
-    net_momentum_z    REAL            NOT NULL DEFAULT 0.0,
-    max_energy_gev    REAL            NOT NULL DEFAULT 0.0,
-    total_energy_gev  REAL            NOT NULL DEFAULT 0.0,
+    net_momentum_x    REAL            NOT NULL,
+    net_momentum_y    REAL            NOT NULL,
+    net_momentum_z    REAL            NOT NULL,
+    max_energy_gev    REAL            NOT NULL,
+    total_energy_gev  REAL            NOT NULL,
     schema_version    VARCHAR(10)     NOT NULL DEFAULT '1.0',
     load_status       VARCHAR(20)     NOT NULL DEFAULT 'pending'
 );
 ```
 
-**Records:** 287 validated · run 139465 · momentum/energy = 0.0 until M4 PyROOT
+**Records:** 68 validated · run 139465 · fEventType=7 filter applied · momentum/energy populated via PyROOT (M4W13T1)
 
 ---
 
@@ -65,13 +65,13 @@ CREATE TABLE raw_sensor_events_staging (
     unit               VARCHAR(32)     DEFAULT NULL,
     sequence_number    BIGINT          DEFAULT NULL,
     schema_version     VARCHAR(10)     NOT NULL DEFAULT '1.0',
-    label              INTEGER         DEFAULT 0,
+    label              INTEGER         NOT NULL DEFAULT 0,
     anomaly_type       VARCHAR(50)     DEFAULT NULL,
     load_status        VARCHAR(20)     NOT NULL DEFAULT 'pending'
 );
 ```
 
-**Records:** 150,000 validated · ~3% anomaly rate
+**Records:** 150,000 validated · ~3% anomaly rate · label and anomaly_type populated (M4W13T3)
 
 ---
 
@@ -96,10 +96,11 @@ CREATE TABLE raw_sensor_events_staging (
 
 ---
 
-## Open Items for M4
+## M4 Closure
 
-| #   | Item                                    | Owner   |
-| --- | --------------------------------------- | ------- |
-| 1   | momentum/energy → PyROOT                | Abdalla |
-| 2   | PHYSICS_EVENT filter → ALICE extraction | Beyza   |
-| 3   | Promote staging → production `events`   | M4      |
+| # | Item | Status |
+|---|---|---|
+| 1 | momentum/energy → PyROOT | ✅ Completed — M4W13T1 |
+| 2 | PHYSICS_EVENT filter (fEventType=7) | ✅ Completed — M4W13T2 |
+| 3 | label + anomaly_type columns added | ✅ Completed — M4W13T3 |
+| 4 | Promote staging → production `events` | ⏳ M4W15 |
