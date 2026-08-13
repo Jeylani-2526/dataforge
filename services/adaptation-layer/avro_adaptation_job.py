@@ -65,6 +65,7 @@ Field reference: /docs/data/root_to_avro_mapping.md (ALICE fields),
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 
 from pyspark.sql import SparkSession, DataFrame
@@ -113,12 +114,27 @@ SENSOR_FIELDS = [
 # ── Spark session ────────────────────────────────────────────────────────
 
 def get_spark_session(app_name: str = "dataforge-adaptation-layer") -> SparkSession:
-    return (
+    spark = (
         SparkSession.builder
         .appName(app_name)
         .config("spark.sql.session.timeZone", "UTC")
         .getOrCreate()
     )
+
+    # Ships schema_versioning.py to every executor's Python worker process.
+    # Required on Windows (and in any cluster/multi-process deployment):
+    # worker processes are separate `python.exe` processes that do NOT
+    # automatically know about files sitting next to this script the way
+    # the driver process does. Without this, `from schema_versioning
+    # import enforce` inside _write_partition_to_avro() fails inside the
+    # worker with an unhelpful "Python worker exited unexpectedly
+    # (crashed)" / EOFException, rather than a clear ModuleNotFoundError.
+    schema_versioning_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "schema_versioning.py"
+    )
+    spark.sparkContext.addPyFile(schema_versioning_path)
+
+    return spark
 
 
 # ── Read: staging tables (JDBC) ──────────────────────────────────────────
