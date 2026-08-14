@@ -1,12 +1,14 @@
 # DataForge — Sensor Field Specification
 
+> Field names and enum casing corrected 2026-08-14 to match locked sensor_schema_v1.avsc; this doc had drifted from the schema after v1 was finalized.
+
 ## Sensor Types
 
 | Sensor Type | `sensor_type` enum | Description |
 |---|---|---|
-| Radar | `radar` | Radio-wave target detection — range, bearing, velocity |
-| LIDAR | `lidar` | Laser-based 3D point cloud — distance and mapping |
-| Telemetry | `telemetry` | Remote system status — temperature, health, performance |
+| Radar | `RADAR` | Radio-wave target detection — range, bearing, velocity |
+| LIDAR | `LIDAR` | Laser-based 3D point cloud — distance and mapping |
+| Telemetry | `TELEMETRY` | Remote system status — temperature, health, performance |
 
 > ALICE data (`source_type = alice`) is in `alice_event_schema_v0.avsc` — NOT part of this spec.
 
@@ -18,7 +20,7 @@
 |---|---|---|---|---|---|
 | 1 | `event_id` | string (UUID) | — | Live Stream · AI Alerts · XAI Panel · Reports | real-time / 5s |
 | 2 | `sensor_id` | string | — | Fusion Monitor | 10s |
-| 3 | `sensor_type` | enum (radar/lidar/telemetry) | — | All 7 pages | varies |
+| 3 | `sensor_type` | enum (RADAR/LIDAR/TELEMETRY) | — | All 7 pages | varies |
 | 4 | `timestamp_ms` | long | ms (epoch) | Live Stream · AI Alerts · XAI Panel · Reports · Fusion Monitor | real-time |
 | 5 | `schema_version` | string | — | Not displayed | — |
 
@@ -49,9 +51,9 @@
 |---|---|---|---|---|---|---|
 | 12 | `scan_id` | string | — | Fusion Monitor | 10s | Unique identifier for this scan |
 | 13 | `point_count` | int | — | Fusion Monitor | 10s | Total points captured in this scan |
-| 14 | `centroid_x` | float | metres | Fusion Monitor | 10s | Mean X position across all scan points |
-| 15 | `centroid_y` | float | metres | Fusion Monitor | 10s | Mean Y position across all scan points |
-| 16 | `centroid_z` | float | metres | Fusion Monitor | 10s | Mean Z / altitude across all scan points |
+| 14 | `centroid_x_m` | float | metres | Fusion Monitor | 10s | Mean X position across all scan points |
+| 15 | `centroid_y_m` | float | metres | Fusion Monitor | 10s | Mean Y position across all scan points |
+| 16 | `centroid_z_m` | float | metres | Fusion Monitor | 10s | Mean Z / altitude across all scan points |
 | 17 | `max_range_m` | float | metres | Fusion Monitor · AI Alerts | 10s / 5s | Distance to farthest detected point |
 | 18 | `avg_intensity` | float | 0–255 | Fusion Monitor · AI Alerts | 10s / 5s | Mean return intensity across all scan points |
 | 19 | `min_intensity` | float | 0–255 | Fusion Monitor · AI Alerts | 10s / 5s | Minimum return intensity — low value indicates obstruction; key SHAP feature |

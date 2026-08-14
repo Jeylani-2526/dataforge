@@ -57,3 +57,4 @@ services/ai-ml/anomaly-detection/models/*.h5
 
 # --- Docker ---
 .docker/
+data/adaptation/

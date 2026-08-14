@@ -1,0 +1,2 @@
+pyspark==3.5.1
+fastavro==1.9.4
