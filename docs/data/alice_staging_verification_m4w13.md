@@ -56,15 +56,15 @@ Getting the load to run at all surfaced four issues outside this task's original
 |---|---|---|---|
 | 1 | `scripts/ingestion/staging_ingestion_script.py` (Beyza, M3W10T5) | `DB_URL` hardcoded to `postgres:dataforge@.../dataforge_db`, not matching Docker Compose's actual defaults (`dataforge:dataforge_dev@.../dataforge`) | Corrected to match Compose config |
 | 2 | `scripts/ingestion/staging_ingestion_script.py` | `ingest_directory()` globs only `*.ndjson`, but every file in `data/synthetic/` is `.jsonl` — **meaning no prior run of this script could ever have loaded anything, for any stream type, until this fix** | Glob extended to match both `.ndjson` and `.jsonl` |
-| 3 | `scripts/ingestion/staging_ingestion_script.py` | `ingest_directory()` has no stream-type filtering — pointing it at a mixed directory (e.g. `data/synthetic/` containing RADAR/LIDAR/TELEMETRY files alongside ALICE) would validate non-ALICE records as ALICE records | **Not fixed, only worked around** — this run used an isolated directory containing only `alice.jsonl`. Real fix still needed; flagged for Beyza. |
+| 3 | `scripts/ingestion/staging_ingestion_script.py` | `ingest_directory()` has no stream-type filtering — pointing it at a mixed directory (e.g. `data/synthetic/` containing RADAR/LIDAR/TELEMETRY files alongside ALICE) would validate non-ALICE records as ALICE records | **Resolved 2026-08-11** — Beyza landed content-based stream-type detection (`detect_stream_type()`) in commit `d250ff8`, routing each file to the correct staging table by peeking at its first record. See root_to_avro_mapping.md checkpoint note, M4W14T8, for verification. |
 | 4 | `infrastructure/scripts/init-db.sql` | File did not exist — `raw_alice_events_staging` only ever existed as DDL prose in `docs/database/staging_table_design.md`, never as runnable SQL, which crash-looped the TimescaleDB container on first attempt | Created from the documented DDL |
 
 **Note on process:** items 1, 2, and 4 touch files owned by Beyza and Omer respectively, and item 4 is new schema-defining SQL that would normally require sign-off before landing, per the project's schema-change convention. By explicit team decision this week, all four are committed now to unblock verification, with Beyza and Omer notified after the commit rather than before — logged here for transparency rather than presented as a clean, pre-agreed change.
 
-Item 3 (stream-type filtering gap) remains **open and unfixed** — recommend Beyza picks this up before the next multi-stream staging load.
+Item 3 (stream-type filtering gap) is **resolved** as of commit `d250ff8` (11 Aug 2026) — content-based detection now routes each file to the correct table before validation.
 
 ## 5. Verdict
 
-**PASS.** The M4W13T1 PyROOT derivation and M4W13T2 `fEventType=7` filter compose correctly end-to-end: 68/68 records load with 0 failures, non-zero-track events carry real derived momentum/energy values, zero-track events correctly carry `0.0` (not null) across all five fields. One data-characteristic observation (event `c1cc2e42…`'s net-momentum ratio) is flagged for team awareness, not resolved. One infrastructure gap (item 3 above) remains open for Beyza.
+**PASS.** The M4W13T1 PyROOT derivation and M4W13T2 `fEventType=7` filter compose correctly end-to-end: 68/68 records load with 0 failures, non-zero-track events carry real derived momentum/energy values, zero-track events correctly carry `0.0` (not null) across all five fields. One data-characteristic observation (event `c1cc2e42…`'s net-momentum ratio) is flagged for team awareness, not resolved. Item 3 (stream-type filtering) was resolved 11 Aug 2026 (commit d250ff8), after this verification was originally written.
 
 
