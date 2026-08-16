@@ -80,10 +80,20 @@ log = logging.getLogger(__name__)
 
 # ── Config ───────────────────────────────────────────────────────────────
 # Mirrors scripts/ingestion/staging_ingestion_script.py — same staging DB.
-JDBC_URL = "jdbc:postgresql://localhost:5432/dataforge"
+# Read from env vars (same pattern as the spark-processor service in
+# docker-compose.yml) so this works both inside Docker (DB_HOST=timescaledb)
+# and in Abdullah's existing local Windows/PySpark setup outside Docker,
+# where no env vars are set and these hardcoded values remain the defaults.
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME", "dataforge")
+DB_USER = os.environ.get("DB_USER", "dataforge")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "dataforge_dev")
+
+JDBC_URL = f"jdbc:postgresql://{DB_HOST}:{DB_PORT}/{DB_NAME}"
 JDBC_PROPERTIES = {
-    "user": "dataforge",
-    "password": "dataforge_dev",
+    "user": DB_USER,
+    "password": DB_PASSWORD,
     "driver": "org.postgresql.Driver",
 }
 
@@ -117,6 +127,10 @@ def get_spark_session(app_name: str = "dataforge-adaptation-layer") -> SparkSess
     spark = (
         SparkSession.builder
         .appName(app_name)
+        # spark.read.jdbc() needs the actual Postgres JDBC driver on the
+        # classpath — PySpark does not bundle one. Pulled from Maven at
+        # session startup.
+        .config("spark.jars.packages", "org.postgresql:postgresql:42.7.4")
         .config("spark.sql.session.timeZone", "UTC")
         .getOrCreate()
     )
