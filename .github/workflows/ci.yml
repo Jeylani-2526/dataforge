@@ -80,6 +80,9 @@ jobs:
         run: |
           if find services/ -name "test_*.py" | grep -q .; then
             pip install pytest
+            if [ -f services/adaptation-layer/requirements.txt ]; then
+              pip install -r services/adaptation-layer/requirements.txt
+            fi
             pytest services/ -v
           else
             echo "No tests yet — test suite activates in M3 ✓"
