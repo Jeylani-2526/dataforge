@@ -3,32 +3,22 @@ DataForge — Schema-Versioning Enforcement
 Task: M4W14T3
 Owner: Abdullah
 
-Turns schema_evolution_policy.md into running pipeline code. Two
-responsibilities, kept separate because they catch different failure
-modes:
+Turns schema_evolution_policy.md into running pipeline code, via two
+checks kept separate because they catch different failures:
 
-  1. VERSION POPULATION — every outgoing record's schema_version is
-     stamped from CURRENT_SCHEMA_VERSIONS (the single authoritative
-     registry, kept in sync with schema_evolution_policy.md Section 4 /
-     the Migration Log) rather than trusted verbatim from upstream. If
-     an incoming record's schema_version disagrees with the registry,
-     that's logged as a version-drift event — it means some upstream
-     producer wrote a value that no longer matches the locked schema,
-     which is exactly the "undocumented schema change... can silently
-     break a downstream consumer" scenario the policy exists to prevent.
+  1. VERSION POPULATION — every record's schema_version is stamped from
+     CURRENT_SCHEMA_VERSIONS (the registry, synced with
+     schema_evolution_policy.md Section 4 / the Migration Log), not
+     trusted verbatim from upstream. A mismatch is logged as version
+     drift — an upstream producer writing a value that no longer
+     matches the locked schema.
+  2. ROUND-TRIP CHECK — every record is serialized then deserialized
+     against the locked .avsc schema (same technique as
+     schemas/validate_schema.py) before being written. A record that
+     fails is real data loss, counted rather than silently dropped.
 
-  2. ROUND-TRIP CHECK — every record is serialized and immediately
-     deserialized against the same locked .avsc schema (the same
-     fastavro technique schemas/validate_schema.py already uses by
-     hand) before being committed to an output Avro file. A record
-     that fails this check is real data loss and is counted as such —
-     not silently dropped without a trace.
-
-Neither check trusts "it looked fine when Beyza's loader validated it
-last week" — staging validation and adaptation-layer schema enforcement
-are deliberately separate checks at separate pipeline stages, per the
-project's "verify against committed files/state, not verbal
-confirmation" practice.
+Deliberately separate from staging validation — a later, independent
+check at the adaptation layer rather than trusting an earlier stage.
 """
 
 import logging

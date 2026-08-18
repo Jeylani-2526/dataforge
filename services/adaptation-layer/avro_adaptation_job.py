@@ -3,63 +3,32 @@ DataForge — PySpark Adaptation Job Scaffold (Avro Serialization)
 Task: M4W14T2
 Owner: Abdullah
 
-Reads filtered/corrected ALICE and sensor records from the TimescaleDB
-staging tables (raw_alice_events_staging / raw_sensor_events_staging —
-populated by scripts/ingestion/staging_ingestion_script.py, post the
-M4W14T1 stream-type filtering fix) and serializes them to Avro per the
-three locked v1 schemas:
+Reads validated ALICE and sensor records from the TimescaleDB staging
+tables (raw_alice_events_staging / raw_sensor_events_staging, populated
+by scripts/ingestion/staging_ingestion_script.py) and serializes them to
+Avro per the three locked v1 schemas: alice_event, sensor, fused_event
+(/schemas/*.avsc). Field reference: /docs/data/root_to_avro_mapping.md,
+/docs/data/sensor_field_spec.md.
 
-    /schemas/alice_event_schema_v1.avsc
-    /schemas/sensor_schema_v1.avsc
-    /schemas/fused_event_schema_v1.avsc
-
-Field reference: /docs/data/root_to_avro_mapping.md (ALICE fields),
-/docs/data/sensor_field_spec.md (sensor fields).
-
-── Design notes (read before modifying) ──────────────────────────────────
-1. READ: JDBC batch read (spark.read.jdbc). Spark has no built-in
-   streaming-JDBC source, so this is intentionally a batch job this
-   week — the scaffold occupies the position Structured Streaming will
-   occupy once Kafka topics exist (services/streaming/kafka is still
-   empty as of M4W14). Transform functions below are written as pure
-   DataFrame -> DataFrame functions so the read step is the only thing
-   that changes when that migration happens.
-
-2. SERIALIZE: fastavro, not Spark's native `.write.format("avro")`.
-   Spark's avro writer needs the org.apache.spark:spark-avro package
-   pulled from Maven at submit time; fastavro is already a project
-   dependency (used in schemas/validate_schema.py) and keeps this
-   scaffold dependency-free beyond what's already pinned. Serialization
-   happens per-partition via mapPartitions so this scales past a
-   single-driver bottleneck once Omer's execution environment (M4W14T5)
-   is confirmed runnable and Week 15's full-volume run (68 ALICE +
-   150,000 sensor records) exercises this path for real.
-
-3. WRITE TARGET: local Avro files under data/adaptation/avro/, not a
-   Kafka topic. Kafka topic creation isn't scoped to this task or to
-   Week 14's deliverables. Omer's Parquet writer stage (M4W14T4) reads
-   directly from this output directory.
-
-4. FUSED EVENT — INTENTIONALLY NOT IMPLEMENTED THIS WEEK.
-   fused_event_schema_v1.avsc requires a matched ALICE+sensor pair
-   (Module 6 stream-stream join). services/fusion/ is still an empty
-   scaffold (.gitkeep only) — there is no join logic anywhere in the
-   repo to build this against. write_fused_events() below is a stub
-   that documents the schema contract and raises NotImplementedError
-   if called, so it fails loudly instead of silently producing empty
-   or fabricated fused records. FLAG FOR M4W14T8 (Tuesday checkpoint):
-   confirm this is out of scope for M4 and pushed to whichever week
-   Module 6 fusion logic is actually built.
-
-5. SCHEMA-VERSION ENFORCEMENT (M4W14T3) — IMPLEMENTED, see
-   schema_versioning.py. Every batch is run through enforce() before
-   being committed to an Avro file: schema_version is stamped from the
-   CURRENT_SCHEMA_VERSIONS registry (not trusted verbatim from staging),
-   and every record is round-tripped (serialize -> deserialize -> compare)
-   against the actual locked .avsc schema before being written. Records
-   that fail either check are excluded from the output file and counted
-   in the returned data_loss_pct — they are not silently dropped.
-────────────────────────────────────────────────────────────────────────
+── Design notes ───────────────────────────────────────────────────────
+1. READ: JDBC batch read (spark.read.jdbc) — placeholder for Structured
+   Streaming once Kafka topics exist. Transforms are pure
+   DataFrame -> DataFrame so only the read step changes later.
+2. SERIALIZE: fastavro (not Spark's native avro writer, which needs a
+   Maven package) — already a project dependency. Runs per-partition via
+   mapPartitions to scale past a single driver.
+3. WRITE TARGET: local files under data/adaptation/avro/, not Kafka
+   (out of scope this task). Read directly by the Parquet writer (M4W14T4).
+4. FUSED EVENT: not implemented — requires the Module 6 stream-stream
+   join, which doesn't exist yet (services/fusion/ is empty).
+   write_fused_events() is a stub that raises NotImplementedError rather
+   than fabricate output. Scope to be confirmed at M4W14T8.
+5. SCHEMA-VERSION ENFORCEMENT: implemented via schema_versioning.enforce().
+   Every batch is stamped from CURRENT_SCHEMA_VERSIONS and round-tripped
+   (serialize -> deserialize -> compare) before being written; records
+   failing either check are excluded and counted in data_loss_pct, not
+   silently dropped.
+──────────────────────────────────────────────────────────────────────
 """
 
 import argparse
