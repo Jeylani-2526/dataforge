@@ -53,6 +53,9 @@ class EnforcementResult:
     version_drift: list = field(default_factory=list)   # records whose incoming schema_version != registry
     round_trip_failed: list = field(default_factory=list)  # records that failed serialize/deserialize
     valid_records: list = field(default_factory=list)   # records that passed both checks, schema_version stamped
+    # Per-record round-trip timing in ms (M4W15T4). Empty unless
+    # collect_timings=True was passed to enforce() — other callers unaffected.
+    record_latencies_ms: list = field(default_factory=list)
 
     @property
     def passed(self) -> int:
@@ -145,7 +148,7 @@ def _float32_round(value):
     return struct.unpack(">f", struct.pack(">f", value))[0]
 
 
-def round_trip_check(records: list, parsed_schema: dict) -> tuple:
+def round_trip_check(records: list, parsed_schema: dict, collect_timings: bool = False) -> tuple:
     """
     Serializes then immediately deserializes every record against the
     given (already fastavro.parse_schema()'d) schema, using the same
@@ -164,13 +167,31 @@ def round_trip_check(records: list, parsed_schema: dict) -> tuple:
     genuine mismatches — wrong values, dropped fields, type errors —
     are flagged, not precision the schema itself sanctions.
 
-    Returns: (passed_records, failed_records_with_errors)
-        failed_records_with_errors is a list of (record, error_message) tuples.
+    collect_timings (M4W15T4, default False — existing callers unaffected):
+    when True, times each record's serialize+deserialize+compare cycle
+    individually with time.perf_counter() and returns those latencies in
+    milliseconds as a third list. This is the per-record unit of work
+    the adaptation layer actually performs, so it's used as the latency
+    basis for the M4W15T4 full-volume throughput/p95 report — there's no
+    live event stream yet (that's M5's Kafka/Structured Streaming work),
+    so a true end-to-end event latency doesn't exist to measure this
+    milestone; per-record processing time is the fair proxy available
+    now, and is reported as such (not mislabeled as network/streaming
+    latency).
+
+    Returns: (passed_records, failed_records_with_errors) when
+    collect_timings=False (unchanged from before this parameter existed).
+    Returns: (passed_records, failed_records_with_errors, latencies_ms)
+    when collect_timings=True.
     """
+    import time
+
     field_types = _avro_field_types(parsed_schema)
     passed, failed = [], []
+    latencies_ms = []
 
     for rec in records:
+        start = time.perf_counter() if collect_timings else None
         try:
             buffer = BytesIO()
             schemaless_writer(buffer, parsed_schema, rec)
@@ -188,12 +209,20 @@ def round_trip_check(records: list, parsed_schema: dict) -> tuple:
                 failed.append((rec, f"round-trip mismatch: decoded={decoded} != expected={expected}"))
         except Exception as exc:
             failed.append((rec, str(exc)))
+        finally:
+            if collect_timings:
+                latencies_ms.append((time.perf_counter() - start) * 1000.0)
+
+    if collect_timings:
+        return passed, failed, latencies_ms
     return passed, failed
 
 
 # ── Combined enforcement entry point ─────────────────────────────────────
 
-def enforce(records: list, stream_name: str, parsed_schema: dict) -> EnforcementResult:
+def enforce(
+    records: list, stream_name: str, parsed_schema: dict, collect_timings: bool = False
+) -> EnforcementResult:
     """
     Runs both checks in sequence: version population/drift check first
     (cheap, catches upstream producer bugs), then round-trip check on the
@@ -201,13 +230,26 @@ def enforce(records: list, stream_name: str, parsed_schema: dict) -> Enforcement
     means a version-drift record never gets a round-trip check run on
     it — it's already rejected for a different reason, so we don't spend
     the extra serialize/deserialize cycle on it.
+
+    collect_timings (M4W15T4, default False): forwarded to
+    round_trip_check(); when True, result.record_latencies_ms is
+    populated. Default keeps every existing caller (the adaptation job's
+    normal runs, and M4W15T3's round-trip test suite) byte-for-byte
+    unaffected.
     """
     result = EnforcementResult(stream_name=stream_name, total=len(records))
 
     stamped, drift = populate_schema_version(records, stream_name)
     result.version_drift = drift
 
-    passed, failed = round_trip_check(stamped, parsed_schema)
+    if collect_timings:
+        passed, failed, latencies_ms = round_trip_check(
+            stamped, parsed_schema, collect_timings=True
+        )
+        result.record_latencies_ms = latencies_ms
+    else:
+        passed, failed = round_trip_check(stamped, parsed_schema)
+
     result.round_trip_failed = failed
     result.valid_records = passed
 

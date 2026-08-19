@@ -198,7 +198,9 @@ def _load_avro_schema(schema_filename: str) -> dict:
     return parse_schema(raw_schema)
 
 
-def _write_partition_to_avro(rows_iter, schema: dict, out_path: str, stream_name: str):
+def _write_partition_to_avro(
+    rows_iter, schema: dict, out_path: str, stream_name: str, collect_timings: bool = False
+):
     """
     Runs on each Spark executor. Enforces schema-versioning (M4W14T3 —
     version population + round-trip check) on the partition's records
@@ -206,6 +208,12 @@ def _write_partition_to_avro(rows_iter, schema: dict, out_path: str, stream_name
     using fastavro's block writer (avro.datafile.writer handles the file
     header + block framing; schemaless_writer is used inside the
     enforcement round-trip check itself, not for the standalone file).
+
+    collect_timings (M4W15T4, default False — existing callers/behavior
+    unaffected): forwarded to schema_versioning.enforce(); when True,
+    each partition's summary dict also carries record_latencies_ms so
+    the driver can aggregate a true per-record p95 across the whole run
+    for the full-volume throughput/latency report.
     """
     from fastavro import writer as avro_writer
     from schema_versioning import enforce
@@ -214,7 +222,7 @@ def _write_partition_to_avro(rows_iter, schema: dict, out_path: str, stream_name
     if not records:
         return iter([])
 
-    result = enforce(records, stream_name, schema)
+    result = enforce(records, stream_name, schema, collect_timings=collect_timings)
 
     if result.valid_records:
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
@@ -227,16 +235,22 @@ def _write_partition_to_avro(rows_iter, schema: dict, out_path: str, stream_name
         "rejected_version_drift": len(result.version_drift),
         "rejected_round_trip_failed": len(result.round_trip_failed),
         "data_loss_pct": result.data_loss_pct,
+        "record_latencies_ms": result.record_latencies_ms if collect_timings else [],
     }])
 
 
-def write_avro(df: DataFrame, schema_filename: str, stream_name: str) -> list:
+def write_avro(
+    df: DataFrame, schema_filename: str, stream_name: str, collect_timings: bool = False
+) -> list:
     """
     Serializes a DataFrame to Avro files under OUTPUT_DIR/<stream_name>/,
     one file per Spark partition, after schema-versioning enforcement
     (M4W14T3) rejects any version-drifted or round-trip-failed records.
     Returns a list of per-partition result summaries (collected back to
     the driver) for logging/manifest purposes.
+
+    collect_timings (M4W15T4, default False): forwarded down to every
+    partition's enforce() call — see _write_partition_to_avro.
     """
     schema = _load_avro_schema(schema_filename)
     stream_dir = OUTPUT_DIR / stream_name
@@ -245,7 +259,9 @@ def write_avro(df: DataFrame, schema_filename: str, stream_name: str) -> list:
     # distinct, deterministic output filename.
     def _partition_writer(index, rows_iter):
         out_path = str(stream_dir / f"part-{index:05d}.avro")
-        return _write_partition_to_avro(rows_iter, schema, out_path, stream_name)
+        return _write_partition_to_avro(
+            rows_iter, schema, out_path, stream_name, collect_timings=collect_timings
+        )
 
     results = df.rdd.mapPartitionsWithIndex(_partition_writer).collect()
     return results
