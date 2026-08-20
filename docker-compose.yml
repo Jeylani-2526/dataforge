@@ -78,7 +78,7 @@ services:
     container_name: dataforge-timescaledb
     networks: [dataforge-net]
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dataforge}
       POSTGRES_USER: ${POSTGRES_USER:-dataforge}
@@ -155,15 +155,21 @@ services:
   adaptation-layer:
     build:
       context: ./services/adaptation-layer
-      dockerfile: ../infrastructure/docker/adaptation-layer.Dockerfile
+      dockerfile: ../../infrastructure/docker/adaptation-layer.Dockerfile
     container_name: dataforge-adaptation
     networks: [dataforge-net]
     depends_on:
-      kafka:
+      timescaledb:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-dataforge}
+      DB_USER: ${POSTGRES_USER:-dataforge}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_dev}
+    volumes:
+      - ./schemas:/app/schemas
+      - ./data:/app/data
     profiles: ["m4-and-above"]
 
   # ---------------------------------------------------------------------------
