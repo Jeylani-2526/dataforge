@@ -1,5 +1,4 @@
--- DataForge — TimescaleDB Staging Table Init
--- Source: docs/database/staging_table_design.md
+-- DataForge — TimescaleDB Init
 
 CREATE TABLE IF NOT EXISTS raw_alice_events_staging (
     load_id           BIGSERIAL       PRIMARY KEY,
@@ -58,3 +57,33 @@ CREATE INDEX IF NOT EXISTS idx_sensor_staging_batch  ON raw_sensor_events_stagin
 CREATE INDEX IF NOT EXISTS idx_sensor_staging_type   ON raw_sensor_events_staging (sensor_type);
 CREATE INDEX IF NOT EXISTS idx_sensor_staging_status ON raw_sensor_events_staging (load_status);
 CREATE INDEX IF NOT EXISTS idx_sensor_staging_label  ON raw_sensor_events_staging (label);
+
+-- Production hypertable
+-- PRIMARY KEY (event_id, timestamp_ms) — timestamp_ms required for hypertable partitioning
+CREATE TABLE IF NOT EXISTS events (
+    event_id          UUID        NOT NULL,
+    timestamp_ms      BIGINT      NOT NULL,
+    source_type       VARCHAR(20) NOT NULL,
+    run_number        INTEGER,
+    track_count       INTEGER,
+    net_momentum_x    REAL,
+    net_momentum_y    REAL,
+    net_momentum_z    REAL,
+    max_energy_gev    REAL,
+    total_energy_gev  REAL,
+    sensor_type       VARCHAR(20),
+    label             INTEGER     DEFAULT 0,
+    anomaly_type      VARCHAR(50),
+    latency_ms        REAL,
+    anomaly_label     INTEGER,
+    risk_score        REAL,
+    schema_version    VARCHAR(10) NOT NULL DEFAULT '1.0',
+    PRIMARY KEY (event_id, timestamp_ms)
+);
+
+SELECT create_hypertable('events', 'timestamp_ms',
+    chunk_time_interval => 86400000,
+    if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_events_source_type ON events (source_type, timestamp_ms);
+CREATE INDEX IF NOT EXISTS idx_events_label       ON events (label, timestamp_ms);

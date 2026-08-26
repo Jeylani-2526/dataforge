@@ -78,7 +78,7 @@ services:
     container_name: dataforge-timescaledb
     networks: [dataforge-net]
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dataforge}
       POSTGRES_USER: ${POSTGRES_USER:-dataforge}

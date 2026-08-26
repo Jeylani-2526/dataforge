@@ -28,7 +28,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── DB Connection ─────────────────────────────────────────────────────────────
-DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5432/dataforge"
+DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5433/dataforge"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 VALID_SCHEMA_VERSION = "1.0"

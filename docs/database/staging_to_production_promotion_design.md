@@ -88,7 +88,46 @@ WHERE load_status = 'validated';
 | `timestamp_ms` > 0 | ✅ | ✅ |
 | `load_status = 'validated'` | ✅ | ✅ |
 | `run_number` NOT NULL | ✅ | — |
+| `track_count` >= 0 | ✅ | — |
+| `net_momentum_x/y/z` NOT NULL | ✅ | — |
+| `max_energy_gev` >= 0 | ✅ | — |
+| `total_energy_gev` >= 0 | ✅ | — |
 | `sensor_type` geçerli değer | — | ✅ |
+| `label` 0 veya 1 | — | ✅ |
+
+---
+
+## ALICE Momentum/Energy — Extraction Method
+
+`net_momentum_x/y/z`, `max_energy_gev`, `total_energy_gev` alanları PyROOT ile üretilir.
+
+```python
+# TLeaf.GetValue() ile Double32_t decoding (M4W13T1 — Abdalla)
+fP_leaf   = tree.GetLeaf("Tracks.fP")
+fAlpha_leaf = tree.GetLeaf("Tracks.fAlpha")
+
+for t in range(n_tracks):
+    fP4   = fP_leaf.GetValue(t * 5 + 4)  # q/pt
+    fP2   = fP_leaf.GetValue(t * 5 + 2)  # sin(phi)
+    fP3   = fP_leaf.GetValue(t * 5 + 3)  # tan(lambda)
+    fAlpha = fAlpha_leaf.GetValue(t)
+
+    pt  = abs(1.0 / fP4) if fP4 != 0.0 else 0.0
+    phi = fAlpha + math.asin(max(-1.0, min(1.0, fP2)))
+    px  = pt * math.cos(phi)
+    py  = pt * math.sin(phi)
+    pz  = pt * fP3
+
+# Event aggregation
+net_momentum_x   = sum(px_list)
+net_momentum_y   = sum(py_list)
+net_momentum_z   = sum(pz_list)
+max_energy_gev   = max(sqrt(px²+py²+pz²+M_PION²) for each track)
+total_energy_gev = sum(sqrt(px²+py²+pz²+M_PION²) for each track)
+# M_PION = 0.13957 GeV/c² — ALICE convention for unidentified tracks
+```
+
+Zero-track events: `net_momentum_x/y/z = 0.0`, `max_energy_gev = 0.0`, `total_energy_gev = 0.0`
 
 ---
 
@@ -106,3 +145,4 @@ pending → validated → promoted
 - Promotion atomik — INSERT başarısız olursa `load_status` güncellenmez
 - Duplicate koruması: `ON CONFLICT (event_id) DO NOTHING`
 - `latency_ms`, `anomaly_label`, `risk_score` → M5-M7'de doldurulacak
+- fEventType=7 filtresi extract aşamasında uygulanır — staging'e sadece fizik eventleri girer
