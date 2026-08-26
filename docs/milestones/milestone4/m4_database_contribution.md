@@ -37,13 +37,13 @@ Deferred: `latency_ms` (M5) · `anomaly_label` (M7) · `risk_score` (M7)
 
 ## 2. Promotion Results
 
-| source_type | count |
-|---|---|
-| alice | 68 |
-| lidar | 150,000 |
-| radar | 150,000 |
-| telemetry | 150,000 |
-| **Total** | **450,068** |
+| source_type | count       |
+| ----------- | ----------- |
+| alice       | 68          |
+| lidar       | 50,000      |
+| radar       | 50,000      |
+| telemetry   | 50,000      |
+| **Total**   | **150,068** |
 
 0 failed · 0 skipped · port 5433
 
