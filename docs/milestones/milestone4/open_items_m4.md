@@ -2,14 +2,15 @@
 
 **Originating Task ID:** M4W13T7
 **Owner:** Abdullah
-**Milestone:** M4 · Week 13 (originated) — amended M4 · Week 15
-**Status:** Open — five items tracked, none resolved in this document
+**Milestone:** M4 · Week 13 (originated) — amended M4 · Week 15, Week 16
+**Status:** Open — six items tracked; five open, one resolved (Item 6)
 **GitHub Path:** `/docs/milestones/milestone4/open_items_m4.md`
 
 **Amendment history:**
 - M4W13T7 — Document created; Items 1–3 logged (zero-track-count ALICE events, telemetry `device_id` scope, net-momentum outlier).
 - M4W15T2 — Item 4 added: `write_fused_events()` stub scope, formally closing the carry-in flagged (but never committed) at Week 14's M4W14T8 checkpoint.
 - M4W15T4 — Item 5 added: full-volume run throughput (1,665.56 events/sec) below the locked prototype bar (≥10,000 events/sec), surfaced by the M4W15T4 full-volume pipeline run.
+- M3W16T5 — Item 6 added and resolved same-day: missing `events` production table in the local dev Docker volume, found during Docker execution environment & port consistency verification.
 
 ---
 
@@ -109,6 +110,58 @@ Tracing the run's log timestamps stage by stage, the majority of wall-clock time
 
 ---
 
+## Item 6 — Missing `events` Production Table in Local Dev Volume (New This Week, Resolved)
+
+**Finding:** During M3W16T5's Docker execution environment & port consistency
+verification, `docker exec dataforge-timescaledb psql -U dataforge -d dataforge -c '\dt'`
+showed only `raw_alice_events_staging` and `raw_sensor_events_staging` — the `events`
+production hypertable, defined in `infrastructure/scripts/init-db.sql` and required by
+`promote_to_production.py`'s promotion writes, was absent from the live database.
+
+**Root cause:** `docker volume inspect dataforgerepo_timescaledb-data` shows the named
+volume was created **2026-08-11T08:31:27Z**. The `events` table definition was not added
+to `infrastructure/scripts/init-db.sql` until commit `62a7345` (**2026-08-20**,
+M4W15T5-T6, Beyza) — nine days after the volume's first initialization. Postgres's
+official image runs `docker-entrypoint-initdb.d/*.sql` only against a fresh, empty data
+directory; on every subsequent `up` it is skipped entirely regardless of what
+`init-db.sql` currently contains. This volume was therefore never running the `events`
+statement, independent of anything port-related.
+
+**Interim decision (this week): Resolved, not deferred.** Unlike Items 1–5, this is a
+mechanical schema-drift gap with a known-safe fix, not something requiring team input —
+so it was corrected directly rather than logged and carried forward.
+
+**Resolution applied:** the exact `events`-table block from
+`infrastructure/scripts/init-db.sql` (lines 63–89: `CREATE TABLE IF NOT EXISTS events`,
+`SELECT create_hypertable(...)`, both `CREATE INDEX IF NOT EXISTS` statements) was run
+directly against the live database via `docker exec -i dataforge-timescaledb psql`. All
+statements are idempotent (`IF NOT EXISTS` / `if_not_exists => TRUE`), so this is safe to
+re-run and does not risk the existing staging data. Full commands, real output, and
+schema/hypertable verification are recorded in
+`docs/milestones/milestone4/docker_port_verification_m3w16t5.md` §5.
+
+**Verification:** `\d events` confirms all 17 columns, the `(event_id, timestamp_ms)`
+primary key, and both indexes match `init-db.sql`'s definition exactly.
+`timescaledb_information.hypertables` confirms `hypertable_name=events`,
+`primary_dimension=timestamp_ms`, `num_chunks=0` (expected — no data has been written to
+`events` yet; promotion has not been re-run since this fix). Staging row counts were
+re-checked before and after: `raw_alice_events_staging` = 68, `raw_sensor_events_staging`
+= 150,000, unchanged — **no staging data was dropped or modified.**
+
+**What would trigger further action:** none expected — this is closed. Flagging only
+that `promote_to_production.py` has still not been executed against this now-complete
+schema as of this entry; a first real promotion run (writing rows into `events`, not just
+confirming the table exists) remains a natural follow-up but is not blocking anything and
+is not logged here as an open item.
+
+**Action items:**
+- [x] Abdullah: root-cause the missing `events` table (volume-vs-init-script timing, confirmed via `docker volume inspect` and `git log`)
+- [x] Abdullah: apply `init-db.sql`'s `events` DDL against the live volume, idempotently
+- [x] Abdullah: verify schema, hypertable status, and staging-data integrity post-fix
+- [ ] Team: run a real `promote_to_production.py` pass against the now-complete schema (not blocking, no owner/date assigned yet)
+
+---
+
 ## Summary
 
 | Item | Status | Deferred to | Trigger for resolution |
@@ -118,5 +171,6 @@ Tracing the run's log timestamps stage by stage, the majority of wall-clock time
 | Net-momentum outlier, event `c1cc2e42…` | Open, logged as observation | M7 | M7 anomaly-detection feature/label design |
 | Fused-event stub scope (`write_fused_events()`) | Open, confirmed out of scope for M4 | Module 6 (stream-stream join build) | Start of Module 6 planning/build work |
 | Full-volume run throughput below bar (1,665.56 vs. ≥10,000 events/sec) | Open, logged as known gap | M4 Week 16 / M5 | Week 16 root-cause investigation; M5 streaming benchmarks |
+| Missing `events` production table in local dev volume | **Resolved** (M3W16T5) | — | N/A — fixed directly, see Item 6 |
 
-**No items are resolved in this document.** All five remain open by design, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked.
+**Five of six items remain open by design**, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked. **Item 6 is the one exception**, closed directly this week because it was a mechanical schema-drift bug with a known-safe, idempotent fix rather than a question requiring team input.
