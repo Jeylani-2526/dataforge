@@ -236,6 +236,8 @@ dataforge/
 
 See the full [Roadmap document](docs/milestones/DataForge_Roadmap.md) for week-by-week breakdowns.
 
+**M4 status note:** Core M4 deliverables (data adaptation layer, schema-versioning enforcement, format conversion, staging-to-production promotion, TimescaleDB port-config fixes) are complete and committed. M4 remains **In Progress** rather than Completed because the pipeline throughput bar (≥10,000 events/sec) is not met — current measured throughput is 1,135.05 events/sec, root-caused but not resolved. See [`m4_package_cover_note.md`](docs/milestones/milestone4/m4_package_cover_note.md) and [`open_items_m4.md`](docs/milestones/milestone4/open_items_m4.md) for full detail.
+
 ---
 
 ## Prototype Performance Bar

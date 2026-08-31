@@ -12,7 +12,7 @@ from psycopg2.extras import execute_batch
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
 log = logging.getLogger(__name__)
 
-DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5432/dataforge"
+DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5433/dataforge"
 
 VALID_SENSOR_TYPES = {"RADAR", "LIDAR", "TELEMETRY"}
 

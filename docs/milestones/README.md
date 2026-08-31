@@ -7,7 +7,7 @@ This folder contains the official milestone documents for DataForge. See the roo
 | M1 — Project Understanding & Requirements | [`docs/requirements/`](../requirements/) | ✅ Completed |
 | M2 — Data Schema & Model Design | [`milestone2/`](milestone2/) | ✅ Completed |
 | M3 — Data Generation & Preprocessing | [`milestone3/`](milestone3/) | ✅ Completed |
-| M4 — Data Adaptation Layer | *(in progress — ALICE staging load & filtering)* | 🔄 In Progress |
+| M4 — Data Adaptation Layer | [`milestone4/`](milestone4/) — see [`m4_package_cover_note.md`](milestone4/m4_package_cover_note.md) | 🔄 In Progress — throughput gap open, see [`open_items_m4.md`](milestone4/open_items_m4.md) |
 | M5 — Streaming Pipeline | — | ⏳ Upcoming |
 | M6 — Data Fusion & Synchronization | — | ⏳ Upcoming |
 | M7 — AI/ML Anomaly Detection | — | ⏳ Upcoming |
