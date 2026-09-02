@@ -43,7 +43,7 @@ A compact binary serialisation format that stores data together with an embedded
 
 ### Docker Compose
 
-A tool for defining and running multi-container Docker applications from a single YAML configuration file. DataForge uses Docker Compose to launch the entire prototype stack — Kafka, Zookeeper, PySpark, TimescaleDB, FastAPI, and the ReactJS dashboard — with a single `docker-compose up` command. This ensures every team member can reproduce the full prototype environment on their laptop, regardless of operating system.
+A tool for defining and running multi-container Docker applications from a single YAML configuration file. DataForge uses Docker Compose to launch the entire prototype stack — Kafka (KRaft), PySpark, TimescaleDB, FastAPI, and the ReactJS dashboard — with a single `docker-compose up` command. This ensures every team member can reproduce the full prototype environment on their laptop, regardless of operating system.
 
 ---
 

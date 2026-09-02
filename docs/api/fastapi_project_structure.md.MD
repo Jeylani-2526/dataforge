@@ -58,7 +58,7 @@ The FastAPI backend lives under `/api/` inside the DataForge monorepo. Surroundi
 │   └── xai/                            Module 8
 │
 ├── infrastructure/
-│   └── kafka/                          docker-compose for Kafka + Zookeeper
+│   └── kafka/                          docker-compose for Kafka (KRaft)
 │
 └── tests/                              Cross-module integration tests (M10)
 ```
