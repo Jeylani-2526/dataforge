@@ -367,3 +367,5 @@ $ docker exec dataforge-timescaledb psql -U dataforge -d dataforge -c \
 from every count taken earlier in this document. **No staging data was dropped or
 modified.** `events` correctly holds 0 rows — its creation does not itself promote or
 copy any data.
+
+**Follow-up (post-close-out):** Promotion already verified live — `events` confirmed populated with matching staging counts; see open_items_m4.md for schema note.
