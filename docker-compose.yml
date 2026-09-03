@@ -97,20 +97,35 @@ services:
   alice-ingestion:
     build:
       context: ./services/data-sources/alice-ingestion
-      dockerfile: ../../infrastructure/docker/alice-ingestion.Dockerfile
+      dockerfile: ../../../infrastructure/docker/alice-ingestion.Dockerfile
     container_name: dataforge-alice-ingestion
     networks: [dataforge-net]
     depends_on:
       kafka:
         condition: service_healthy
+      timescaledb:
+        condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC_ALICE: alice-events
-      DATA_PATH: /data/samples
+      # M5W17T1: source is the production `events` table (promoted,
+      # filtered, PyROOT-corrected data), not a raw ROOT/sample file —
+      # DATA_PATH is retired in favor of the same DB_* pattern the
+      # adaptation-layer service already uses. Container-internal DB
+      # port (5432), same as adaptation-layer — see avro_adaptation_job.py
+      # note on host (5433) vs. container (5432) port scope.
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-dataforge}
+      DB_USER: ${POSTGRES_USER:-dataforge}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_dev}
+      # Paced continuous replay, not a throughput source — see
+      # alice_producer.py design notes and the Week 17 watermark/window
+      # design note for why this is deliberately not full-throttle.
+      ALICE_REPLAY_INTERVAL_MS: 500
     volumes:
-      - ./data/samples:/data/samples:ro
-    # NOTE: Service not yet implemented (M3 deliverable)
-    profiles: ["m3-and-above"]
+      - ./schemas:/app/schemas
+    profiles: ["m5-and-above"]
 
   # ---------------------------------------------------------------------------
   # MODULE 2 — Synthetic Sensor Data Generators
