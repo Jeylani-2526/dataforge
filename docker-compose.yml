@@ -134,7 +134,7 @@ services:
   sensor-generators:
     build:
       context: ./services/data-sources/sensor-generators
-      dockerfile: ../../infrastructure/docker/sensor-generators.Dockerfile
+      dockerfile: ../../../infrastructure/docker/sensor-generators.Dockerfile
     container_name: dataforge-sensor-generators
     networks: [dataforge-net]
     depends_on:
@@ -180,7 +180,7 @@ services:
   spark-processor:
     build:
       context: ./services/streaming/spark
-      dockerfile: ../../infrastructure/docker/spark.Dockerfile
+      dockerfile: ../../../infrastructure/docker/spark.Dockerfile
     container_name: dataforge-spark
     networks: [dataforge-net]
     depends_on:
