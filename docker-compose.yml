@@ -134,7 +134,7 @@ services:
   sensor-generators:
     build:
       context: ./services/data-sources/sensor-generators
-      dockerfile: ../../infrastructure/docker/sensor-generators.Dockerfile
+      dockerfile: ../../../infrastructure/docker/sensor-generators.Dockerfile
     container_name: dataforge-sensor-generators
     networks: [dataforge-net]
     depends_on:
@@ -146,7 +146,8 @@ services:
       KAFKA_TOPIC_LIDAR: sensor-lidar
       KAFKA_TOPIC_TELEMETRY: sensor-telemetry
       EVENTS_PER_SECOND: ${EVENTS_PER_SECOND:-100}
-    # NOTE: Service not yet implemented (M3 deliverable)
+    volumes:
+      - ./schemas:/app/schemas
     profiles: ["m3-and-above"]
 
   # ---------------------------------------------------------------------------
@@ -180,7 +181,7 @@ services:
   spark-processor:
     build:
       context: ./services/streaming/spark
-      dockerfile: ../../infrastructure/docker/spark.Dockerfile
+      dockerfile: ../../../infrastructure/docker/spark.Dockerfile
     container_name: dataforge-spark
     networks: [dataforge-net]
     depends_on:
@@ -190,12 +191,22 @@ services:
         condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_ALICE: alice-events
+      KAFKA_TOPIC_RADAR: sensor-radar
+      KAFKA_TOPIC_LIDAR: sensor-lidar
+      KAFKA_TOPIC_TELEMETRY: sensor-telemetry
       DB_HOST: timescaledb
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-dataforge}
       DB_USER: ${POSTGRES_USER:-dataforge}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_dev}
       WATERMARK_DELAY_SECONDS: ${WATERMARK_DELAY_SECONDS:-5}
+    volumes:
+      - ./schemas:/app/schemas
+      # M5W18T9: reuses the adaptation layer's schema_versioning.py rather
+      # than duplicating it into this build context — single source of
+      # truth for version-drift + round-trip enforcement (read-only mount).
+      - ./services/adaptation-layer/schema_versioning.py:/app/src/schema_versioning.py:ro
     profiles: ["m5-and-above"]
 
   # ---------------------------------------------------------------------------
