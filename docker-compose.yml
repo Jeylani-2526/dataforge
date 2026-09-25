@@ -199,6 +199,9 @@ services:
       DB_USER: ${POSTGRES_USER:-dataforge}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_dev}
       WATERMARK_DELAY_SECONDS: ${WATERMARK_DELAY_SECONDS:-5}
+      SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-8}
+      SPARK_MAX_OFFSETS_PER_TRIGGER: ${SPARK_MAX_OFFSETS_PER_TRIGGER:-50000}
+      SPARK_STARTING_TIMESTAMP_MS: ${SPARK_STARTING_TIMESTAMP_MS:-}
     volumes:
       - ./schemas:/app/schemas
       # M5W18T9: reuses the adaptation layer's schema_versioning.py rather

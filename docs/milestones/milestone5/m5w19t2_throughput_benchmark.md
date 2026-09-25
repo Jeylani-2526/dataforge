@@ -11,6 +11,12 @@ to this task.
 per task instruction, including that the comparable figure is below M4's own batch-mode
 result — not smoothed toward a better-looking number.
 
+> **Correction (M5W20T2):** the ~4,300 events/sec Kafka-consumption figure
+> double-counted repeated update-mode window rows. De-duplicated, it is ~3,919/sec, and section 6's
+> "comfortably exceeded the bar" does not hold. The official 594 events/sec figure is unaffected.
+> The logs referenced below now live in `docs/milestones/milestone5/benchmark_logs/`. See
+> `m5w20t2_throughput_benchmark.md` section 6.
+
 ---
 
 ## 1. Methodology (agreed with the team before running)

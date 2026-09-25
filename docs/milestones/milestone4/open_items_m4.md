@@ -3,7 +3,7 @@
 **Originating Task ID:** M4W13T7
 **Owner:** Abdullah
 **Milestone:** M4 · Week 13 (originated) — amended M4 · Week 15, Week 16
-**Status:** Open — six items tracked; five open, one resolved (Item 6)
+**Status:** Open — six items tracked; three open (Items 1, 3, 4), two resolved (Items 2, 6), one superseded (Item 5); see the M5W20T4 amendment
 **GitHub Path:** `/docs/milestones/milestone4/open_items_m4.md`
 
 **Amendment history:**
@@ -11,6 +11,7 @@
 - M4W15T2 — Item 4 added: `write_fused_events()` stub scope, formally closing the carry-in flagged (but never committed) at Week 14's M4W14T8 checkpoint.
 - M4W15T4 — Item 5 added: full-volume run throughput (1,665.56 events/sec) below the locked prototype bar (≥10,000 events/sec), surfaced by the M4W15T4 full-volume pipeline run.
 - M3W16T5 — Item 6 added and resolved same-day: missing `events` production table in the local dev Docker volume, found during Docker execution environment & port consistency verification.
+- M5W20T4 — Item 2 marked resolved (closed by M5W19T8, `docs/data/repeat_generation_device_diversity_closure.md`). Item 5 marked superseded by `docs/milestones/milestone5/open_items_m5.md` Item 1 (streaming throughput). Items 1, 3, 4 remain open here.
 
 ---
 
@@ -50,7 +51,9 @@
 **What would trigger resolution:** Start of M5 planning work on Module 5 (`data_loss_pct`) and the generator's repeat-generation mode.
 
 **Action items:**
-- [ ] Omer: scope multi-device generation alongside repeat-generation mode at M5 kickoff
+- [x] Omer: scope multi-device generation alongside repeat-generation mode at M5 kickoff
+
+**Resolution (amended M5W20T4):** **Resolved.** Closed by M5W19T8 (Beyza), `docs/data/repeat_generation_device_diversity_closure.md`: `sensor_producer.py` publishes 5 telemetry devices plus stable RADAR/LIDAR sensor sets, and runs as an always-on repeat-generation loop. Its one remaining gap (sustained multi-hour load) is tracked as `open_items_m5.md` Item 5.
 
 ---
 
@@ -106,7 +109,9 @@ Tracing the run's log timestamps stage by stage, the majority of wall-clock time
 **Action items:**
 - [ ] Abdullah / Week 16 owner: confirm actual Spark partition count used during the M4W15T4 run (`df.rdd.getNumPartitions()` on the sensor DataFrame) to verify the single-task hypothesis
 - [ ] Week 16 owner: evaluate splitting `parquet_writer.py`'s sensor conversion into one partitioned write instead of three full-dataset passes
-- [ ] M5 owner: treat this M4 batch-mode figure as a baseline, not a final throughput verdict — M5's streaming benchmarks are the roadmap's actual throughput deliverable
+- [x] M5 owner: treat this M4 batch-mode figure as a baseline, not a final throughput verdict — M5's streaming benchmarks are the roadmap's actual throughput deliverable
+
+**Resolution (amended M5W20T4):** **Superseded.** M5's streaming benchmarks replace this batch-mode figure: 1,417 events/sec like-for-like and ~3,650 events/sec pipeline capacity (`docs/milestones/milestone5/m5w20t2_throughput_benchmark.md`). The bar is still missed; tracking continues in `docs/milestones/milestone5/open_items_m5.md` Item 1.
 
 ---
 
@@ -167,10 +172,10 @@ is not logged here as an open item.
 | Item | Status | Deferred to | Trigger for resolution |
 |---|---|---|---|
 | 24 zero-track-count ALICE events | Open, keep all 68 through M4 | M7 | Prof. Uysal's interpretation + M7 model results |
-| Telemetry `device_id` scope (single value) | Open, no M4 change | M5 | Module 5 (`data_loss_pct`) + generator repeat-mode planning |
+| Telemetry `device_id` scope (single value) | **Resolved** (M5W19T8) | — | N/A — see Item 2 resolution |
 | Net-momentum outlier, event `c1cc2e42…` | Open, logged as observation | M7 | M7 anomaly-detection feature/label design |
 | Fused-event stub scope (`write_fused_events()`) | Open, confirmed out of scope for M4 | Module 6 (stream-stream join build) | Start of Module 6 planning/build work |
-| Full-volume run throughput below bar (1,665.56 vs. ≥10,000 events/sec) | Open, logged as known gap | M4 Week 16 / M5 | Week 16 root-cause investigation; M5 streaming benchmarks |
+| Full-volume run throughput below bar (1,665.56 vs. ≥10,000 events/sec) | **Superseded** by `open_items_m5.md` Item 1 | — | N/A — see Item 5 resolution |
 | Missing `events` production table in local dev volume | **Resolved** (M3W16T5) | — | N/A — fixed directly, see Item 6 |
 
-**Five of six items remain open by design**, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked. **Item 6 is the one exception**, closed directly this week because it was a mechanical schema-drift bug with a known-safe, idempotent fix rather than a question requiring team input.
+*(Amended M5W20T4: Item 2 is now resolved and Item 5 superseded, so three of six remain open: Items 1, 3 and 4. The original M4 close-out text follows.)* **Five of six items remain open by design**, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked. **Item 6 is the one exception**, closed directly this week because it was a mechanical schema-drift bug with a known-safe, idempotent fix rather than a question requiring team input.
