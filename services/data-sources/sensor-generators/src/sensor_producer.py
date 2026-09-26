@@ -52,6 +52,10 @@ TELEMETRY_PARAMS     = [
     ("altitude_m",   lambda: round(random.uniform(0.0, 500.0), 2),  "m"),
     ("signal_rssi",  lambda: round(random.uniform(-90.0, -20.0), 2),"dBm"),
 ]
+_SENSOR_UUID_MAP: dict[str, str] = {
+    label: str(uuid.uuid4())
+    for label in RADAR_SENSOR_IDS + LIDAR_SENSOR_IDS + TELEMETRY_DEVICE_IDS
+}
 
 _running = True
 _sequence_counters: dict[str, int] = {}
@@ -117,8 +121,8 @@ def _base(sensor_type: str, sensor_id: str) -> dict:
 
 
 def generate_radar() -> dict:
-    sensor_id = random.choice(RADAR_SENSOR_IDS)
-    record = _base("RADAR", sensor_id)
+    sensor_label = random.choice(RADAR_SENSOR_IDS)
+    record = _base("RADAR", _SENSOR_UUID_MAP[sensor_label])
     record.update({
         "target_id":          str(uuid.uuid4())[:8],
         "range_m":            round(random.uniform(50.0, 5000.0), 2),
@@ -131,8 +135,8 @@ def generate_radar() -> dict:
 
 
 def generate_lidar() -> dict:
-    sensor_id = random.choice(LIDAR_SENSOR_IDS)
-    record = _base("LIDAR", sensor_id)
+    sensor_label = random.choice(LIDAR_SENSOR_IDS)
+    record = _base("LIDAR", _SENSOR_UUID_MAP[sensor_label])
     avg_i = round(random.uniform(80.0, 220.0), 2)
     min_i = round(random.uniform(0.0, avg_i), 2)
     record.update({
@@ -156,7 +160,7 @@ def generate_telemetry() -> dict:
     seq = _sequence_counters.get(device_id, 0) + 1
     _sequence_counters[device_id] = seq
 
-    record = _base("TELEMETRY", device_id)
+    record = _base("TELEMETRY", _SENSOR_UUID_MAP[device_id])
     record.update({
         "device_id":       device_id,
         "parameter_name":  param_name,
