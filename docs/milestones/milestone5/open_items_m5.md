@@ -3,14 +3,17 @@
 **Originating Task ID:** M5W20T4
 **Owner:** Abdullah
 **Milestone:** M5 · Week 20
-**Status:** Open — nine items tracked. Items 4–5 are pending Beyza's M5W20T8/T9, which are in
-progress at the time of writing.
+**Status:** Open — ten items tracked. Item 4 resolved (M5W20T8); Item 5 resolved for default-rate
+stability and re-scoped for sustained high load (M5W20T9); Items 1–3 and 6–10 open.
 **GitHub Path:** `/docs/milestones/milestone5/open_items_m5.md`
 
 **Amendment history:**
 - M5W20T4 — Document created; Items 1–9 logged.
   - Items 1–5 were scoped by the Week 20 plan.
   - Items 6–9 surfaced during M5W20T1–T3.
+- M5W20T4 amendment (after M5W20T8/T9 landed, 26 September) — Item 4 resolved (`2c3c2c8`); Item 5
+  resolved for default-rate stability and re-scoped (`3de3ce2`); Item 10 added (latent Docker Compose
+  configuration issues for later milestones).
 
 ---
 
@@ -140,7 +143,7 @@ Deciding before Item 7 risks doing the work twice.
 
 ---
 
-## Item 4 — `sensor_id` Documentation / DB-Type Mismatch (Pending M5W20T8)
+## Item 4 — `sensor_id` Documentation / DB-Type Mismatch (Resolved, M5W20T8)
 
 **Finding:** From `m5w19t1_spark_consumer_verification.md` §3.
 - M5W19T6's conformance note (`docs/database/sensor_streamed_record_erd_api_conformance.md`) marked
@@ -155,18 +158,20 @@ Deciding before Item 7 risks doing the work twice.
 M5W20T8 (Beyza) re-validates against the fixed producer and corrects the field type and validation
 method in the conformance table.
 
-**Status:** **Pending.** M5W20T8 was in progress when this log was created.
-
-**What would trigger resolution:** M5W20T8 committed. This entry is then amended to **Resolved**,
-citing that commit.
+**Status:** **Resolved** — M5W20T8 (Beyza, commit `2c3c2c8`, 26 September). The conformance table
+in `docs/database/sensor_streamed_record_erd_api_conformance.md` now:
+- types `sensor_id` as `uuid` (was `varchar`);
+- adds a "Validation Method" column showing the constraint is enforced at database level by
+  `init-db.sql`, which an Avro round-trip cannot check;
+- records that the gap caused the M5W19T1 live crash.
 
 **Action items:**
 - [x] Abdullah: producer fix (M5W19T1)
-- [ ] Beyza: M5W20T8 — correct the conformance note; amend this entry to Resolved with the commit reference
+- [x] Beyza: M5W20T8 — conformance note corrected (`2c3c2c8`)
 
 ---
 
-## Item 5 — Sustained Multi-Hour Load Not Yet Verified (Pending M5W20T9)
+## Item 5 — Sustained Multi-Hour Load (Resolved for Default Rate; Re-Scoped, M5W20T9)
 
 **Finding:**
 - Both M5W19T6 and `repeat_generation_device_diversity_closure.md` (M5W19T8) flagged that the
@@ -183,13 +188,35 @@ citing that commit.
   default rate the pipeline keeps up.
 - Staging holds ~3.5M synthetic rows from Week 20 benchmarks.
 
-**Status:** **Pending.** M5W20T9 was in progress when this log was created.
+**Result (M5W20T9, Beyza, `docs/data/m5w20t9_soak_test.md`, commit `3de3ce2`):**
+- 4.5 hours of continuous operation (26 September, 10:31–15:00) on the full M5 stack.
+- 3,249 consecutive micro-batches with 0 rejected records, 0 version drift and 0 round-trip
+  failures.
+- Kafka topic growth on all four topics; 0 out-of-sync replicas.
+- Per-batch timings stable throughout (collect ~450–530 ms, insert <20 ms).
 
-**What would trigger resolution:** M5W20T9's note committed to `/docs/data/`. This entry is then
-amended with its findings: closed, or precisely re-scoped.
+**Load level, for scope:** the producers ran at their default rate.
+- **Sensor:** +79,215 messages in 16,200 s = ~4.9 events/sec across three topics.
+- **ALICE:** ~2 events/sec.
+- This is ~0.3% of the M5W20T2 like-for-like rate.
+
+**Status:**
+- **Resolved for long-run stability at the default rate.** No degradation, errors or rejections over
+  4.5 h, and the persistent connections held for the whole run.
+- **Re-scoped for sustained high load.** Three questions stay open:
+  - Whether the pipeline stays stable for hours at or near capacity (~3,650 events/sec). At that
+    load, Kafka backlog and staging growth are the expected stressors.
+  - Memory growth: the note states none was observed, but records no memory figures.
+  - End-to-end loss over time: `data_loss_pct` counts records rejected by `enforce()`. It does not
+    count events lost between Kafka and the database, which needs a published-vs-stored count, as in
+    M5W20T2 §3.
+
+**What would trigger full resolution:** a high-rate soak once Item 1/7 work brings capacity near the
+bar, recording `docker stats` memory over time and a published-vs-stored count.
 
 **Action items:**
-- [ ] Beyza: M5W20T9 — soak test and verification note; amend this entry with the findings
+- [x] Beyza: M5W20T9 — default-rate soak test (`3de3ce2`)
+- [ ] Beyza / Abdullah: high-rate soak with memory (`docker stats`) and published-vs-stored figures, after Item 1/7 progress
 
 ---
 
@@ -318,6 +345,46 @@ because there are no checkpoints. Once checkpointing lands, it can.
 
 ---
 
+## Item 10 — Latent Docker Compose Configuration Issues for Later Milestones (New, M5W20T4 amendment)
+
+**Finding:** Surfaced while reviewing Ömer's Week 19 build-failure note for the M5 package. Neither
+issue affects M5, whose profiles (`m3`/`m4`/`m5-and-above`) all build correctly.
+
+1. **Wrong Dockerfile paths in the M6–M9 service skeletons.**
+   - `fusion-engine`, `anomaly-detection`, `xai-service`, `api` and `dashboard` climb one directory
+     level too few from their build context.
+   - They resolve to `services/infrastructure/docker/*.Dockerfile`, which does not exist. The M5
+     services were fixed the same way in `5708621`.
+   - Their Dockerfiles also do not exist yet under `infrastructure/docker/`.
+   - They date from the M1 Compose skeleton (`70cad0d`) and were never built, so the first
+     `--profile m6-and-above up --build` will fail.
+2. **KRaft controller address.**
+   - `KAFKA_CONTROLLER_QUORUM_VOTERS: "1@0.0.0.0:29093"` (from Beyza's listener-bind fix, `9f3db08`)
+     works for this single-node broker.
+   - `0.0.0.0` is a bind address, though, not a connect address. A multi-broker setup would need real
+     hostnames in the voter list.
+
+**Related (not this item):** Ömer's own `--profile m5-and-above` build error resolved to
+`...\services\infrastructure`. At his commit `10cf013`, the repo's alice and spark paths were
+already correct (`../../../`). The only version resolving to that path is the old `../../` spark
+path, which his own `5708621` fixed on 10 September. This points to a stale or locally modified
+checkout. **Unconfirmed**; M5W20T11 (Ömer) is to confirm it.
+
+**Interim decision:** **Logged; no change in M5.** Fixing the paths without the Dockerfiles only
+moves the failure.
+
+**Deferred to:** M6 (for `fusion-engine`), then each later service's milestone.
+
+**What would trigger resolution:** Each service's Dockerfile being written. The path must be
+corrected in the same change.
+
+**Action items:**
+- [ ] M6 owners (Abdullah / Ömer): correct `fusion-engine`'s Dockerfile path to `../../infrastructure/docker/fusion.Dockerfile` when creating that Dockerfile; same pattern for later services
+- [ ] Ömer: M5W20T11 — confirm the stale-checkout hypothesis on his machine (`git status`, `git log -1`, `docker compose build --no-cache`)
+- [ ] Team: revisit the KRaft voter address only if the cluster grows beyond one broker
+
+---
+
 ## Summary
 
 | Item | Status | Deferred to | Trigger for resolution |
@@ -325,16 +392,17 @@ because there are no checkpoints. Once checkpointing lands, it can.
 | 1. Streaming throughput below bar (1,417 like-for-like / ~3,650 capacity vs. ≥10,000) | Open, root cause fixed, gap measured per phase | M6 planning → M10 | Insert diagnostics + parallel-writer decision + Item 7 generator |
 | 2. No checkpointing (risk: skipped events on restart) | Open, impact corrected | Post-M5, before M6 join | M6 join design |
 | 3. Dead `EVENTS_PER_SECOND` config | Open | Item 7 | Generator design decision |
-| 4. `sensor_id` doc / DB-type mismatch | **Pending M5W20T8** (code fixed M5W19T1) | M5 Week 20 | M5W20T8 committed |
-| 5. Sustained multi-hour load | **Pending M5W20T9** | M5 Week 20 | M5W20T9 note committed |
+| 4. `sensor_id` doc / DB-type mismatch | **Resolved** (M5W20T8, `2c3c2c8`) | — | N/A |
+| 5. Sustained multi-hour load | **Resolved at default rate** (M5W20T9, `3de3ce2`); re-scoped for high load | After Item 1/7 progress | High-rate soak with memory + published-vs-stored figures |
 | 6. End-to-end latency p95 5.7 s vs. ≤500 ms | Open, structural (5 s trigger) | M6 design → M10 | Combined throughput/latency design |
 | 7. Generator capacity + shared CPU | Open | Before the next bar-level benchmark / M10 | Pipeline capacity nearing the bar |
 | 8. Watermark operational caveats (monitoring-only in M5) | Open, operating rule documented | M6 | M6 join design |
 | 9. Spark exceeds the stop grace period (exit 137) | Open, no data impact observed | With Item 2 | Checkpointing implementation |
+| 10. Latent Compose issues for M6–M9 (build paths, KRaft voter address) | Open, no M5 impact | M6 onwards | Each later service's Dockerfile |
 
 **Two prototype-bar metrics are open (Items 1 and 6)**, both measured end to end with a named cause.
 Data loss (0.0%) and schema-versioning enforcement pass.
 
-**Items 4 and 5 close this week** once Beyza's M5W20T8/T9 are committed. Items 2, 3 and 7–9 are
-each tied to the downstream work that has the information or infrastructure needed to decide them
-properly.
+**Item 4 is resolved and Item 5 is resolved for default-rate stability** (Beyza's M5W20T8/T9). Items
+2, 3 and 7–10 are each tied to the downstream work that has the information or infrastructure needed
+to decide them properly.

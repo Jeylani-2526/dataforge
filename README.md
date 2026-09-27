@@ -227,7 +227,7 @@ dataforge/
 | M2 | Data Schema & Model Design | 8 Jun – 5 Jul 2026 | ✅ Completed |
 | M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | ✅ Completed |
 | M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | 🔄 In Progress |
-| M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | ⏳ Upcoming |
+| M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | 🔄 In Progress |
 | M6 | Data Fusion & Synchronization | 28 Sep – 25 Oct 2026 | ⏳ Upcoming |
 | M7 | AI/ML Anomaly Detection | 26 Oct – 22 Nov 2026 | ⏳ Upcoming |
 | M8 | Explainable AI Layer | 23 Nov – 20 Dec 2026 | ⏳ Upcoming |
@@ -237,6 +237,22 @@ dataforge/
 See the full [Roadmap document](docs/milestones/DataForge_Roadmap.md) for week-by-week breakdowns.
 
 **M4 status note:** Core M4 deliverables (data adaptation layer, schema-versioning enforcement, format conversion, staging-to-production promotion, TimescaleDB port-config fixes) are complete and committed. M4 remains **In Progress** rather than Completed because the pipeline throughput bar (≥10,000 events/sec) is not met — current measured throughput is 1,135.05 events/sec, root-caused but not resolved. See [`m4_package_cover_note.md`](docs/milestones/milestone4/m4_package_cover_note.md) and [`open_items_m4.md`](docs/milestones/milestone4/open_items_m4.md) for full detail. GitHub milestone tags (`M4-W16-abdullah`, `M4-W16-beyza`, `M4-W16-omer`) applied 20 September 2026, closing the carry-in open since Week 16.
+
+**M5 status note:**
+- **Complete and committed:**
+  - live Kafka (KRaft) producers on all four topics;
+  - the Spark Structured Streaming consumer with event-time watermark/window logic;
+  - schema-versioning enforcement on every streamed record;
+  - the streaming throughput benchmark with its root-cause fix.
+- **Why "In Progress" rather than Completed:** two prototype-bar metrics are missed.
+  - Throughput: 1,417 events/sec like-for-like and ~3,650 events/sec pipeline capacity, against
+    ≥10,000.
+  - End-to-end latency: p95 5.7 s against ≤500 ms, structural to the 5-second trigger.
+- **Passes:** data loss (0.0%).
+- **Details:** [`m5_package_cover_note.md`](docs/milestones/milestone5/m5_package_cover_note.md),
+  [`m5_validation_report.md`](docs/milestones/milestone5/m5_validation_report.md) and
+  [`open_items_m5.md`](docs/milestones/milestone5/open_items_m5.md).
+- **Tags:** `M5-W20-abdullah`, `M5-W20-beyza` and `M5-W20-omer`, applied 27 September 2026.
 
 ---
 
