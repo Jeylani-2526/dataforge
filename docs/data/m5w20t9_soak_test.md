@@ -15,12 +15,12 @@ Closes open item logged in M5W19T6 and M5W19T8.
 
 ## Kafka Topic Message Growth
 
-| Topic | 10:31 | 15:00 | Delta |
-|---|---|---|---|
-| `alice-events` | 693 | 32,519 | +31,826 |
-| `sensor-lidar` | 216 | 26,415 | +26,199 |
-| `sensor-radar` | 204 | 26,738 | +26,534 |
-| `sensor-telemetry` | 211 | 26,693 | +26,482 |
+| Topic              | 10:31 | 15:00  | Delta   |
+| ------------------ | ----- | ------ | ------- |
+| `alice-events`     | 693   | 32,519 | +31,826 |
+| `sensor-lidar`     | 216   | 26,415 | +26,199 |
+| `sensor-radar`     | 204   | 26,738 | +26,534 |
+| `sensor-telemetry` | 211   | 26,693 | +26,482 |
 
 Out-of-sync replicas: 0 across all topics throughout the run.
 

@@ -21,11 +21,11 @@ Conformance validation: `docs/database/sensor_streamed_record_erd_api_conformanc
 
 ## Sensor Kafka Producer
 
-| Topic | Sensor Type | Devices | Key Fields |
-|---|---|---|---|
-| `sensor-radar` | RADAR | 3 | range_m, bearing_deg, velocity_ms, signal_strength_db |
-| `sensor-lidar` | LIDAR | 3 | scan_id, point_count, centroid_x/y/z_m, avg/min_intensity |
-| `sensor-telemetry` | TELEMETRY | 5 | device_id, parameter_name, value, unit, sequence_number |
+| Topic              | Sensor Type | Devices | Key Fields                                                |
+| ------------------ | ----------- | ------- | --------------------------------------------------------- |
+| `sensor-radar`     | RADAR       | 3       | range_m, bearing_deg, velocity_ms, signal_strength_db     |
+| `sensor-lidar`     | LIDAR       | 3       | scan_id, point_count, centroid_x/y/z_m, avg/min_intensity |
+| `sensor-telemetry` | TELEMETRY   | 5       | device_id, parameter_name, value, unit, sequence_number   |
 
 Local validation (commit `329fb02`):
 
@@ -41,19 +41,19 @@ Producer runs in an unbounded loop — always-on, no fixed batch ceiling. Device
 
 ## ERD Implications
 
-Write path: `sensor_producer.py` → Kafka topic → Spark consumer (`foreachBatch`) → `events` hypertable
+Write path: `sensor_producer.py` → Kafka topic → Spark consumer (`foreachBatch`) → `raw_sensor_events_staging` → `promote_to_production.py` → `events` hypertable
 
-No schema changes required for M5 — hypertable accommodates all 27 fields via nullable columns. `label` and `anomaly_type` remain null until M7.
+No schema changes required for M5 — staging and events tables accommodate all 27 fields via nullable columns. `label` and `anomaly_type` remain null until M7.
 
 ---
 
 ## API Implications
 
-| Endpoint | M4 | M5 |
-|---|---|---|
-| `GET /api/v1/events/live` | Hours-old batch data | Seconds-old streaming data |
-| `GET /api/v1/alerts/recent` | Batch latency | Streaming latency |
-| `WebSocket /ws/events` | Unused | Active |
+| Endpoint                    | M4                   | M5                                                        |
+| --------------------------- | -------------------- | --------------------------------------------------------- |
+| `GET /api/v1/events/live`   | Hours-old batch data | Planned (M9) — data reaches staging in ~3–6 s (p95 5.7 s) |
+| `GET /api/v1/alerts/recent` | Batch latency        | Planned (M9) — alerts depend on M7                        |
+| `WebSocket /ws/events`      | Unused               | Planned (M9) — not yet implemented                        |
 
 ---
 
@@ -61,20 +61,22 @@ No schema changes required for M5 — hypertable accommodates all 27 fields via 
 
 4.5-hour soak test, 26 September 2026:
 
-| Topic | Start | End | Delta |
-|---|---|---|---|
-| `alice-events` | 693 | 32,519 | +31,826 |
-| `sensor-lidar` | 216 | 26,415 | +26,199 |
-| `sensor-radar` | 204 | 26,738 | +26,534 |
-| `sensor-telemetry` | 211 | 26,693 | +26,482 |
+| Topic              | Start | End    | Delta   |
+| ------------------ | ----- | ------ | ------- |
+| `alice-events`     | 693   | 32,519 | +31,826 |
+| `sensor-lidar`     | 216   | 26,415 | +26,199 |
+| `sensor-radar`     | 204   | 26,738 | +26,534 |
+| `sensor-telemetry` | 211   | 26,693 | +26,482 |
 
-Spark consumer (batch 3249): `data_loss_pct=0.0000%`, `version_drift=0`, `round_trip_failed=0`. No memory growth, connection pool exhaustion, or record loss observed. Full results: `docs/data/m5w20t9_soak_test.md`
+Spark consumer (batch 3249): `data_loss_pct=0.0000%`, `version_drift=0`, `round_trip_failed=0`. No errors, rejections or connection issues observed over 4.5 hours at the default producer rate (~5 sensor events/sec). Memory usage was not recorded; the next high-load soak test will capture docker stats. Full results: `docs/data/m5w20t9_soak_test.md`
 
 ---
 
-## All M5 Open Items Closed
+## Database-Side M5 Items Closed
 
-- Kafka broker live delivery: confirmed M5W19T9 (commit fb26fc9)
-- Spark consumer end-to-end: confirmed M5W19T1 (commit 10cf013)
+- Kafka broker live delivery: confirmed M5W19T9 (commit 10cf013)
+- Spark consumer end-to-end: confirmed M5W19T1 (commit fb26fc9)
 - sensor_id uuid conformance: corrected M5W20T8
 - Multi-hour sustained-load: verified M5W20T9
+
+Remaining M5 open items (throughput, latency, checkpointing, etc.) are tracked in `docs/milestones/milestone5/open_items_m5.md`.
