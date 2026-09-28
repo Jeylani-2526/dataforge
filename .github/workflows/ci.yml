@@ -83,6 +83,10 @@ jobs:
             if [ -f services/adaptation-layer/requirements.txt ]; then
               pip install -r services/adaptation-layer/requirements.txt
             fi
+            # M5W20T1: Spark consumer tests need psycopg2 (services/streaming/spark/src/test_spark_consumer.py)
+            if [ -f services/streaming/spark/requirements.txt ]; then
+              pip install -r services/streaming/spark/requirements.txt
+            fi
             pytest services/ -v
           else
             echo "No tests yet — test suite activates in M3 ✓"

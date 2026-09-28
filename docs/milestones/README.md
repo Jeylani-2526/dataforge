@@ -8,7 +8,7 @@ This folder contains the official milestone documents for DataForge. See the roo
 | M2 — Data Schema & Model Design | [`milestone2/`](milestone2/) | ✅ Completed |
 | M3 — Data Generation & Preprocessing | [`milestone3/`](milestone3/) | ✅ Completed |
 | M4 — Data Adaptation Layer | [`milestone4/`](milestone4/) — see [`m4_package_cover_note.md`](milestone4/m4_package_cover_note.md) | 🔄 In Progress — throughput gap open, see [`open_items_m4.md`](milestone4/open_items_m4.md) |
-| M5 — Streaming Pipeline | — | ⏳ Upcoming |
+| M5 — Streaming Pipeline | [`milestone5/`](milestone5/) — see [`m5_package_cover_note.md`](milestone5/m5_package_cover_note.md) | 🔄 In Progress — throughput and latency bars missed, see [`open_items_m5.md`](milestone5/open_items_m5.md) |
 | M6 — Data Fusion & Synchronization | — | ⏳ Upcoming |
 | M7 — AI/ML Anomaly Detection | — | ⏳ Upcoming |
 | M8 — Explainable AI Layer | — | ⏳ Upcoming |

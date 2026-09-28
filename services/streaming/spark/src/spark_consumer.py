@@ -1,61 +1,28 @@
 """
-DataForge — Spark Structured Streaming Consumer
-Tasks: M5W18T8 (ALICE consumer) + M5W18T9 (sensor-topic extension + staging write)
-Owner: Abdullah
+DataForge — Spark Structured Streaming consumer (M5W18T8/T9, M5W20T1).
 
-Spark Structured Streaming job covering all four topics: alice-events
-plus the three sensor topics (sensor-radar, sensor-lidar,
-sensor-telemetry). Applies the M5W17T2 watermark/window design to both:
-/docs/milestones/milestone5/watermark_window_design_note.md.
+Reads alice-events and the three sensor topics, applies the watermark/window
+design (docs/milestones/milestone5/watermark_window_design_note.md), and
+writes schema-enforced records to the staging tables.
 
-── Design notes ─────────────────────────────────────────────────────────
-1. WIRE FORMAT: all producers publish raw, schemaless Avro binary
-   (fastavro.schemaless_writer — no Confluent wire-format header, no
-   container/sync-marker framing). from_avro() is given the .avsc JSON
-   schema directly and decodes the Kafka message value against it with
-   no envelope assumptions, matching the producer side exactly.
-2. EVENT TIME / WATERMARK / WINDOW: identical treatment for both
-   streams — to_timestamp(timestamp_ms / 1000), the shared
-   WATERMARK_DELAY_SECONDS value, and a 5-second tumbling window for
-   throughput monitoring (console sink), per the design note.
-3. SENSOR TOPICS AS ONE STREAM: RADAR/LIDAR/TELEMETRY all conform to
-   the single sensor_schema_v1.avsc (sensor_type is a discriminator
-   field within one unified record shape), so they're read as ONE
-   Kafka source subscribing to all three topic names (comma-separated),
-   not three separate readStreams. The real Kafka `topic` column (not
-   a literal) is carried through so the windowed count still breaks
-   down throughput per actual topic.
-4. STAGING WRITE (T9 — new): the non-windowed per-record path required
-   by the design note §5. Each micro-batch is collected on the driver,
-   run through schema_versioning.enforce() (version-drift check +
-   Avro round-trip check — the same module the batch adaptation layer
-   uses, imported here rather than reimplemented, per design note §5's
-   "no need to reimplement that logic for streaming"), and only
-   `valid_records` are inserted into the staging tables. Insert SQL and
-   the batch_id / load_status='validated' convention mirror
-   scripts/ingestion/staging_ingestion_script.py exactly, so this
-   stream-based path and the existing file-based path populate staging
-   in a consistent shape. ON CONFLICT (event_id) DO NOTHING makes the
-   insert idempotent against Structured Streaming's at-least-once
-   redelivery on retry.
-5. schema_versioning.py IS NOT part of this build context
-   (services/streaming/spark/) — it lives in services/adaptation-layer/
-   and is mounted in read-only via docker-compose.yml volumes:, same
-   treatment as the ./schemas mount. Reused, not duplicated.
-6. CHECKPOINTING: no explicit checkpointLocation is set for any of the
-   four queries below, so Spark uses an ephemeral temp directory inside
-   the container. Fine for this milestone's local verification, but
-   logged here explicitly as an open item: a container restart currently
-   loses stream offsets rather than resuming, which is a real gap for
-   anything beyond dev/verification use.
-──────────────────────────────────────────────────────────────────────
+- Producers publish raw schemaless Avro (no Confluent header), so from_avro()
+  decodes with the .avsc directly.
+- schema_versioning.py is not in this build context: docker-compose mounts it
+  from services/adaptation-layer/ (hence the import ignores below).
+- No checkpointLocation is set, so a container restart loses stream offsets
+  (open item).
+- Throughput (M5W20T1): shuffle partitions and the per-batch record cap are set
+  explicitly, and staging writes use COPY. Root cause and measurements:
+  docs/milestones/milestone5/m5w20t1_write_path_root_cause.md.
 """
 
+import io
 import json
 import logging
 import os
 import signal
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +47,21 @@ KAFKA_TOPICS_SENSOR = f"{KAFKA_TOPIC_RADAR},{KAFKA_TOPIC_LIDAR},{KAFKA_TOPIC_TEL
 
 # Reuses the existing config value — no new mechanism, per design note §5.
 WATERMARK_DELAY_SECONDS = int(os.environ.get("WATERMARK_DELAY_SECONDS", "5"))
+
+# Spark's default of 200 shuffle partitions made every windowed trigger run 200
+# tiny stateful tasks, starving the staging writes (M5W20T1). Keep it near the
+# core count. Stateful queries lock this value into their checkpoint, so once
+# checkpointing exists, changing it needs a fresh checkpoint.
+SPARK_SHUFFLE_PARTITIONS = int(os.environ.get("SPARK_SHUFFLE_PARTITIONS", "8"))
+
+# Max Kafka records per micro-batch, per query (0 = unlimited). 50,000 = the
+# 10k events/sec bar x the 5 s trigger; bounds driver memory and batch latency.
+SPARK_MAX_OFFSETS_PER_TRIGGER = int(os.environ.get("SPARK_MAX_OFFSETS_PER_TRIGGER", "50000"))
+
+# Optional replay point (epoch ms): start every subscribed topic from this Kafka
+# timestamp instead of "latest". Empty = latest. Used for backlog-drain tests;
+# only applies when a query starts without a checkpoint.
+SPARK_STARTING_TIMESTAMP_MS = os.environ.get("SPARK_STARTING_TIMESTAMP_MS", "").strip()
 
 # Same volume-mount pattern as alice-ingestion (./schemas:/app/schemas).
 ALICE_SCHEMA_PATH = Path(
@@ -122,48 +104,22 @@ SENSOR_FIELDS = [
     "schema_version",
 ]
 
-# ── Staging insert SQL — mirrors scripts/ingestion/staging_ingestion_script.py ──
-ALICE_INSERT = """
-    INSERT INTO raw_alice_events_staging (
-        load_timestamp, batch_id,
-        event_id, run_number, timestamp_ms, track_count,
-        net_momentum_x, net_momentum_y, net_momentum_z,
-        max_energy_gev, total_energy_gev,
-        schema_version, load_status
-    ) VALUES (
-        %(load_timestamp)s, %(batch_id)s,
-        %(event_id)s, %(run_number)s, %(timestamp_ms)s, %(track_count)s,
-        %(net_momentum_x)s, %(net_momentum_y)s, %(net_momentum_z)s,
-        %(max_energy_gev)s, %(total_energy_gev)s,
-        %(schema_version)s, %(load_status)s
-    )
-    ON CONFLICT (event_id) DO NOTHING
-"""
+# ── Staging columns — same shape as scripts/ingestion/staging_ingestion_script.py ──
+ALICE_STAGING_TABLE = "raw_alice_events_staging"
+ALICE_STAGING_COLUMNS = ["load_timestamp", "batch_id", *ALICE_FIELDS, "load_status"]
 
-SENSOR_INSERT = """
-    INSERT INTO raw_sensor_events_staging (
-        load_timestamp, batch_id,
-        event_id, sensor_id, sensor_type, timestamp_ms,
-        target_id, range_m, bearing_deg, elevation_deg,
-        velocity_ms, signal_strength_db,
-        scan_id, point_count, centroid_x_m, centroid_y_m, centroid_z_m,
-        max_range_m, avg_intensity, min_intensity,
-        device_id, parameter_name, value, unit, sequence_number,
-        schema_version, label, anomaly_type, load_status
-    ) VALUES (
-        %(load_timestamp)s, %(batch_id)s,
-        %(event_id)s, %(sensor_id)s, %(sensor_type)s, %(timestamp_ms)s,
-        %(target_id)s, %(range_m)s, %(bearing_deg)s, %(elevation_deg)s,
-        %(velocity_ms)s, %(signal_strength_db)s,
-        %(scan_id)s, %(point_count)s, %(centroid_x_m)s, %(centroid_y_m)s,
-        %(centroid_z_m)s, %(max_range_m)s, %(avg_intensity)s, %(min_intensity)s,
-        %(device_id)s, %(parameter_name)s, %(value)s, %(unit)s, %(sequence_number)s,
-        %(schema_version)s, %(label)s, %(anomaly_type)s, %(load_status)s
-    )
-    ON CONFLICT (event_id) DO NOTHING
-"""
+SENSOR_STAGING_TABLE = "raw_sensor_events_staging"
+SENSOR_STAGING_COLUMNS = [
+    "load_timestamp", "batch_id", *SENSOR_FIELDS, "label", "anomaly_type", "load_status",
+]
 
 _spark_session = None  # module-level handle so the shutdown signal can stop it cleanly
+_persistent_connections = []  # every PersistentConnection, so shutdown can close them (M5W20T1)
+
+
+def _close_persistent_connections():
+    for db in _persistent_connections:
+        db.close()
 
 
 def _handle_shutdown(signum, frame):
@@ -171,6 +127,7 @@ def _handle_shutdown(signum, frame):
     if _spark_session is not None:
         for q in _spark_session.streams.active:
             q.stop()
+    _close_persistent_connections()
     sys.exit(0)
 
 
@@ -207,6 +164,7 @@ def get_spark_session(app_name: str = "dataforge-spark-consumer") -> SparkSessio
         .master("local[*]")  # single-node combined container, same posture as the KRaft migration
         .config("spark.jars.packages", f"{SPARK_KAFKA_PACKAGE},{SPARK_AVRO_PACKAGE}")
         .config("spark.sql.session.timeZone", "UTC")
+        .config("spark.sql.shuffle.partitions", str(SPARK_SHUFFLE_PARTITIONS))
         .getOrCreate()
     )
     spark.sparkContext.setLogLevel("WARN")
@@ -215,16 +173,29 @@ def get_spark_session(app_name: str = "dataforge-spark-consumer") -> SparkSessio
 
 # ── Stream readers ────────────────────────────────────────────────────────
 
-def read_alice_stream(spark: SparkSession, schema_json: str) -> DataFrame:
-    """alice-events -> decoded AliceEvent fields + event_time + watermark."""
-    raw = (
+def _read_kafka(spark: SparkSession, topics: str) -> DataFrame:
+    reader = (
         spark.readStream
         .format("kafka")
         .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS)
-        .option("subscribe", KAFKA_TOPIC_ALICE)
+        .option("subscribe", topics)
         .option("startingOffsets", "latest")
-        .load()
     )
+    if SPARK_MAX_OFFSETS_PER_TRIGGER > 0:
+        reader = reader.option("maxOffsetsPerTrigger", SPARK_MAX_OFFSETS_PER_TRIGGER)
+    if SPARK_STARTING_TIMESTAMP_MS:
+        # Takes precedence over startingOffsets; a topic with no message at/after the
+        # timestamp falls back to latest instead of failing the query.
+        reader = (
+            reader.option("startingTimestamp", SPARK_STARTING_TIMESTAMP_MS)
+            .option("startingOffsetsByTimestampStrategy", "latest")
+        )
+    return reader.load()
+
+
+def read_alice_stream(spark: SparkSession, schema_json: str) -> DataFrame:
+    """alice-events -> decoded AliceEvent fields + event_time + watermark."""
+    raw = _read_kafka(spark, KAFKA_TOPIC_ALICE)
 
     decoded = raw.select(
         col("topic"),
@@ -244,14 +215,7 @@ def read_sensor_stream(spark: SparkSession, schema_json: str) -> DataFrame:
     watermark. One Kafka source, comma-separated topic subscription —
     see design note §3 for why this is one stream, not three.
     """
-    raw = (
-        spark.readStream
-        .format("kafka")
-        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS)
-        .option("subscribe", KAFKA_TOPICS_SENSOR)
-        .option("startingOffsets", "latest")
-        .load()
-    )
+    raw = _read_kafka(spark, KAFKA_TOPICS_SENSOR)
 
     decoded = raw.select(
         col("topic"),
@@ -302,109 +266,162 @@ def _get_db_connection():
     )
 
 
-def make_alice_batch_writer(parsed_schema):
-    """
-    Returns a foreachBatch(batch_df, batch_id) function closing over the
-    already-loaded parsed Avro schema, so it isn't re-parsed from disk on
-    every micro-batch.
-    """
-    def _write(batch_df: DataFrame, spark_batch_id: int):
-        from psycopg2.extras import execute_batch
-        from schema_versioning import enforce
+class PersistentConnection:
+    """One psycopg2 connection reused across micro-batches (M5W20T1). Each
+    writer owns its own, so nothing is shared between query threads."""
 
-        rows = [row.asDict() for row in batch_df.select(*ALICE_FIELDS).collect()]
+    def __init__(self, name: str):
+        self.name = name
+        self._conn = None
+        _persistent_connections.append(self)
+
+    def get(self):
+        if self._conn is None or self._conn.closed:
+            self._conn = _get_db_connection()
+            log.info("[%s] opened persistent DB connection.", self.name)
+        return self._conn
+
+    def discard(self):
+        """Drop the current connection (broken, stale, or shutting down)."""
+        conn, self._conn = self._conn, None
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass  # already broken — nothing more to clean up
+
+    close = discard
+
+
+def _csv_field(value) -> str:
+    """One COPY CSV field. None -> unquoted empty (NULL); anything else is quoted,
+    so '' stays an empty string and commas, quotes and newlines are safe."""
+    if value is None:
+        return ""
+    return '"' + str(value).replace('"', '""') + '"'
+
+
+def _copy_buffer(values: list, columns: list) -> io.StringIO:
+    buf = io.StringIO()
+    for rec in values:
+        buf.write(",".join(_csv_field(rec[c]) for c in columns))
+        buf.write("\n")
+    return buf
+
+
+def _copy_insert(db: PersistentConnection, table: str, columns: list, values: list) -> int:
+    """COPY rows into a session temp table, then INSERT ... ON CONFLICT (event_id)
+    DO NOTHING into the staging table: same dedup as before, far fewer round trips
+    (M5W20T1). Returns rows actually inserted. On a connection-level error,
+    reconnect and retry once (safe: ON CONFLICT)."""
+    import psycopg2
+
+    tmp = f"tmp_{table}"
+    col_list = ", ".join(columns)
+    buf = _copy_buffer(values, columns)
+
+    for attempt in (1, 2):
+        conn = db.get()
+        try:
+            with conn.cursor() as cur:
+                # Column types only (no defaults/constraints); emptied on every commit.
+                cur.execute(
+                    f"CREATE TEMP TABLE IF NOT EXISTS {tmp} ON COMMIT DELETE ROWS "
+                    f"AS SELECT {col_list} FROM {table} WITH NO DATA"
+                )
+                buf.seek(0)
+                cur.copy_expert(f"COPY {tmp} ({col_list}) FROM STDIN WITH (FORMAT csv)", buf)
+                cur.execute(
+                    f"INSERT INTO {table} ({col_list}) SELECT {col_list} FROM {tmp} "
+                    f"ON CONFLICT (event_id) DO NOTHING"
+                )
+                inserted = cur.rowcount
+            conn.commit()
+            return inserted
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+            db.discard()
+            if attempt == 2:
+                raise
+            log.warning(
+                "[%s] DB connection failed (%s) — reconnecting and retrying once.",
+                db.name, exc,
+            )
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                db.discard()
+            raise
+
+
+def _make_batch_writer(label: str, stream_name: str, fields: list, table: str,
+                       columns: list, parsed_schema, extra_columns: dict):
+    db = PersistentConnection(f"{label.lower()}_staging_write")  # reused across micro-batches
+
+    def _write(batch_df: DataFrame, spark_batch_id: int):
+        from schema_versioning import enforce  # type: ignore  # mounted by docker-compose
+
+        t0 = time.perf_counter()
+        rows = [row.asDict() for row in batch_df.select(*fields).collect()]
+        t1 = time.perf_counter()
         if not rows:
-            log.info("ALICE micro-batch %d: empty, nothing to enforce/write.", spark_batch_id)
+            log.info("%s micro-batch %d: empty, nothing to enforce/write.", label, spark_batch_id)
             return
 
-        result = enforce(rows, "alice_event", parsed_schema)
-
+        result = enforce(rows, stream_name, parsed_schema)
+        t2 = time.perf_counter()
+        if result.rejected:
+            first = (result.round_trip_failed[0][1] if result.round_trip_failed
+                     else f"version drift, event_id={result.version_drift[0].get('event_id')}")
+            log.warning(
+                "%s micro-batch %d: %d version drift, %d round-trip failures (first: %s).",
+                label, spark_batch_id, len(result.version_drift),
+                len(result.round_trip_failed), str(first)[:300],
+            )
         if not result.valid_records:
             log.warning(
-                "ALICE micro-batch %d: 0 of %d records passed enforcement — nothing written.",
-                spark_batch_id, result.total,
+                "%s micro-batch %d: 0 of %d records passed enforcement — nothing written.",
+                label, spark_batch_id, result.total,
             )
             return
 
         load_ts = datetime.now(timezone.utc)
         batch_uuid = str(uuid.uuid4())  # own UUID, independent of Spark's integer batch id
         values = [
-            {
-                "load_timestamp": load_ts,
-                "batch_id": batch_uuid,
-                "load_status": "validated",
-                **rec,
-            }
+            {"load_timestamp": load_ts, "batch_id": batch_uuid, "load_status": "validated",
+             **extra_columns, **rec}
             for rec in result.valid_records
         ]
+        inserted = _copy_insert(db, table, columns, values)
+        t3 = time.perf_counter()
 
-        conn = _get_db_connection()
-        try:
-            with conn.cursor() as cur:
-                execute_batch(cur, ALICE_INSERT, values, page_size=500)
-            conn.commit()
-        finally:
-            conn.close()
-
+        # "written" = rows actually inserted; duplicates are redeliveries skipped by ON CONFLICT.
         log.info(
-            "ALICE micro-batch %d (db batch=%s): %d written, %d rejected (data_loss_pct=%.4f%%).",
-            spark_batch_id, batch_uuid[:8], result.passed, result.rejected, result.data_loss_pct,
+            "%s micro-batch %d (db batch=%s): %d written, %d rejected (data_loss_pct=%.4f%%), "
+            "%d duplicate(s) skipped | collect=%dms enforce=%dms insert=%dms",
+            label, spark_batch_id, batch_uuid[:8], inserted, result.rejected,
+            result.data_loss_pct, len(values) - inserted,
+            (t1 - t0) * 1000, (t2 - t1) * 1000, (t3 - t2) * 1000,
         )
 
     return _write
+
+
+def make_alice_batch_writer(parsed_schema):
+    return _make_batch_writer(
+        "ALICE", "alice_event", ALICE_FIELDS,
+        ALICE_STAGING_TABLE, ALICE_STAGING_COLUMNS, parsed_schema, extra_columns={},
+    )
 
 
 def make_sensor_batch_writer(parsed_schema):
-    def _write(batch_df: DataFrame, spark_batch_id: int):
-        from psycopg2.extras import execute_batch
-        from schema_versioning import enforce
-
-        rows = [row.asDict() for row in batch_df.select(*SENSOR_FIELDS).collect()]
-        if not rows:
-            log.info("SENSOR micro-batch %d: empty, nothing to enforce/write.", spark_batch_id)
-            return
-
-        result = enforce(rows, "sensor_event", parsed_schema)
-
-        if not result.valid_records:
-            log.warning(
-                "SENSOR micro-batch %d: 0 of %d records passed enforcement — nothing written.",
-                spark_batch_id, result.total,
-            )
-            return
-
-        load_ts = datetime.now(timezone.utc)
-        batch_uuid = str(uuid.uuid4())
-        values = [
-            {
-                "load_timestamp": load_ts,
-                "batch_id": batch_uuid,
-                "load_status": "validated",
-                # Not part of the streamed Avro payload — these are
-                # ML-training ground-truth columns populated elsewhere
-                # (Module 8/9), same exclusion avro_adaptation_job.py's
-                # transform_to_sensor_schema() documents.
-                "label": 0,
-                "anomaly_type": None,
-                **rec,
-            }
-            for rec in result.valid_records
-        ]
-
-        conn = _get_db_connection()
-        try:
-            with conn.cursor() as cur:
-                execute_batch(cur, SENSOR_INSERT, values, page_size=500)
-            conn.commit()
-        finally:
-            conn.close()
-
-        log.info(
-            "SENSOR micro-batch %d (db batch=%s): %d written, %d rejected (data_loss_pct=%.4f%%).",
-            spark_batch_id, batch_uuid[:8], result.passed, result.rejected, result.data_loss_pct,
-        )
-
-    return _write
+    # label/anomaly_type are ML ground-truth columns, not part of the streamed
+    # Avro payload (populated in Module 8/9), same as avro_adaptation_job.py.
+    return _make_batch_writer(
+        "SENSOR", "sensor_event", SENSOR_FIELDS,
+        SENSOR_STAGING_TABLE, SENSOR_STAGING_COLUMNS, parsed_schema,
+        extra_columns={"label": 0, "anomaly_type": None},
+    )
 
 
 # ── Main ──────────────────────────────────────────────────────────────────
@@ -416,8 +433,11 @@ def run():
 
     log.info(
         "Starting Spark Structured Streaming consumer — alice_topic=%s sensor_topics=%s "
-        "bootstrap=%s watermark_delay=%ds",
+        "bootstrap=%s watermark_delay=%ds shuffle_partitions=%d max_offsets_per_trigger=%d "
+        "starting_timestamp_ms=%s",
         KAFKA_TOPIC_ALICE, KAFKA_TOPICS_SENSOR, KAFKA_BOOTSTRAP_SERVERS, WATERMARK_DELAY_SECONDS,
+        SPARK_SHUFFLE_PARTITIONS, SPARK_MAX_OFFSETS_PER_TRIGGER,
+        SPARK_STARTING_TIMESTAMP_MS or "latest",
     )
 
     alice_schema_json = load_schema_json(ALICE_SCHEMA_PATH)
@@ -470,6 +490,7 @@ def run():
             log.error("A streaming query terminated with an exception: %s", e)
             spark.streams.resetTerminated()
 
+    _close_persistent_connections()
     log.info("No active streaming queries remain — exiting.")
 
 
