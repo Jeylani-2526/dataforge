@@ -8,8 +8,8 @@
 - All seven M5 success criteria are met, or met on sending the Emrah update (T7).
 - **Both prototype-bar metrics measured in M5 are missed** (throughput and latency); they are
   carried forward with named causes.
-- Two teammate items are pending: Ömer's M5W20T11 (not started) and review comments on Beyza's
-  M5W20T10.
+- One teammate item is pending: Ömer's M5W20T11 (not started). Review comments on Beyza's
+  M5W20T10 were raised and resolved (`1dcd0ea`).
 
 ---
 
@@ -56,7 +56,7 @@ Milestone 5 builds the Streaming Pipeline:
 | `sensor_id` conformance correction, `varchar` → `uuid` | M5W20T8 | `docs/database/sensor_streamed_record_erd_api_conformance.md` | Complete (`2c3c2c8`); closes M5 Item 4 |
 | KRaft CONTROLLER listener bind fix | — | `docker-compose.yml` | Complete (`9f3db08`); see M5 Item 10 on the voter address |
 | 4.5-hour sustained-load soak test | M5W20T9 | `docs/data/m5w20t9_soak_test.md` | Complete (`3de3ce2`) at the default producer rate; resolves M5 Item 5 for stability, high-load scope re-opened |
-| M5 database contribution section (final) | M5W20T10 | `docs/milestones/milestone5/m5_database_contribution.md` | Committed (`07d3b6c`); **review comments pending** (§6) |
+| M5 database contribution section (final) | M5W20T10 | `docs/milestones/milestone5/m5_database_contribution.md` | Complete (`07d3b6c`; corrections `1dcd0ea`) |
 
 ### Ömer
 
@@ -171,20 +171,14 @@ authoritative record.
 
 M4 Items 1, 3 and 4 remain open in `open_items_m4.md` (deferred to M6/M7).
 
-**Additionally pending, not yet resolved anywhere:**
+**Additionally pending, or resolved during package assembly:**
 
-- **Review comments on Beyza's M5W20T10** (`m5_database_contribution.md`, `07d3b6c`). Five statements
-  conflict with the committed record; they have been sent to Beyza, and the section is included
-  as committed until she updates it:
-  1. The write path is given as Spark → `events` hypertable. Spark writes to
-     `raw_sensor_events_staging`; `events` is filled by the separate promotion script.
-  2. Two commit references are swapped. Kafka live delivery (M5W19T9) is `10cf013`, not `fb26fc9`.
-     Spark consumer end-to-end (M5W19T1) is `fb26fc9`, not `10cf013`.
-  3. The API table states the WebSocket is "Active" with "seconds-old" data. No API service exists
-     yet (M9). Measured freshness is p95 5.7 s, in staging only.
-  4. "All M5 Open Items Closed" conflicts with `open_items_m5.md`. Her four listed items did close,
-     but throughput, latency, checkpointing and others remain open.
-  5. The soak test's "no memory growth" is stated without memory figures (see Item 5).
+- **Review comments on Beyza's M5W20T10: resolved.** Five statements conflicted with the committed
+  record: the write path, two swapped commit references, the API table, the "All M5 Open Items
+  Closed" heading, and an unsupported memory claim.
+  - Beyza corrected all five in `m5_database_contribution.md` (`1dcd0ea`, 27 September).
+  - The same memory/load wording in `docs/data/m5w20t9_soak_test.md` was aligned in the follow-up
+    commit to this note.
 - **Ömer's M5W20T11 has not been started.** A likely cause is identified from the committed history
   (§2); confirmation is his.
 - **No Beyza/Ömer sign-off on this document exists yet.** It is presented for their review, and both
@@ -214,4 +208,4 @@ across all four streams.
 M6 kickoff is not blocked, provided checkpointing (Item 2) is planned into the join design from the
 start.
 
-*End of `m5_package_cover_note.md` — pending Beyza/Ömer review and the M5W20T10 corrections.*
+*End of `m5_package_cover_note.md` — pending Beyza/Ömer review of this note.*

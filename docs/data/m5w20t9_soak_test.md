@@ -43,4 +43,4 @@ collect=487ms  enforce=0ms  insert=9ms
 
 ## Result
 
-**Sustained-load open item closed.** No memory growth, connection pool exhaustion, or record loss observed over 4.5 hours of continuous operation. Pipeline stable under production-representative load.
+**Sustained-load open item closed for default-rate stability.** No errors, rejections or connection issues observed over 4.5 hours of continuous operation at the default producer rate (~5 sensor events/sec). Memory usage was not recorded; the next high-load soak test will capture docker stats. High-load stability remains open (`docs/milestones/milestone5/open_items_m5.md` Item 5).
