@@ -9,8 +9,8 @@ writes schema-enforced records to the staging tables.
   decodes with the .avsc directly.
 - schema_versioning.py is not in this build context: docker-compose mounts it
   from services/adaptation-layer/ (hence the import ignores below).
-- No checkpointLocation is set, so a container restart loses stream offsets
-  (open item).
+- Checkpointing (M6W21T2): every query checkpoints to SPARK_CHECKPOINT_DIR (a named
+  Docker volume), so a restart resumes from the last committed Kafka offsets.
 - Throughput (M5W20T1): shuffle partitions and the per-batch record cap are set
   explicitly, and staging writes use COPY. Root cause and measurements:
   docs/milestones/milestone5/m5w20t1_write_path_root_cause.md.
@@ -22,6 +22,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -50,8 +51,8 @@ WATERMARK_DELAY_SECONDS = int(os.environ.get("WATERMARK_DELAY_SECONDS", "5"))
 
 # Spark's default of 200 shuffle partitions made every windowed trigger run 200
 # tiny stateful tasks, starving the staging writes (M5W20T1). Keep it near the
-# core count. Stateful queries lock this value into their checkpoint, so once
-# checkpointing exists, changing it needs a fresh checkpoint.
+# core count. Stateful queries lock this value into their checkpoint: changing it
+# needs a checkpoint reset (docs/milestones/milestone6/m6w21t2_checkpoint_restart_test.md).
 SPARK_SHUFFLE_PARTITIONS = int(os.environ.get("SPARK_SHUFFLE_PARTITIONS", "8"))
 
 # Max Kafka records per micro-batch, per query (0 = unlimited). 50,000 = the
@@ -62,6 +63,12 @@ SPARK_MAX_OFFSETS_PER_TRIGGER = int(os.environ.get("SPARK_MAX_OFFSETS_PER_TRIGGE
 # timestamp instead of "latest". Empty = latest. Used for backlog-drain tests;
 # only applies when a query starts without a checkpoint.
 SPARK_STARTING_TIMESTAMP_MS = os.environ.get("SPARK_STARTING_TIMESTAMP_MS", "").strip()
+
+# One sub-folder per query (M6W21T2). Must be on a persistent volume, not the container layer.
+SPARK_CHECKPOINT_DIR = os.environ.get("SPARK_CHECKPOINT_DIR", "/app/checkpoints").rstrip("/")
+
+# Max wait per query on shutdown; keeps the whole stop inside Compose's stop_grace_period.
+SPARK_STOP_TIMEOUT_MS = int(os.environ.get("SPARK_STOP_TIMEOUT_MS", "15000"))
 
 # Same volume-mount pattern as alice-ingestion (./schemas:/app/schemas).
 ALICE_SCHEMA_PATH = Path(
@@ -113,7 +120,6 @@ SENSOR_STAGING_COLUMNS = [
     "load_timestamp", "batch_id", *SENSOR_FIELDS, "label", "anomaly_type", "load_status",
 ]
 
-_spark_session = None  # module-level handle so the shutdown signal can stop it cleanly
 _persistent_connections = []  # every PersistentConnection, so shutdown can close them (M5W20T1)
 
 
@@ -122,13 +128,68 @@ def _close_persistent_connections():
         db.close()
 
 
+# The signal handler only sets this flag. Calling Spark from inside the handler
+# re-enters the py4j socket the main thread is blocked on, which hangs the stop
+# until Docker kills the container (the M5 Item 9 exit 137).
+_stop_requested = threading.Event()
+
+
+def _stop_query(q):
+    try:
+        q.stop()
+    except Exception as e:  # stop timeout: the unfinished batch is re-run on restart
+        log.warning("Query %s did not stop cleanly: %s", q.name, e)
+
+
 def _handle_shutdown(signum, frame):
-    log.info("Shutdown signal received (%s) — stopping active streaming queries.", signum)
-    if _spark_session is not None:
-        for q in _spark_session.streams.active:
-            q.stop()
+    _stop_requested.set()
+
+
+def _shutdown(spark: SparkSession):
+    t0 = time.perf_counter()
+    log.info("Shutdown requested — stopping active streaming queries.")
+    # Stopped in parallel so the total stays within stop_grace_period.
+    threads = [threading.Thread(target=_stop_query, args=(q,)) for q in spark.streams.active]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
     _close_persistent_connections()
-    sys.exit(0)
+    spark.stop()
+    log.info("Clean shutdown complete in %.1f s.", time.perf_counter() - t0)
+
+
+def await_queries(spark: SparkSession):
+    """Keeps running while queries are active; a failed query is logged without stopping the others."""
+    while spark.streams.active and not _stop_requested.is_set():
+        try:
+            spark.streams.awaitAnyTermination(1)  # short waits so a stop request is seen within 1 s
+        except Exception as e:
+            log.error("A streaming query terminated with an exception: %s", e)
+            spark.streams.resetTerminated()
+    if _stop_requested.is_set():
+        _shutdown(spark)
+    else:
+        _close_persistent_connections()
+        log.info("No active streaming queries remain — exiting.")
+
+
+def checkpoint_path(query_name: str) -> str:
+    return f"{SPARK_CHECKPOINT_DIR}/{query_name}"
+
+
+def has_checkpoint(query_name: str) -> bool:
+    """True if the query has committed offsets, i.e. a restart will resume rather than start fresh."""
+    offsets = Path(checkpoint_path(query_name)) / "offsets"
+    return offsets.is_dir() and any(offsets.iterdir())
+
+
+def _log_start_mode(query_name: str):
+    if has_checkpoint(query_name):
+        log.info("%s: resuming from checkpoint %s", query_name, checkpoint_path(query_name))
+    else:
+        log.info("%s: no checkpoint yet — starting from %s", query_name,
+                 f"timestamp {SPARK_STARTING_TIMESTAMP_MS}" if SPARK_STARTING_TIMESTAMP_MS else "latest")
 
 
 # ── Schema loading ────────────────────────────────────────────────────────
@@ -165,6 +226,7 @@ def get_spark_session(app_name: str = "dataforge-spark-consumer") -> SparkSessio
         .config("spark.jars.packages", f"{SPARK_KAFKA_PACKAGE},{SPARK_AVRO_PACKAGE}")
         .config("spark.sql.session.timeZone", "UTC")
         .config("spark.sql.shuffle.partitions", str(SPARK_SHUFFLE_PARTITIONS))
+        .config("spark.sql.streaming.stopTimeout", str(SPARK_STOP_TIMEOUT_MS))
         .getOrCreate()
     )
     spark.sparkContext.setLogLevel("WARN")
@@ -246,9 +308,11 @@ def build_windowed_throughput_query(df: DataFrame, query_name: str):
         .count()
     )
 
+    _log_start_mode(query_name)
     return (
         windowed_counts.writeStream
         .queryName(query_name)
+        .option("checkpointLocation", checkpoint_path(query_name))
         .outputMode("update")
         .format("console")
         .option("truncate", False)
@@ -427,17 +491,16 @@ def make_sensor_batch_writer(parsed_schema):
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def run():
-    global _spark_session
     signal.signal(signal.SIGTERM, _handle_shutdown)
     signal.signal(signal.SIGINT, _handle_shutdown)
 
     log.info(
         "Starting Spark Structured Streaming consumer — alice_topic=%s sensor_topics=%s "
         "bootstrap=%s watermark_delay=%ds shuffle_partitions=%d max_offsets_per_trigger=%d "
-        "starting_timestamp_ms=%s",
+        "starting_timestamp_ms=%s checkpoint_dir=%s",
         KAFKA_TOPIC_ALICE, KAFKA_TOPICS_SENSOR, KAFKA_BOOTSTRAP_SERVERS, WATERMARK_DELAY_SECONDS,
         SPARK_SHUFFLE_PARTITIONS, SPARK_MAX_OFFSETS_PER_TRIGGER,
-        SPARK_STARTING_TIMESTAMP_MS or "latest",
+        SPARK_STARTING_TIMESTAMP_MS or "latest", SPARK_CHECKPOINT_DIR,
     )
 
     alice_schema_json = load_schema_json(ALICE_SCHEMA_PATH)
@@ -446,7 +509,6 @@ def run():
     sensor_parsed_schema = load_parsed_avro_schema(SENSOR_SCHEMA_PATH)
 
     spark = get_spark_session()
-    _spark_session = spark
 
     alice_df = read_alice_stream(spark, alice_schema_json)
     sensor_df = read_sensor_stream(spark, sensor_schema_json)
@@ -456,9 +518,12 @@ def run():
     build_windowed_throughput_query(sensor_df, "sensor_throughput")
 
     # Non-windowed TimescaleDB staging write (M5W18T9).
+    _log_start_mode("alice_staging_write")
+    _log_start_mode("sensor_staging_write")
     (
         alice_df.writeStream
         .queryName("alice_staging_write")
+        .option("checkpointLocation", checkpoint_path("alice_staging_write"))
         .outputMode("append")
         .foreachBatch(make_alice_batch_writer(alice_parsed_schema))
         .trigger(processingTime="5 seconds")
@@ -467,31 +532,16 @@ def run():
     (
         sensor_df.writeStream
         .queryName("sensor_staging_write")
+        .option("checkpointLocation", checkpoint_path("sensor_staging_write"))
         .outputMode("append")
         .foreachBatch(make_sensor_batch_writer(sensor_parsed_schema))
         .trigger(processingTime="5 seconds")
         .start()
     )
 
-    # Resilient run loop — NOT a plain spark.streams.awaitAnyTermination().
-    # That single call raises the failing query's exception straight out of
-    # run(), which would crash every other query too (e.g. a sensor topic
-    # not existing yet because sensor-generators hasn't started should not
-    # take down the already-healthy alice-events queries). Instead: catch
-    # the exception, log which query died and why, call resetTerminated()
-    # (required — without it, awaitAnyTermination() immediately re-raises
-    # the SAME already-reported termination in a tight crash loop rather
-    # than waiting on what's still running), and keep awaiting whatever
-    # queries remain active.
-    while spark.streams.active:
-        try:
-            spark.streams.awaitAnyTermination()
-        except Exception as e:
-            log.error("A streaming query terminated with an exception: %s", e)
-            spark.streams.resetTerminated()
-
-    _close_persistent_connections()
-    log.info("No active streaming queries remain — exiting.")
+    # resetTerminated() is required inside await_queries(): without it,
+    # awaitAnyTermination() re-raises the same failure in a tight loop.
+    await_queries(spark)
 
 
 if __name__ == "__main__":

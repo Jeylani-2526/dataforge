@@ -4,7 +4,8 @@
 **Owner:** Abdullah
 **Milestone:** M5 · Week 20
 **Status:** Open — ten items tracked. Item 4 resolved (M5W20T8); Item 5 resolved for default-rate
-stability and re-scoped for sustained high load (M5W20T9); Items 1–3 and 6–10 open.
+stability and re-scoped for sustained high load (M5W20T9); Items 2 and 9 resolved (M6W21T2);
+Items 1, 3, 6–8 and 10 open.
 **GitHub Path:** `/docs/milestones/milestone5/open_items_m5.md`
 
 **Amendment history:**
@@ -14,6 +15,9 @@ stability and re-scoped for sustained high load (M5W20T9); Items 1–3 and 6–1
 - M5W20T4 amendment (after M5W20T8/T9 landed, 26 September) — Item 4 resolved (`2c3c2c8`); Item 5
   resolved for default-rate stability and re-scoped (`3de3ce2`); Item 10 added (latent Docker Compose
   configuration issues for later milestones).
+- M6W21T2 amendment (1 October 2026) — Items 2 and 9 resolved: checkpointing on a named volume,
+  `stop_grace_period`, and a shutdown-handler fix, verified by a live kill-and-restart test
+  (`docs/milestones/milestone6/m6w21t2_checkpoint_restart_test.md`).
 
 ---
 
@@ -78,12 +82,12 @@ Each is aimed at a specific measured cost, so the next step is choosing among th
 
 ---
 
-## Item 2 — No Checkpointing on the Spark Streaming Queries
+## Item 2 — No Checkpointing on the Spark Streaming Queries (Resolved, M6W21T2)
 
-**Finding:** Originally logged in `m5w19t1_spark_consumer_verification.md` §5. None of the four
+**Finding:** Originally logged in `m5w19t1_spark_consumer_verification.md` Section 5. None of the four
 queries sets a `checkpointLocation`, so a container restart loses Kafka offsets and streaming state.
 
-**Impact, corrected (M5W20T3, `m5_validation_report.md` §7):**
+**Impact, corrected (M5W20T3, `m5_validation_report.md` Section 7):**
 - **Redelivery is safe for both streams.** Both staging tables have a unique `event_id`, and both
   inserts use `ON CONFLICT (event_id) DO NOTHING`, so redelivered events are deduplicated.
 - **The real risk is skipped events.** On restart the consumer starts from `latest`, so events
@@ -109,9 +113,22 @@ That is best designed together with M6's stateful join rather than twice.
 **What would trigger resolution:** Start of M6 join design, or any use beyond local
 dev/verification.
 
+**Status:** **Resolved** — M6W21T2 (1 October 2026).
+- All four queries now set `checkpointLocation` on the named volume `spark-checkpoints`
+  (`/app/checkpoints/<query name>`).
+- **Live kill-and-restart test passed.** 904 sensor events were published while `spark-processor`
+  was stopped. After the restart exactly 904 new rows reached `raw_sensor_events_staging`: zero
+  skipped events. All four queries logged "resuming from checkpoint".
+- A hard `docker kill` also resumed from the checkpoint.
+- `SPARK_SHUFFLE_PARTITIONS` stayed at 8, set before the first checkpoint was written. A changed
+  value is **silently ignored** while a stateful checkpoint exists (local test), so changing it
+  needs a reset of the two throughput queries. Procedure and evidence are in the test note.
+- ALICE resume is confirmed from the logs only. A count check is not meaningful because the ALICE
+  producer reuses the same 68 `event_id`s and staging deduplicates them.
+
 **Action items:**
-- [ ] Abdullah (M6): add `checkpointLocation` on a named volume for all queries; verify with a kill-and-restart test that offsets resume and no events are skipped
-- [ ] Abdullah (M6): document the checkpoint-reset procedure, including the shuffle partition lock
+- [x] Abdullah (M6): add `checkpointLocation` on a named volume for all queries; verify with a kill-and-restart test that offsets resume and no events are skipped (M6W21T2)
+- [x] Abdullah (M6): document the checkpoint-reset procedure, including the shuffle partition lock (M6W21T2)
 
 ---
 
@@ -145,7 +162,7 @@ Deciding before Item 7 risks doing the work twice.
 
 ## Item 4 — `sensor_id` Documentation / DB-Type Mismatch (Resolved, M5W20T8)
 
-**Finding:** From `m5w19t1_spark_consumer_verification.md` §3.
+**Finding:** From `m5w19t1_spark_consumer_verification.md` Section 3.
 - M5W19T6's conformance note (`docs/database/sensor_streamed_record_erd_api_conformance.md`) marked
   `sensor_id` as "varchar ✅" after validating only the Avro round-trip, which cannot catch a UUID
   format violation.
@@ -209,7 +226,7 @@ in `docs/database/sensor_streamed_record_erd_api_conformance.md` now:
   - Memory growth: the note states none was observed, but records no memory figures.
   - End-to-end loss over time: `data_loss_pct` counts records rejected by `enforce()`. It does not
     count events lost between Kafka and the database, which needs a published-vs-stored count, as in
-    M5W20T2 §3.
+    M5W20T2 Section 3.
 
 **What would trigger full resolution:** a high-rate soak once Item 1/7 work brings capacity near the
 bar, recording `docker stats` memory over time and a published-vs-stored count.
@@ -222,7 +239,7 @@ bar, recording `docker stats` memory over time and a published-vs-stored count.
 
 ## Item 6 — End-to-End Latency Above Prototype Bar (New, M5W20T3)
 
-**Finding:** First end-to-end latency measurement, reported in `m5_validation_report.md` §5.
+**Finding:** First end-to-end latency measurement, reported in `m5_validation_report.md` Section 5.
 - **Definition:** event creation (`timestamp_ms`) to the Spark writer's batch stamp
   (`load_timestamp`).
 - **Default producer rate:** p50 3.4 s, **p95 5.7 s**, p99 6.0 s.
@@ -248,13 +265,13 @@ write path) at M6 planning.
 
 **Action items:**
 - [ ] Abdullah: include trigger-interval options in the Item 1 parallel-writer design proposal, and measure p95 with the same SQL method for each option tested
-- [ ] Abdullah: keep the latency SQL (validation report §5) as the standard measurement, so later figures stay comparable
+- [ ] Abdullah: keep the latency SQL (validation report Section 5) as the standard measurement, so later figures stay comparable
 
 ---
 
 ## Item 7 — Generator Capacity and Shared CPU (New, M5W20T2)
 
-**Finding:** From `m5w20t2_throughput_benchmark.md` §4.
+**Finding:** From `m5w20t2_throughput_benchmark.md` Section 4.
 - **The generator is a single Python loop.** Unthrottled, `sensor_producer.py` publishes ~7,250
   events/sec when Spark is stopped, but only ~3,650 when Spark is running.
 - **Everything shares the host's 8 CPUs:** Kafka, Spark, TimescaleDB and the producers. Spark's
@@ -283,7 +300,7 @@ benchmark planning.
 
 ## Item 8 — Watermark Operational Caveats (New, M5W20T3)
 
-**Finding:** Analytical, not observed in any run. Reported in `m5_validation_report.md` §3.
+**Finding:** Analytical, not observed in any run. Reported in `m5_validation_report.md` Section 3.
 Both caveats affect the windowed monitoring counts only; staging writes are never affected.
 
 1. **Restarting `alice-ingestion` while Spark keeps running.**
@@ -319,9 +336,9 @@ design:
 
 ---
 
-## Item 9 — Spark Container Does Not Stop Within Docker's Grace Period (New, M5W20T2)
+## Item 9 — Spark Container Does Not Stop Within Docker's Grace Period (New, M5W20T2; Resolved, M6W21T2)
 
-**Finding:** From `m5w20t2_throughput_benchmark.md` §5.
+**Finding:** From `m5w20t2_throughput_benchmark.md` Section 5.
 - `docker compose stop spark-processor` took 11.6 s, longer than Docker's default 10 s grace period,
   so Docker force-kills the container (exit code 137).
 - The container also exited with code 137 when the stack stopped on 24 September.
@@ -340,8 +357,19 @@ because there are no checkpoints. Once checkpointing lands, it can.
 
 **What would trigger resolution:** Item 2's implementation.
 
+**Status:** **Resolved** — M6W21T2 (1 October 2026).
+- `stop_grace_period: 30s` is set on `spark-processor`.
+- **The cause was in the code, not only the 10 s limit.** The old SIGTERM handler called
+  `q.stop()` from inside the signal handler. In a local PySpark test that call re-enters the Py4J
+  connection the main thread is blocked on, and the process hung until the test timeout. The
+  handler now only sets a flag. The main loop stops all queries in parallel (15 s limit each),
+  then closes Spark and the DB connections.
+- **Live result:** `docker compose stop spark-processor` took 3.5 s (was 11.6 s). The app logged
+  "Clean shutdown complete in 0.9 s", and `docker inspect` showed `exit=0 oom=false` (was 137).
+- The old code was not re-run on the Docker stack, so the local test is the evidence for the cause.
+
 **Action items:**
-- [ ] Abdullah / Omer: set `stop_grace_period` for `spark-processor` (for example 30 s) and confirm the shutdown handler stops all queries within it (check `docker inspect` for `OOMKilled=false` after a stop)
+- [x] Abdullah / Omer: set `stop_grace_period` for `spark-processor` (for example 30 s) and confirm the shutdown handler stops all queries within it (check `docker inspect` for `OOMKilled=false` after a stop) (M6W21T2)
 
 ---
 
@@ -390,19 +418,19 @@ corrected in the same change.
 | Item | Status | Deferred to | Trigger for resolution |
 |---|---|---|---|
 | 1. Streaming throughput below bar (1,417 like-for-like / ~3,650 capacity vs. ≥10,000) | Open, root cause fixed, gap measured per phase | M6 planning → M10 | Insert diagnostics + parallel-writer decision + Item 7 generator |
-| 2. No checkpointing (risk: skipped events on restart) | Open, impact corrected | Post-M5, before M6 join | M6 join design |
+| 2. No checkpointing (risk: skipped events on restart) | **Resolved** (M6W21T2) | — | N/A |
 | 3. Dead `EVENTS_PER_SECOND` config | Open | Item 7 | Generator design decision |
 | 4. `sensor_id` doc / DB-type mismatch | **Resolved** (M5W20T8, `2c3c2c8`) | — | N/A |
 | 5. Sustained multi-hour load | **Resolved at default rate** (M5W20T9, `3de3ce2`); re-scoped for high load | After Item 1/7 progress | High-rate soak with memory + published-vs-stored figures |
 | 6. End-to-end latency p95 5.7 s vs. ≤500 ms | Open, structural (5 s trigger) | M6 design → M10 | Combined throughput/latency design |
 | 7. Generator capacity + shared CPU | Open | Before the next bar-level benchmark / M10 | Pipeline capacity nearing the bar |
 | 8. Watermark operational caveats (monitoring-only in M5) | Open, operating rule documented | M6 | M6 join design |
-| 9. Spark exceeds the stop grace period (exit 137) | Open, no data impact observed | With Item 2 | Checkpointing implementation |
+| 9. Spark exceeds the stop grace period (exit 137) | **Resolved** (M6W21T2) | — | N/A |
 | 10. Latent Compose issues for M6–M9 (build paths, KRaft voter address) | Open, no M5 impact | M6 onwards | Each later service's Dockerfile |
 
 **Two prototype-bar metrics are open (Items 1 and 6)**, both measured end to end with a named cause.
 Data loss (0.0%) and schema-versioning enforcement pass.
 
-**Item 4 is resolved and Item 5 is resolved for default-rate stability** (Beyza's M5W20T8/T9). Items
-2, 3 and 7–10 are each tied to the downstream work that has the information or infrastructure needed
-to decide them properly.
+**Item 4 is resolved and Item 5 is resolved for default-rate stability** (Beyza's M5W20T8/T9).
+**Items 2 and 9 are resolved** (M6W21T2). Items 3, 7, 8 and 10 are each tied to the downstream work
+that has the information or infrastructure needed to decide them properly.
