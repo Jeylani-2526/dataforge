@@ -1,0 +1,957 @@
+dataforge-spark  | 2026-09-24 14:21:59,499  INFO  Starting Spark Structured Streaming consumer — alice_topic=alice-events sensor_topics=sensor-radar,sensor-lidar,sensor-telemetry bootstrap=kafka:29092 watermark_delay=5s shuffle_partitions=8 max_offsets_per_trigger=50000 starting_timestamp_ms=1790259400884
+dataforge-spark  | :: loading settings :: url = jar:file:/usr/local/lib/python3.11/site-packages/pyspark/jars/ivy-2.5.3.jar!/org/apache/ivy/core/settings/ivysettings.xml
+dataforge-spark  | Ivy Default Cache set to: /root/.ivy2/cache
+dataforge-spark  | The jars for the packages stored in: /root/.ivy2/jars
+dataforge-spark  | org.apache.spark#spark-sql-kafka-0-10_2.12 added as a dependency
+dataforge-spark  | org.apache.spark#spark-avro_2.12 added as a dependency
+dataforge-spark  | :: resolving dependencies :: org.apache.spark#spark-submit-parent-305a5c26-fe90-4b41-8c04-b7572b04f85f;1.0
+dataforge-spark  | 	confs: [default]
+dataforge-spark  | 	found org.apache.spark#spark-sql-kafka-0-10_2.12;3.5.9 in central
+dataforge-spark  | 	found org.apache.spark#spark-token-provider-kafka-0-10_2.12;3.5.9 in central
+dataforge-spark  | 	found org.apache.kafka#kafka-clients;3.4.1 in central
+dataforge-spark  | 	found org.lz4#lz4-java;1.8.0 in central
+dataforge-spark  | 	found org.xerial.snappy#snappy-java;1.1.10.5 in central
+dataforge-spark  | 	found org.slf4j#slf4j-api;2.0.7 in central
+dataforge-spark  | 	found org.apache.hadoop#hadoop-client-runtime;3.3.4 in central
+dataforge-spark  | 	found org.apache.hadoop#hadoop-client-api;3.3.4 in central
+dataforge-spark  | 	found commons-logging#commons-logging;1.1.3 in central
+dataforge-spark  | 	found com.google.code.findbugs#jsr305;3.0.0 in central
+dataforge-spark  | 	found org.apache.commons#commons-pool2;2.11.1 in central
+dataforge-spark  | 	found org.apache.spark#spark-avro_2.12;3.5.9 in central
+dataforge-spark  | 	found org.tukaani#xz;1.9 in central
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.9/spark-sql-kafka-0-10_2.12-3.5.9.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.spark#spark-sql-kafka-0-10_2.12;3.5.9!spark-sql-kafka-0-10_2.12.jar (1015ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/3.5.9/spark-avro_2.12-3.5.9.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.spark#spark-avro_2.12;3.5.9!spark-avro_2.12.jar (346ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.5.9/spark-token-provider-kafka-0-10_2.12-3.5.9.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.spark#spark-token-provider-kafka-0-10_2.12;3.5.9!spark-token-provider-kafka-0-10_2.12.jar (321ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.4.1/kafka-clients-3.4.1.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.kafka#kafka-clients;3.4.1!kafka-clients.jar (2201ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/com/google/code/findbugs/jsr305/3.0.0/jsr305-3.0.0.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] com.google.code.findbugs#jsr305;3.0.0!jsr305.jar (366ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.commons#commons-pool2;2.11.1!commons-pool2.jar (353ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client-runtime/3.3.4/hadoop-client-runtime-3.3.4.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.hadoop#hadoop-client-runtime;3.3.4!hadoop-client-runtime.jar (9907ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.lz4#lz4-java;1.8.0!lz4-java.jar (503ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/xerial/snappy/snappy-java/1.1.10.5/snappy-java-1.1.10.5.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.xerial.snappy#snappy-java;1.1.10.5!snappy-java.jar(bundle) (867ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.slf4j#slf4j-api;2.0.7!slf4j-api.jar (312ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client-api/3.3.4/hadoop-client-api-3.3.4.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.apache.hadoop#hadoop-client-api;3.3.4!hadoop-client-api.jar (5906ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] commons-logging#commons-logging;1.1.3!commons-logging.jar (293ms)
+dataforge-spark  | downloading https://repo1.maven.org/maven2/org/tukaani/xz/1.9/xz-1.9.jar ...
+dataforge-spark  | 	[SUCCESSFUL ] org.tukaani#xz;1.9!xz.jar (302ms)
+dataforge-spark  | :: resolution report :: resolve 18821ms :: artifacts dl 22715ms
+dataforge-spark  | 	:: modules in use:
+dataforge-spark  | 	com.google.code.findbugs#jsr305;3.0.0 from central in [default]
+dataforge-spark  | 	commons-logging#commons-logging;1.1.3 from central in [default]
+dataforge-spark  | 	org.apache.commons#commons-pool2;2.11.1 from central in [default]
+dataforge-spark  | 	org.apache.hadoop#hadoop-client-api;3.3.4 from central in [default]
+dataforge-spark  | 	org.apache.hadoop#hadoop-client-runtime;3.3.4 from central in [default]
+dataforge-spark  | 	org.apache.kafka#kafka-clients;3.4.1 from central in [default]
+dataforge-spark  | 	org.apache.spark#spark-avro_2.12;3.5.9 from central in [default]
+dataforge-spark  | 	org.apache.spark#spark-sql-kafka-0-10_2.12;3.5.9 from central in [default]
+dataforge-spark  | 	org.apache.spark#spark-token-provider-kafka-0-10_2.12;3.5.9 from central in [default]
+dataforge-spark  | 	org.lz4#lz4-java;1.8.0 from central in [default]
+dataforge-spark  | 	org.slf4j#slf4j-api;2.0.7 from central in [default]
+dataforge-spark  | 	org.tukaani#xz;1.9 from central in [default]
+dataforge-spark  | 	org.xerial.snappy#snappy-java;1.1.10.5 from central in [default]
+dataforge-spark  | 	---------------------------------------------------------------------
+dataforge-spark  | 	|                  |            modules            ||   artifacts   |
+dataforge-spark  | 	|       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+dataforge-spark  | 	---------------------------------------------------------------------
+dataforge-spark  | 	|      default     |   13  |   13  |   13  |   0   ||   13  |   13  |
+dataforge-spark  | 	---------------------------------------------------------------------
+dataforge-spark  | :: retrieving :: org.apache.spark#spark-submit-parent-305a5c26-fe90-4b41-8c04-b7572b04f85f
+dataforge-spark  | 	confs: [default]
+dataforge-spark  | 	13 artifacts copied, 0 already retrieved (57318kB/185ms)
+dataforge-spark  | 26/09/24 14:22:46 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+dataforge-spark  | Setting default log level to "WARN".
+dataforge-spark  | To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+dataforge-spark  | 26/09/24 14:22:56 WARN ResolveWriteToStream: Temporary checkpoint location created which is deleted normally when the query didn't fail: /tmp/temporary-2e2ac22a-0258-4be9-becc-0a109e23d5d6. If it's required to delete it under any circumstances, please set spark.sql.streaming.forceDeleteTempCheckpointLocation to true. Important to know deleting temp checkpoint folder is best effort.
+dataforge-spark  | 26/09/24 14:22:56 WARN ResolveWriteToStream: spark.sql.adaptive.enabled is not supported in streaming DataFrames/Datasets and will be disabled.
+dataforge-spark  | 26/09/24 14:22:57 WARN ResolveWriteToStream: Temporary checkpoint location created which is deleted normally when the query didn't fail: /tmp/temporary-30567547-b706-4f03-b691-ade3082be0c7. If it's required to delete it under any circumstances, please set spark.sql.streaming.forceDeleteTempCheckpointLocation to true. Important to know deleting temp checkpoint folder is best effort.
+dataforge-spark  | 26/09/24 14:22:57 WARN ResolveWriteToStream: spark.sql.adaptive.enabled is not supported in streaming DataFrames/Datasets and will be disabled.
+dataforge-spark  | 2026-09-24 14:22:58,230  INFO  Callback Server Starting
+dataforge-spark  | 2026-09-24 14:22:58,231  INFO  Socket listening on ('127.0.0.1', 36277)
+dataforge-spark  | 26/09/24 14:22:58 WARN ResolveWriteToStream: Temporary checkpoint location created which is deleted normally when the query didn't fail: /tmp/temporary-5a669ad9-e429-4900-98c2-3f9665363278. If it's required to delete it under any circumstances, please set spark.sql.streaming.forceDeleteTempCheckpointLocation to true. Important to know deleting temp checkpoint folder is best effort.
+dataforge-spark  | 26/09/24 14:22:58 WARN ResolveWriteToStream: spark.sql.adaptive.enabled is not supported in streaming DataFrames/Datasets and will be disabled.
+dataforge-spark  | 26/09/24 14:22:58 WARN AdminClientConfig: These configurations '[key.deserializer, value.deserializer, enable.auto.commit, max.poll.records, auto.offset.reset]' were supplied but are not used yet.
+dataforge-spark  | 26/09/24 14:22:58 WARN AdminClientConfig: These configurations '[key.deserializer, value.deserializer, enable.auto.commit, max.poll.records, auto.offset.reset]' were supplied but are not used yet.
+dataforge-spark  | 26/09/24 14:22:58 WARN ResolveWriteToStream: Temporary checkpoint location created which is deleted normally when the query didn't fail: /tmp/temporary-f829b60d-e3ed-4071-aeed-c1228d2da0a9. If it's required to delete it under any circumstances, please set spark.sql.streaming.forceDeleteTempCheckpointLocation to true. Important to know deleting temp checkpoint folder is best effort.
+dataforge-spark  | 26/09/24 14:22:58 WARN ResolveWriteToStream: spark.sql.adaptive.enabled is not supported in streaming DataFrames/Datasets and will be disabled.
+dataforge-spark  | 26/09/24 14:22:58 WARN AdminClientConfig: These configurations '[key.deserializer, value.deserializer, enable.auto.commit, max.poll.records, auto.offset.reset]' were supplied but are not used yet.
+dataforge-spark  | 26/09/24 14:22:59 WARN AdminClientConfig: These configurations '[key.deserializer, value.deserializer, enable.auto.commit, max.poll.records, auto.offset.reset]' were supplied but are not used yet.
+dataforge-spark  | 26/09/24 14:23:01 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+dataforge-spark  | 26/09/24 14:23:03 WARN GarbageCollectionMetrics: To enable non-built-in garbage collector(s) List(G1 Concurrent GC), users should configure it(them) to spark.eventLog.gcMetrics.youngGenerationGarbageCollectors or spark.eventLog.gcMetrics.oldGenerationGarbageCollectors
+dataforge-spark  | 2026-09-24 14:23:03,716  INFO  Python Server ready to receive messages
+dataforge-spark  | 2026-09-24 14:23:03,717  INFO  Received command c on object id p0
+dataforge-spark  | 2026-09-24 14:23:03,746  INFO  Python Server ready to receive messages
+dataforge-spark  | 2026-09-24 14:23:03,747  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:23:04,483  INFO  ALICE micro-batch 0: empty, nothing to enforce/write.
+dataforge-spark  | 26/09/24 14:23:04 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 6201 milliseconds
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 0
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | |window|topic|count|
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 0:>                                                          (0 + 3) / 3][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:>    (0 + 2) / 8][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:=>   (2 + 2) / 8][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:==>  (4 + 2) / 8][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:===> (5 + 2) / 8][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:===> (6 + 2) / 8][Stage 0:>    (0 + 3) / 3][Stage 1:>    (0 + 3) / 3][Stage 4:====>(7 + 1) / 8]                                                                                [Stage 0:>                  (0 + 3) / 3][Stage 1:>                  (0 + 3) / 3]26/09/24 14:23:08 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11716 milliseconds
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 0
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:16:45, 2026-09-24 14:16:50}|sensor-telemetry|4310 |
+dataforge-spark  | |{2026-09-24 14:16:40, 2026-09-24 14:16:45}|sensor-radar    |10   |
+dataforge-spark  | |{2026-09-24 14:16:50, 2026-09-24 14:16:55}|sensor-radar    |8472 |
+dataforge-spark  | |{2026-09-24 14:16:50, 2026-09-24 14:16:55}|sensor-telemetry|8597 |
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-lidar    |3918 |
+dataforge-spark  | |{2026-09-24 14:16:50, 2026-09-24 14:16:55}|sensor-lidar    |8362 |
+dataforge-spark  | |{2026-09-24 14:16:40, 2026-09-24 14:16:45}|sensor-telemetry|7    |
+dataforge-spark  | |{2026-09-24 14:16:45, 2026-09-24 14:16:50}|sensor-lidar    |4385 |
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-telemetry|3741 |
+dataforge-spark  | |{2026-09-24 14:16:45, 2026-09-24 14:16:50}|sensor-radar    |4352 |
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-radar    |3842 |
+dataforge-spark  | |{2026-09-24 14:16:40, 2026-09-24 14:16:45}|sensor-lidar    |3    |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 0:>                                                          (0 + 3) / 3]                                                                                [Stage 2:>                                                          (0 + 8) / 8]                                                                                26/09/24 14:23:13 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 16407 milliseconds
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-radar    |7245 |
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-lidar    |7425 |
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-lidar    |13161|
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-telemetry|12963|
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-telemetry|7433 |
+dataforge-spark  | |{2026-09-24 14:16:55, 2026-09-24 14:17:00}|sensor-radar    |13273|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 2
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-radar    |13311|
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-lidar    |12901|
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-telemetry|10945|
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-radar    |10610|
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-lidar    |11192|
+dataforge-spark  | |{2026-09-24 14:17:00, 2026-09-24 14:17:05}|sensor-telemetry|13143|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 5:>                                                          (0 + 3) / 3][Stage 6:>                                                          (0 + 8) / 8][Stage 6:============================================>              (6 + 2) / 8]                                                                                [Stage 7:>                                                          (0 + 3) / 3][Stage 7:===================>                                       (1 + 2) / 3][Stage 8:>                                                          (0 + 8) / 8]                                                                                2026-09-24 14:23:20,229  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 3
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-telemetry|15655|
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-telemetry|927  |
+dataforge-spark  | |{2026-09-24 14:17:10, 2026-09-24 14:17:15}|sensor-radar    |10982|
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-lidar    |1341 |
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-radar    |15656|
+dataforge-spark  | |{2026-09-24 14:17:10, 2026-09-24 14:17:15}|sensor-telemetry|11018|
+dataforge-spark  | |{2026-09-24 14:17:05, 2026-09-24 14:17:10}|sensor-lidar    |15670|
+dataforge-spark  | |{2026-09-24 14:17:10, 2026-09-24 14:17:15}|sensor-lidar    |10849|
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-radar    |648  |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 9:>                                                          (0 + 3) / 3]                                                                                2026-09-24 14:23:22,456  INFO  [sensor_staging_write] opened persistent DB connection.
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 4
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-radar    |1007 |
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-lidar    |1502 |
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-telemetry|16179|
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-telemetry|1403 |
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-lidar    |16507|
+dataforge-spark  | |{2026-09-24 14:17:15, 2026-09-24 14:17:20}|sensor-radar    |16317|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:23:29,032  INFO  SENSOR micro-batch 0 (db batch=68cb2687): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=8056ms enforce=8284ms insert=8801ms
+dataforge-spark  | 26/09/24 14:23:29 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 30275 milliseconds
+dataforge-spark  | 2026-09-24 14:23:29,402  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 5
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-telemetry|2828 |
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-lidar    |3036 |
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-radar    |15312|
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-radar    |2371 |
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-lidar    |15134|
+dataforge-spark  | |{2026-09-24 14:17:20, 2026-09-24 14:17:25}|sensor-telemetry|15230|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 6
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-telemetry|11228|
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-lidar    |11065|
+dataforge-spark  | |{2026-09-24 14:17:25, 2026-09-24 14:17:30}|sensor-radar    |11164|
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-radar    |7883 |
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-lidar    |8639 |
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-telemetry|8255 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 14:>                                                         (0 + 3) / 3][Stage 15:>                                                         (0 + 8) / 8]                                                                                [Stage 16:>                                                         (0 + 3) / 3][Stage 17:=====================>                                    (3 + 5) / 8]                                                                                2026-09-24 14:23:39,769  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 7
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-lidar    |12414|
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-telemetry|11901|
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-radar    |12895|
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-radar    |11664|
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-lidar    |12893|
+dataforge-spark  | |{2026-09-24 14:17:30, 2026-09-24 14:17:35}|sensor-telemetry|13009|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 8
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-radar    |12994|
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-lidar    |15287|
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-telemetry|15236|
+dataforge-spark  | |{2026-09-24 14:17:35, 2026-09-24 14:17:40}|sensor-radar    |15346|
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-lidar    |13795|
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-telemetry|13320|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:23:47,702  INFO  SENSOR micro-batch 1 (db batch=138dc932): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2097ms enforce=8270ms insert=7931ms
+dataforge-spark  | 26/09/24 14:23:47 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 18705 milliseconds
+dataforge-spark  | 2026-09-24 14:23:48,103  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 9
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-radar    |15750|
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-radar    |5094 |
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-lidar    |5609 |
+dataforge-spark  | |{2026-09-24 14:17:45, 2026-09-24 14:17:50}|sensor-telemetry|9146 |
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-telemetry|5434 |
+dataforge-spark  | |{2026-09-24 14:17:45, 2026-09-24 14:17:50}|sensor-lidar    |9074 |
+dataforge-spark  | |{2026-09-24 14:17:45, 2026-09-24 14:17:50}|sensor-radar    |8826 |
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-lidar    |15780|
+dataforge-spark  | |{2026-09-24 14:17:40, 2026-09-24 14:17:45}|sensor-telemetry|15395|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:23:53,914  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 10
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-radar    |12239|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-radar    |9531 |
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-lidar    |12052|
+dataforge-spark  | |{2026-09-24 14:17:50, 2026-09-24 14:17:55}|sensor-telemetry|12009|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-telemetry|10080|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-lidar    |10225|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 11
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-telemetry|11407|
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-lidar    |11461|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-radar    |15460|
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-radar    |10747|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-telemetry|15328|
+dataforge-spark  | |{2026-09-24 14:17:55, 2026-09-24 14:18:00}|sensor-lidar    |15432|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 25:>                                                         (0 + 3) / 3][Stage 26:>                                                         (0 + 8) / 8][Stage 26:==============>                                           (2 + 6) / 8]                                                                                2026-09-24 14:24:01,832  INFO  SENSOR micro-batch 2 (db batch=b2bcee82): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1223ms enforce=4583ms insert=7917ms
+dataforge-spark  | 26/09/24 14:24:02 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14115 milliseconds
+dataforge-spark  | 2026-09-24 14:24:02,201  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 12
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-telemetry|13983|
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-lidar    |14116|
+dataforge-spark  | |{2026-09-24 14:18:00, 2026-09-24 14:18:05}|sensor-radar    |14062|
+dataforge-spark  | |{2026-09-24 14:18:05, 2026-09-24 14:18:10}|sensor-lidar    |8577 |
+dataforge-spark  | |{2026-09-24 14:18:05, 2026-09-24 14:18:10}|sensor-radar    |8563 |
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-lidar    |5436 |
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-radar    |4798 |
+dataforge-spark  | |{2026-09-24 14:18:05, 2026-09-24 14:18:10}|sensor-telemetry|8732 |
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-telemetry|5347 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 31:=======>                                                  (1 + 7) / 8]                                                                                2026-09-24 14:24:09,065  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 13
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-telemetry|10427|
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-radar    |9788 |
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-lidar    |11780|
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-lidar    |10324|
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-radar    |11686|
+dataforge-spark  | |{2026-09-24 14:18:10, 2026-09-24 14:18:15}|sensor-telemetry|11575|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 34:>                                                         (0 + 3) / 3]2026-09-24 14:24:17,082  INFO  SENSOR micro-batch 3 (db batch=2b7f9fbe): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1742ms enforce=5122ms insert=8015ms
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 14
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-telemetry|10983|
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-radar    |10892|
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-telemetry|16099|
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-radar    |15572|
+dataforge-spark  | |{2026-09-24 14:18:15, 2026-09-24 14:18:20}|sensor-lidar    |10728|
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-lidar    |16264|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 35:==================================================>       (7 + 1) / 8]                                                                                26/09/24 14:24:17 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 15357 milliseconds
+dataforge-spark  | 2026-09-24 14:24:17,639  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 15
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-lidar    |1831 |
+dataforge-spark  | |{2026-09-24 14:18:25, 2026-09-24 14:18:30}|sensor-telemetry|14709|
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-radar    |1181 |
+dataforge-spark  | |{2026-09-24 14:18:25, 2026-09-24 14:18:30}|sensor-lidar    |14584|
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-telemetry|16538|
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-radar    |16636|
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-telemetry|1507 |
+dataforge-spark  | |{2026-09-24 14:18:20, 2026-09-24 14:18:25}|sensor-lidar    |16517|
+dataforge-spark  | |{2026-09-24 14:18:25, 2026-09-24 14:18:30}|sensor-radar    |14431|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:24:24,369  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 16
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-lidar    |15488|
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-radar    |15652|
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-radar    |2205 |
+dataforge-spark  | |{2026-09-24 14:18:30, 2026-09-24 14:18:35}|sensor-telemetry|15453|
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-telemetry|2709 |
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-lidar    |3011 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 17
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-lidar    |3703 |
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-radar    |10061|
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-telemetry|3354 |
+dataforge-spark  | |{2026-09-24 14:18:40, 2026-09-24 14:18:45}|sensor-lidar    |6062 |
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-telemetry|9965 |
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-radar    |2748 |
+dataforge-spark  | |{2026-09-24 14:18:40, 2026-09-24 14:18:45}|sensor-telemetry|6044 |
+dataforge-spark  | |{2026-09-24 14:18:40, 2026-09-24 14:18:45}|sensor-radar    |6072 |
+dataforge-spark  | |{2026-09-24 14:18:35, 2026-09-24 14:18:40}|sensor-lidar    |9914 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 18
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-lidar    |9061 |
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-telemetry|1001 |
+dataforge-spark  | |{2026-09-24 14:18:50, 2026-09-24 14:18:55}|sensor-radar    |10108|
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-radar    |177  |
+dataforge-spark  | |{2026-09-24 14:18:50, 2026-09-24 14:18:55}|sensor-telemetry|9933 |
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-lidar    |1239 |
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-telemetry|9075 |
+dataforge-spark  | |{2026-09-24 14:18:50, 2026-09-24 14:18:55}|sensor-lidar    |10071|
+dataforge-spark  | |{2026-09-24 14:18:45, 2026-09-24 14:18:50}|sensor-radar    |9139 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 43:>                                                         (0 + 3) / 3][Stage 43:===================>                                      (1 + 2) / 3][Stage 44:>                                                         (0 + 8) / 8]                                                                                2026-09-24 14:24:37,934  INFO  SENSOR micro-batch 4 (db batch=a6b6fabd): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1508ms enforce=5214ms insert=13570ms
+dataforge-spark  | 26/09/24 14:24:38 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 20973 milliseconds
+dataforge-spark  | 2026-09-24 14:24:38,697  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 19
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-radar    |9722 |
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-telemetry|7348 |
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-radar    |7131 |
+dataforge-spark  | |{2026-09-24 14:18:55, 2026-09-24 14:19:00}|sensor-lidar    |7321 |
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-telemetry|10307|
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-lidar    |10586|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:24:44,716  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 20
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-radar    |11609|
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-telemetry|1693 |
+dataforge-spark  | |{2026-09-24 14:19:05, 2026-09-24 14:19:10}|sensor-radar    |13371|
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-telemetry|11912|
+dataforge-spark  | |{2026-09-24 14:19:00, 2026-09-24 14:19:05}|sensor-lidar    |11666|
+dataforge-spark  | |{2026-09-24 14:19:05, 2026-09-24 14:19:10}|sensor-lidar    |13364|
+dataforge-spark  | |{2026-09-24 14:19:05, 2026-09-24 14:19:10}|sensor-telemetry|13357|
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-radar    |1418 |
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-lidar    |2224 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 21
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-lidar    |3743 |
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-telemetry|14892|
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-telemetry|3455 |
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-radar    |14852|
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-radar    |3242 |
+dataforge-spark  | |{2026-09-24 14:19:10, 2026-09-24 14:19:15}|sensor-lidar    |15149|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:24:51,304  INFO  SENSOR micro-batch 5 (db batch=72b0910f): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1313ms enforce=4692ms insert=6587ms
+dataforge-spark  | 26/09/24 14:24:51 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 13122 milliseconds
+dataforge-spark  | 2026-09-24 14:24:51,628  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 22
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-telemetry|4824 |
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-lidar    |15174|
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-radar    |4430 |
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-telemetry|15286|
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-lidar    |5237 |
+dataforge-spark  | |{2026-09-24 14:19:15, 2026-09-24 14:19:20}|sensor-radar    |15488|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 53:>                                                         (0 + 3) / 3]                                                                                2026-09-24 14:24:59,037  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 23
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-telemetry|11756|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-lidar    |10117|
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-radar    |11793|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-telemetry|9722 |
+dataforge-spark  | |{2026-09-24 14:19:20, 2026-09-24 14:19:25}|sensor-lidar    |11788|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-radar    |9313 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 24
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-radar    |12387|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-lidar    |13681|
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-lidar    |13104|
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-telemetry|12836|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-telemetry|13541|
+dataforge-spark  | |{2026-09-24 14:19:25, 2026-09-24 14:19:30}|sensor-radar    |13602|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:06,519  INFO  SENSOR micro-batch 6 (db batch=60b30d85): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1331ms enforce=6074ms insert=7484ms
+dataforge-spark  | 26/09/24 14:25:06 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 15246 milliseconds
+dataforge-spark  | 2026-09-24 14:25:06,879  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 25
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-radar    |13417|
+dataforge-spark  | |{2026-09-24 14:19:35, 2026-09-24 14:19:40}|sensor-radar    |13276|
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-lidar    |13412|
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-lidar    |2870 |
+dataforge-spark  | |{2026-09-24 14:19:35, 2026-09-24 14:19:40}|sensor-telemetry|13303|
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-telemetry|2795 |
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-radar    |2370 |
+dataforge-spark  | |{2026-09-24 14:19:30, 2026-09-24 14:19:35}|sensor-telemetry|13392|
+dataforge-spark  | |{2026-09-24 14:19:35, 2026-09-24 14:19:40}|sensor-lidar    |13490|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:12,461  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 26
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-lidar    |9890 |
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-lidar    |9648 |
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-telemetry|9798 |
+dataforge-spark  | |{2026-09-24 14:19:40, 2026-09-24 14:19:45}|sensor-radar    |9966 |
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-radar    |9080 |
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-telemetry|9652 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 27
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-lidar    |14376|
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-lidar    |11940|
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-telemetry|12019|
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-radar    |11490|
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-radar    |14266|
+dataforge-spark  | |{2026-09-24 14:19:45, 2026-09-24 14:19:50}|sensor-telemetry|14287|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:21,240  INFO  SENSOR micro-batch 7 (db batch=4ba4c0ba): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1386ms enforce=4192ms insert=8777ms
+dataforge-spark  | 26/09/24 14:25:21 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14704 milliseconds
+dataforge-spark  | 2026-09-24 14:25:21,591  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 28
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-lidar    |14945|
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-lidar    |13663|
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-telemetry|14779|
+dataforge-spark  | |{2026-09-24 14:19:50, 2026-09-24 14:19:55}|sensor-radar    |14867|
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-radar    |13299|
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-telemetry|13895|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:27,110  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 29
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:00, 2026-09-24 14:20:05}|sensor-lidar    |10616|
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-lidar    |14454|
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-radar    |14472|
+dataforge-spark  | |{2026-09-24 14:20:00, 2026-09-24 14:20:05}|sensor-radar    |10797|
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-telemetry|5194 |
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-lidar    |5261 |
+dataforge-spark  | |{2026-09-24 14:19:55, 2026-09-24 14:20:00}|sensor-telemetry|14396|
+dataforge-spark  | |{2026-09-24 14:20:00, 2026-09-24 14:20:05}|sensor-telemetry|10959|
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-radar    |4706 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:34,053  INFO  SENSOR micro-batch 8 (db batch=31e15b86): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=998ms enforce=4516ms insert=6948ms
+dataforge-spark  | 26/09/24 14:25:34 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12849 milliseconds
+dataforge-spark  | 2026-09-24 14:25:34,491  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 30
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-telemetry|9225 |
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-telemetry|12624|
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-lidar    |12535|
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-radar    |8775 |
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-lidar    |9394 |
+dataforge-spark  | |{2026-09-24 14:20:05, 2026-09-24 14:20:10}|sensor-radar    |12607|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 31
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-telemetry|15104|
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-lidar    |10630|
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-telemetry|10775|
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-radar    |15435|
+dataforge-spark  | |{2026-09-24 14:20:10, 2026-09-24 14:20:15}|sensor-lidar    |15432|
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-radar    |10016|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:41,959  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 32
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-telemetry|1246 |
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-radar    |561  |
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-lidar    |15342|
+dataforge-spark  | |{2026-09-24 14:20:20, 2026-09-24 14:20:25}|sensor-radar    |10737|
+dataforge-spark  | |{2026-09-24 14:20:20, 2026-09-24 14:20:25}|sensor-lidar    |10642|
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-lidar    |1314 |
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-telemetry|15387|
+dataforge-spark  | |{2026-09-24 14:20:20, 2026-09-24 14:20:25}|sensor-telemetry|10797|
+dataforge-spark  | |{2026-09-24 14:20:15, 2026-09-24 14:20:20}|sensor-radar    |15394|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:25:48,524  INFO  SENSOR micro-batch 9 (db batch=afd99e52): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2117ms enforce=5341ms insert=6564ms
+dataforge-spark  | 26/09/24 14:25:48 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14417 milliseconds
+dataforge-spark  | 2026-09-24 14:25:48,844  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 33
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-telemetry|15694|
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-lidar    |2327 |
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-radar    |15653|
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-radar    |1584 |
+dataforge-spark  | |{2026-09-24 14:20:25, 2026-09-24 14:20:30}|sensor-lidar    |15656|
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-telemetry|2206 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 80:====================================>                     (5 + 3) / 8]                                                                                2026-09-24 14:25:55,356  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 34
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-radar    |3386 |
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-lidar    |14986|
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-radar    |14873|
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-telemetry|3930 |
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-lidar    |4009 |
+dataforge-spark  | |{2026-09-24 14:20:30, 2026-09-24 14:20:35}|sensor-telemetry|14931|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 35
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-radar    |15596|
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-telemetry|4752 |
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-telemetry|15832|
+dataforge-spark  | |{2026-09-24 14:20:35, 2026-09-24 14:20:40}|sensor-lidar    |15781|
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-radar    |4466 |
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-lidar    |4897 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 81:>                                                         (0 + 3) / 3][Stage 82:=====================>                                    (3 + 5) / 8]                                                                                2026-09-24 14:26:04,546  INFO  SENSOR micro-batch 10 (db batch=7ea2f072): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1039ms enforce=5468ms insert=9197ms
+dataforge-spark  | 26/09/24 14:26:04 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 16105 milliseconds
+dataforge-spark  | 2026-09-24 14:26:04,947  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 36
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-telemetry|11479|
+dataforge-spark  | |{2026-09-24 14:20:45, 2026-09-24 14:20:50}|sensor-telemetry|9688 |
+dataforge-spark  | |{2026-09-24 14:20:45, 2026-09-24 14:20:50}|sensor-radar    |9693 |
+dataforge-spark  | |{2026-09-24 14:20:45, 2026-09-24 14:20:50}|sensor-lidar    |9844 |
+dataforge-spark  | |{2026-09-24 14:20:50, 2026-09-24 14:20:55}|sensor-telemetry|240  |
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-radar    |11448|
+dataforge-spark  | |{2026-09-24 14:20:40, 2026-09-24 14:20:45}|sensor-lidar    |11325|
+dataforge-spark  | |{2026-09-24 14:20:50, 2026-09-24 14:20:55}|sensor-lidar    |396  |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 37
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-lidar    |4418 |
+dataforge-spark  | |{2026-09-24 14:20:50, 2026-09-24 14:20:55}|sensor-radar    |12425|
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-radar    |4220 |
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-telemetry|4285 |
+dataforge-spark  | |{2026-09-24 14:20:45, 2026-09-24 14:20:50}|sensor-radar    |9724 |
+dataforge-spark  | |{2026-09-24 14:20:50, 2026-09-24 14:20:55}|sensor-telemetry|12609|
+dataforge-spark  | |{2026-09-24 14:20:50, 2026-09-24 14:20:55}|sensor-lidar    |12647|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:26:11,335  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 38
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-lidar    |9604 |
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-radar    |9729 |
+dataforge-spark  | |{2026-09-24 14:21:00, 2026-09-24 14:21:05}|sensor-lidar    |9321 |
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-lidar    |2161 |
+dataforge-spark  | |{2026-09-24 14:20:55, 2026-09-24 14:21:00}|sensor-telemetry|9546 |
+dataforge-spark  | |{2026-09-24 14:21:00, 2026-09-24 14:21:05}|sensor-radar    |9221 |
+dataforge-spark  | |{2026-09-24 14:21:00, 2026-09-24 14:21:05}|sensor-telemetry|9168 |
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-telemetry|2226 |
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-radar    |1945 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 91:==================================================>       (7 + 1) / 8]                                                                                2026-09-24 14:26:19,919  INFO  SENSOR micro-batch 11 (db batch=00bf2755): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2185ms enforce=4198ms insert=8582ms
+dataforge-spark  | 26/09/24 14:26:20 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 15332 milliseconds
+dataforge-spark  | 2026-09-24 14:26:20,325  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 39
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-lidar    |7865 |
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-lidar    |10965|
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-telemetry|7832 |
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-telemetry|11048|
+dataforge-spark  | |{2026-09-24 14:21:05, 2026-09-24 14:21:10}|sensor-radar    |10874|
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-radar    |7747 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 40
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:21:15, 2026-09-24 14:21:20}|sensor-radar    |4862 |
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-lidar    |9286 |
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-lidar    |682  |
+dataforge-spark  | |{2026-09-24 14:21:20, 2026-09-24 14:21:25}|sensor-lidar    |9695 |
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-radar    |603  |
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-telemetry|9416 |
+dataforge-spark  | |{2026-09-24 14:21:15, 2026-09-24 14:21:20}|sensor-telemetry|4931 |
+dataforge-spark  | |{2026-09-24 14:21:20, 2026-09-24 14:21:25}|sensor-telemetry|9644 |
+dataforge-spark  | |{2026-09-24 14:21:15, 2026-09-24 14:21:20}|sensor-lidar    |4870 |
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-telemetry|496  |
+dataforge-spark  | |{2026-09-24 14:21:10, 2026-09-24 14:21:15}|sensor-radar    |9328 |
+dataforge-spark  | |{2026-09-24 14:21:20, 2026-09-24 14:21:25}|sensor-radar    |9629 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:26:27,574  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 41
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-lidar    |9758 |
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-radar    |7528 |
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-radar    |9751 |
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-lidar    |7593 |
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-telemetry|7262 |
+dataforge-spark  | |{2026-09-24 14:21:25, 2026-09-24 14:21:30}|sensor-telemetry|9888 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | 2026-09-24 14:26:34,438  INFO  SENSOR micro-batch 12 (db batch=2d9e3c34): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1661ms enforce=5583ms insert=6862ms
+dataforge-spark  | 26/09/24 14:26:34 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14558 milliseconds
+dataforge-spark  | 2026-09-24 14:26:34,877  INFO  Received command c on object id p1
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 42
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-telemetry|2246 |
+dataforge-spark  | |{2026-09-24 14:21:35, 2026-09-24 14:21:40}|sensor-lidar    |8578 |
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-radar    |13298|
+dataforge-spark  | |{2026-09-24 14:21:35, 2026-09-24 14:21:40}|sensor-telemetry|8433 |
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-lidar    |13372|
+dataforge-spark  | |{2026-09-24 14:21:30, 2026-09-24 14:21:35}|sensor-telemetry|13238|
+dataforge-spark  | |{2026-09-24 14:21:35, 2026-09-24 14:21:40}|sensor-radar    |8561 |
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-radar    |2344 |
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-lidar    |2311 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | [Stage 102:>                                                        (0 + 3) / 3]2026-09-24 14:26:40,945  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 43
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |window                                    |topic           |count|
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-telemetry|7986 |
+dataforge-spark  | |{2026-09-24 14:21:45, 2026-09-24 14:21:50}|sensor-radar    |8315 |
+dataforge-spark  | |{2026-09-24 14:21:45, 2026-09-24 14:21:50}|sensor-telemetry|8220 |
+dataforge-spark  | |{2026-09-24 14:21:45, 2026-09-24 14:21:50}|sensor-lidar    |8244 |
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-radar    |8007 |
+dataforge-spark  | |{2026-09-24 14:21:40, 2026-09-24 14:21:45}|sensor-lidar    |8039 |
+dataforge-spark  | +------------------------------------------+----------------+-----+
+dataforge-spark  | 
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | Batch: 44
+dataforge-spark  | -------------------------------------------
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | |window|topic|count|
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | +------+-----+-----+
+dataforge-spark  | 
+dataforge-spark  |                                                                                 2026-09-24 14:26:48,792  INFO  SENSOR micro-batch 13 (db batch=cd690619): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2025ms enforce=4037ms insert=7845ms
+dataforge-spark  | 26/09/24 14:26:48 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14272 milliseconds
+dataforge-spark  | 2026-09-24 14:26:49,220  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:26:55,193  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:27:01,048  INFO  SENSOR micro-batch 14 (db batch=746ba0c5): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1100ms enforce=4865ms insert=5853ms
+dataforge-spark  | 26/09/24 14:27:01 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12248 milliseconds
+dataforge-spark  | 2026-09-24 14:27:01,348  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:27:06,804  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:27:14,107  INFO  SENSOR micro-batch 15 (db batch=040be062): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1135ms enforce=4322ms insert=7301ms
+dataforge-spark  | 26/09/24 14:27:14 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 13295 milliseconds
+dataforge-spark  | 2026-09-24 14:27:14,740  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:27:19,661  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:27:25,610  INFO  SENSOR micro-batch 16 (db batch=82ccd4dd): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1552ms enforce=3362ms insert=5947ms
+dataforge-spark  | 26/09/24 14:27:25 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11281 milliseconds
+dataforge-spark  | 2026-09-24 14:27:25,931  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:27:30,298  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:27:36,894  INFO  SENSOR micro-batch 17 (db batch=88fed38f): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1074ms enforce=3288ms insert=6600ms
+dataforge-spark  | 26/09/24 14:27:37 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11269 milliseconds
+dataforge-spark  | 2026-09-24 14:27:37,200  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:27:41,763  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:27:48,639  INFO  SENSOR micro-batch 18 (db batch=adcd33f2): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1152ms enforce=3406ms insert=6874ms
+dataforge-spark  | 26/09/24 14:27:48 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11768 milliseconds
+dataforge-spark  | 2026-09-24 14:27:48,990  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:27:55,033  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:28:00,723  INFO  SENSOR micro-batch 19 (db batch=62c47508): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1676ms enforce=4361ms insert=5689ms
+dataforge-spark  | 26/09/24 14:28:00 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12085 milliseconds
+dataforge-spark  | 2026-09-24 14:28:01,079  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:28:06,413  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:28:12,596  INFO  SENSOR micro-batch 20 (db batch=5eab3e41): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1166ms enforce=4168ms insert=6182ms
+dataforge-spark  | 26/09/24 14:28:12 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11861 milliseconds
+dataforge-spark  | 2026-09-24 14:28:12,933  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:28:18,931  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:28:25,534  INFO  SENSOR micro-batch 21 (db batch=483c29cf): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1756ms enforce=4243ms insert=6597ms
+dataforge-spark  | 26/09/24 14:28:25 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12984 milliseconds
+dataforge-spark  | 2026-09-24 14:28:25,998  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:28:31,565  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:28:38,736  INFO  SENSOR micro-batch 22 (db batch=ddb08ba7): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1647ms enforce=3915ms insert=7175ms
+dataforge-spark  | 26/09/24 14:28:38 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 13148 milliseconds
+dataforge-spark  | 2026-09-24 14:28:39,053  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:28:44,111  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:28:51,373  INFO  SENSOR micro-batch 23 (db batch=4f4c1d78): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1060ms enforce=3993ms insert=7260ms
+dataforge-spark  | 26/09/24 14:28:51 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12641 milliseconds
+dataforge-spark  | 2026-09-24 14:28:51,727  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:28:57,723  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:29:06,613  INFO  SENSOR micro-batch 24 (db batch=03640640): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1602ms enforce=4390ms insert=8893ms
+dataforge-spark  | 26/09/24 14:29:06 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 15397 milliseconds
+dataforge-spark  | 2026-09-24 14:29:07,168  INFO  Received command c on object id p1
+dataforge-spark  | [Stage 117:======================================>                  (2 + 1) / 3]                                                                                2026-09-24 14:29:15,538  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:29:24,945  INFO  SENSOR micro-batch 25 (db batch=837516a8): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2556ms enforce=5808ms insert=9404ms
+dataforge-spark  | 26/09/24 14:29:25 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 18243 milliseconds
+dataforge-spark  | 2026-09-24 14:29:25,398  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:29:31,284  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:29:37,366  INFO  SENSOR micro-batch 26 (db batch=a414455c): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1713ms enforce=4167ms insert=6086ms
+dataforge-spark  | 26/09/24 14:29:37 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12333 milliseconds
+dataforge-spark  | 2026-09-24 14:29:37,665  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:29:42,384  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:29:49,602  INFO  SENSOR micro-batch 27 (db batch=46933725): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1635ms enforce=3080ms insert=7216ms
+dataforge-spark  | 26/09/24 14:29:49 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12295 milliseconds
+dataforge-spark  | 2026-09-24 14:29:49,963  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:29:54,835  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:30:00,810  INFO  SENSOR micro-batch 28 (db batch=896bdf22): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1153ms enforce=3714ms insert=5974ms
+dataforge-spark  | 26/09/24 14:30:00 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11149 milliseconds
+dataforge-spark  | 2026-09-24 14:30:01,111  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:30:07,273  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:30:13,217  INFO  SENSOR micro-batch 29 (db batch=e37ab312): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1644ms enforce=4525ms insert=5943ms
+dataforge-spark  | 26/09/24 14:30:13 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12647 milliseconds
+dataforge-spark  | 2026-09-24 14:30:13,970  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:30:19,582  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:30:27,605  INFO  SENSOR micro-batch 30 (db batch=af0f9c80): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1364ms enforce=4241ms insert=8021ms
+dataforge-spark  | 26/09/24 14:30:27 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14193 milliseconds
+dataforge-spark  | 2026-09-24 14:30:27,980  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:30:32,904  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:30:39,700  INFO  SENSOR micro-batch 31 (db batch=63fd154a): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1491ms enforce=3428ms insert=6795ms
+dataforge-spark  | 26/09/24 14:30:39 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12121 milliseconds
+dataforge-spark  | 2026-09-24 14:30:40,222  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:30:48,425  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:30:54,862  INFO  SENSOR micro-batch 32 (db batch=c2c2a8eb): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1980ms enforce=6214ms insert=6435ms
+dataforge-spark  | 26/09/24 14:30:55 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 15131 milliseconds
+dataforge-spark  | 2026-09-24 14:30:55,241  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:31:00,399  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:31:09,497  INFO  SENSOR micro-batch 33 (db batch=5935cd8d): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1542ms enforce=3606ms insert=9100ms
+dataforge-spark  | 26/09/24 14:31:09 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14707 milliseconds
+dataforge-spark  | 2026-09-24 14:31:09,982  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:31:15,464  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:31:22,135  INFO  SENSOR micro-batch 34 (db batch=c25dba2d): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1410ms enforce=4065ms insert=6669ms
+dataforge-spark  | 26/09/24 14:31:22 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12567 milliseconds
+dataforge-spark  | 2026-09-24 14:31:22,522  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:31:28,952  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:31:34,644  INFO  SENSOR micro-batch 35 (db batch=486c60d5): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=2491ms enforce=3934ms insert=5696ms
+dataforge-spark  | 26/09/24 14:31:34 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12474 milliseconds
+dataforge-spark  | 2026-09-24 14:31:34,978  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:31:40,720  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:31:46,629  INFO  SENSOR micro-batch 36 (db batch=d3d9bdec): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1180ms enforce=4557ms insert=5908ms
+dataforge-spark  | 26/09/24 14:31:46 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11988 milliseconds
+dataforge-spark  | 2026-09-24 14:31:46,952  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:31:51,422  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:31:59,602  INFO  SENSOR micro-batch 37 (db batch=3ef33381): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1161ms enforce=3304ms insert=8178ms
+dataforge-spark  | 26/09/24 14:31:59 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12966 milliseconds
+dataforge-spark  | 2026-09-24 14:31:59,894  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:32:05,386  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:32:10,975  INFO  SENSOR micro-batch 38 (db batch=4b628363): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1340ms enforce=4154ms insert=5587ms
+dataforge-spark  | 26/09/24 14:32:11 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11397 milliseconds
+dataforge-spark  | 2026-09-24 14:32:11,316  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:32:19,028  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:32:25,096  INFO  SENSOR micro-batch 39 (db batch=3c165874): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1603ms enforce=6106ms insert=6066ms
+dataforge-spark  | 26/09/24 14:32:25 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 14145 milliseconds
+dataforge-spark  | 2026-09-24 14:32:25,498  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:32:30,506  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:32:37,702  INFO  SENSOR micro-batch 40 (db batch=0b941064): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1584ms enforce=3418ms insert=7204ms
+dataforge-spark  | 26/09/24 14:32:37 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12591 milliseconds
+dataforge-spark  | 2026-09-24 14:32:38,061  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:32:42,706  INFO  [sensor_event] enforcement: total=49999  passed=49999  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:32:48,835  INFO  SENSOR micro-batch 41 (db batch=045755e2): 49999 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1347ms enforce=3295ms insert=6127ms
+dataforge-spark  | 26/09/24 14:32:48 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 11088 milliseconds
+dataforge-spark  | 2026-09-24 14:32:49,114  INFO  Received command c on object id p1
+dataforge-spark  | 2026-09-24 14:32:55,064  INFO  [sensor_event] enforcement: total=49998  passed=49998  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:33:01,269  INFO  SENSOR micro-batch 42 (db batch=1d6be00f): 49998 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1390ms enforce=4558ms insert=6202ms
+dataforge-spark  | 26/09/24 14:33:01 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 12439 milliseconds
+dataforge-spark  | 2026-09-24 14:33:01,575  INFO  Received command c on object id p1
+dataforge-spark  | [Stage 135:>                                                        (0 + 3) / 3]                                                                                2026-09-24 14:33:06,653  INFO  [sensor_event] enforcement: total=41910  passed=41910  version_drift=0  round_trip_failed=0  data_loss_pct=0.0000%
+dataforge-spark  | 2026-09-24 14:33:11,616  INFO  SENSOR micro-batch 43 (db batch=cbd8c753): 41910 written, 0 rejected (data_loss_pct=0.0000%), 0 duplicate(s) skipped | collect=1383ms enforce=3694ms insert=4962ms
+dataforge-spark  | 26/09/24 14:33:11 WARN ProcessingTimeExecutor: Current batch is falling behind. The trigger interval is 5000 milliseconds, but spent 10392 milliseconds

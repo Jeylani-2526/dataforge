@@ -253,6 +253,39 @@ def convert_sensor_streams_to_parquet(
             "telemetry": 0,
         }
 
+    # M4W16T3 throughput fix: cache df before the per-sensor-type loop.
+    #
+    # Without this, df's lineage traces back to spark.createDataFrame()
+    # on a plain Python list read in by fastavro. Because df is never
+    # materialized, every downstream action (write_dataframe_to_parquet()
+    # calls both df.count() and df.write.parquet(), so that's 2 actions
+    # per sensor type x 3 sensor types = up to 6 actions total) re-runs
+    # that same expensive Python-list-to-Spark-DataFrame construction
+    # from scratch. .cache() forces it to happen exactly once, and every
+    # subsequent filter/count/write reuses the cached result instead of
+    # rebuilding it.
+    #
+    # This keeps the existing per-sensor-type output layout
+    # (parquet_root/radar, /lidar, /telemetry) that
+    # test_round_trip_conversion.py depends on — it addresses the
+    # redundant-materialization cost identified in the M4W16T3
+    # investigation, not a change to the write layout itself. A true
+    # single partitioned write (Spark's partitionBy) was evaluated and
+    # deferred: it would change the on-disk directory naming
+    # (sensor_type=RADAR/ instead of radar/) and require updating the
+    # test and confirming nothing else downstream depends on the current
+    # naming, which is a larger, riskier change than this week's
+    # timeline supports.
+    #
+    # Measured impact (M4W16T3, same-environment control comparison):
+    # 1,142.5 events/sec with this fix vs. 788.11 events/sec without it
+    # (~45% faster) — a real but modest improvement. It does not close
+    # the ≥10,000 events/sec gap; the underlying bottleneck is the
+    # Python-list-to-Spark-DataFrame construction itself, not the
+    # per-sensor-type loop. See
+    # docs/milestones/milestone4/throughput_root_cause_m4w16t3.md.
+    df = df.cache()
+
     results: dict[str, int] = {}
 
     # Map the schema-level sensor discriminator to the directory name
@@ -283,6 +316,12 @@ def convert_sensor_streams_to_parquet(
             count,
             output_dir,
         )
+
+    # Release the cached data now that all three sensor-type writes are
+    # done, so it doesn't linger in executor memory for the rest of the
+    # Spark session (e.g. if convert_alice_to_parquet or another stage
+    # runs afterward in the same session).
+    df.unpersist()
 
     return results
 

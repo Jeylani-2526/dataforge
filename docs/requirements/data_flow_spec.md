@@ -185,37 +185,43 @@ All fields from Module 3 output schema, plus:
 ## Module 6 — Data Fusion Layer
 
 **Type:** Pipeline | **Owner:** Abdullah + Omer | **Implementation:** M6
+**Design:** `docs/milestones/milestone6/fusion_join_design_note.md` (M6W21T1). **Output schema:** locked `schemas/fused_event_schema_v1.avsc`.
 
 ### Input
-- Kafka topic: `clean_events` (Avro, from Module 5)
+- Kafka topics, read directly: `alice-events`, `sensor-radar`, `sensor-lidar`, `sensor-telemetry`
+- **Join clock:** the Kafka message timestamp (producer wall-clock time) on both sides. ALICE `timestamp_ms` is historical 2010 detector time and is not used for the join.
+- Event IDs come from the Kafka message key (`event_id`). The sensor type comes from the topic name.
 
 ### Fusion Logic
-- **Type:** PySpark stream-stream join on a configurable time window
-- **Join key:** `timestamp_ms` window (±500ms default); secondary key: spatial proximity for radar/LIDAR
-- **Window size:** 2-second tumbling window (configurable)
-- **Match condition:** One ALICE event matched to one or more sensor events within the time window
+- **Type:** PySpark stream-stream interval join, followed by a nearest-match selection (stateful aggregation, append mode)
+- **Window:** ±500 ms (`fusion_window_ms`, default 500). A pair is a candidate when |Δt| ≤ 500 ms
+- **Match condition:** one ALICE event is fused with **exactly one** sensor event, the nearest across RADAR, LIDAR and TELEMETRY. Ties go to the earlier sensor timestamp, then the smaller `sensor_event_id`
+- **Reuse:** one sensor event may be selected by more than one ALICE event
+- **Unmatched:** an ALICE event with no sensor event in the window produces no fused row
+- **Watermarks:** one per input topic, delay `WATERMARK_DELAY_SECONDS` (default 5 s). The join waits for the slowest input
 
-### Output Schema (fused event record)
+### Output Schema (fused event record, locked v1)
 | Field | Type | Format | Description |
 |---|---|---|---|
-| `fused_event_id` | `string` | UUID | New ID for the fused record |
-| `alice_event_id` | `string` | UUID | Source ALICE event ID |
-| `sensor_event_ids` | `array<string>` | JSON array | IDs of matched sensor events |
-| `timestamp_ms` | `int64` | Unix ms | Earliest timestamp in the fused set |
-| `fusion_window_ms` | `int64` | Unix ms | Time span of events in the fused set |
-| `energy_gev` | `float32` | GeV | From ALICE event |
-| `momentum_x/y/z` | `float32` | GeV/c | From ALICE event |
-| `sensor_readings` | `array<object>` | JSON array | All matched sensor readings (type, value_primary, value_secondary) |
-| `fusion_quality` | `string` | enum | `"full"` / `"partial"` (partial = no ALICE match found) |
-| `schema_version` | `string` | semver | e.g. `"1.0.0"` |
+| `fused_event_id` | `string` | UUID v4 | New ID for the fused record |
+| `alice_event_id` | `string` | UUID v4 | Source ALICE event ID |
+| `sensor_event_id` | `string` | UUID v4 | The single matched sensor event ID |
+| `timestamp_ms` | `long` | Unix ms | Fusion timestamp: the ALICE message's Kafka timestamp |
+| `fusion_window_ms` | `int` | ms | Join window used (default 500) |
+| `sensor_type` | `enum` | `RADAR` / `LIDAR` / `TELEMETRY` | Type of the matched sensor event |
+| `data_loss_pct` | `float` | 0–100 | Share of the micro-batch rejected by schema enforcement |
+| `latency_ms` | `long` | ms | Fused-row write time minus `timestamp_ms` |
+| `schema_version` | `string` | MAJOR.MINOR | `"1.0"` |
 
-**Output destinations:**  
-- Kafka topic: `fused_events`  
-- Parquet sink: `/data/fused/` (for ML training and batch analysis)
+ALICE and sensor payload fields are not carried in the fused record. Consumers retrieve them from TimescaleDB by `alice_event_id` and `sensor_event_id`.
 
-**Interface:** Kafka topic + File  
-**Throughput expectation:** ≥ 10K fused records/sec (after fusion reduction)  
-**Latency budget:** ≤ 150ms fusion window processing overhead
+**Output destinations:**
+- TimescaleDB `fused_events` hypertable (written from `foreachBatch`)
+- Kafka topic `fused_events` and Parquet sink `/data/fused/`: carried over from the earlier spec. Not covered by the M6 design note, to be confirmed before M7
+
+**Interface:** Kafka topics in, TimescaleDB out
+**Throughput expectation:** Input side: the pipeline bar of ≥ 10K events/sec across the input topics (validated end to end in M10). Output side: one fused row per matched ALICE event, so the fused rate follows the ALICE rate (about 2 events/sec at the default producer rate), not 10K/sec
+**Latency budget:** ≤ 150ms fusion window processing overhead. The end-to-end p95 bar (≤ 500 ms) cannot be met by an exact nearest-match join: a fused row is emitted only after the watermark passes the ALICE event's window, so the floor is the window plus the watermark delay plus the trigger interval (design note, Section 8)
 
 ---
 
@@ -339,4 +345,3 @@ All pipeline outputs — every module's output is a test input for Module 10.
 **Throughput expectation:** Tests run against the full pipeline; load test duration ≥ 5 minutes sustained
 
 ---
-

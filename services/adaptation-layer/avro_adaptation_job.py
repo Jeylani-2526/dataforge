@@ -54,7 +54,18 @@ log = logging.getLogger(__name__)
 # and in Abdullah's existing local Windows/PySpark setup outside Docker,
 # where no env vars are set and these hardcoded values remain the defaults.
 DB_HOST = os.environ.get("DB_HOST", "localhost")
-DB_PORT = os.environ.get("DB_PORT", "5432")
+# M4W16T3 finding: the only TimescaleDB instance in this project is the
+# Docker container (docker-compose.yml), which publishes host port 5433
+# -> container port 5432. There is no separate native Postgres install.
+# The previous default of "5432" here meant staging reads from the host
+# (e.g. running full_volume_run.py outside Docker, as this week's T3
+# verification requires) connected to nothing — Connection refused —
+# rather than to the actual staging data. This is the same 5432/5433
+# mismatch class already flagged to Beyza in promote_to_production.py,
+# found here as a second, previously-unflagged instance while
+# confirming T3's partition fix. Corrected to the container's real
+# published port.
+DB_PORT = os.environ.get("DB_PORT", "5433")
 DB_NAME = os.environ.get("DB_NAME", "dataforge")
 DB_USER = os.environ.get("DB_USER", "dataforge")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "dataforge_dev")
@@ -116,6 +127,18 @@ def get_spark_session(app_name: str = "dataforge-adaptation-layer") -> SparkSess
         os.path.dirname(os.path.abspath(__file__)), "schema_versioning.py"
     )
     spark.sparkContext.addPyFile(schema_versioning_path)
+
+    # M4W16T3 finding: this same requirement applies to this module
+    # itself. write_avro()'s _partition_writer (used inside
+    # df.rdd.mapPartitionsWithIndex()) is defined in this file, so
+    # worker processes need to import avro_adaptation_job.py directly,
+    # not just schema_versioning.py. Without this, running the pipeline
+    # from a working directory other than services/adaptation-layer/
+    # (e.g. the repo root, which SCHEMA_DIR's relative "schemas" path
+    # actually requires) fails with ModuleNotFoundError: No module named
+    # 'avro_adaptation_job' inside the worker, even though the driver
+    # process runs fine.
+    spark.sparkContext.addPyFile(os.path.abspath(__file__))
 
     return spark
 
