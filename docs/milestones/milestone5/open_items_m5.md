@@ -18,6 +18,11 @@ Items 1, 3, 6–8 and 10 open.
 - M6W21T2 amendment (1 October 2026) — Items 2 and 9 resolved: checkpointing on a named volume,
   `stop_grace_period`, and a shutdown-handler fix, verified by a live kill-and-restart test
   (`docs/milestones/milestone6/m6w21t2_checkpoint_restart_test.md`).
+- M6W21T3 amendment (1 October 2026) — Item 8 operating rule corrected after checkpointing: a
+  restarted `spark-processor` now restores its saved watermark. The README "Restart order" section
+  carries the corrected rule.
+- M6W21T8 amendment (2 October 2026) — Item 1: Beyza's staging review is done (no index or settings
+  change recommended) and the benchmark-row cleanup is approved, pending execution. Item 1 stays open.
 
 ---
 
@@ -77,7 +82,8 @@ Each is aimed at a specific measured cost, so the next step is choosing among th
 **Action items:**
 - [ ] Abdullah: insert diagnostics, read-only (staging table/index sizes, TimescaleDB `shared_buffers`, COPY timing against table size)
 - [ ] Abdullah: parallel-writer design proposal (per-partition `enforce()` + insert), for a team decision before implementation
-- [ ] Beyza: review the staging indexes and DB settings against the insert cost; agree how the ~3.5M synthetic benchmark rows now in `raw_sensor_events_staging` are cleaned up
+- [x] Beyza: review the staging indexes and DB settings against the insert cost (M6W21T8, `docs/database/m6w21t8_staging_review.md`: no index or settings change recommended)
+- [ ] Beyza / Abdullah: run the agreed benchmark-row cleanup on each local database (approved 2 October 2026): stop `spark-processor`, record the row counts, `TRUNCATE raw_sensor_events_staging`, and do it before the first fused rows are written (M6 Week 22). Row counts differ per machine (about 450,000 on Beyza's, 3,518,941 on Abdullah's on 1 October)
 - [ ] Omer: generator scaling (see Item 7)
 
 ---
@@ -330,8 +336,16 @@ design:
 
 **What would trigger resolution:** M6 join design.
 
+**Update (M6W21T3, 1 October 2026):** the operating rule changed once checkpointing landed (M6W21T2).
+- A restarted `spark-processor` **restores its saved watermark** from the checkpoint (local test),
+  so restarting it alone no longer clears caveat 1.
+- Corrected rule: stop `spark-processor`, restart `alice-ingestion`, delete the `alice_throughput`
+  checkpoint, start `spark-processor` (README, "Restart order").
+- The fusion join is not affected by caveat 1: it uses Kafka message timestamps (M6 design note,
+  Section 6). Staging writes were never affected.
+
 **Action items:**
-- [ ] Abdullah: add the restart-order rule to the operations notes / README run instructions (with T6's README update)
+- [x] Abdullah: add the restart-order rule to the operations notes / README run instructions (M6W21T3, README "Restart order")
 - [ ] Abdullah (M6): re-evaluate both caveats as correctness requirements in the join design
 
 ---
@@ -424,7 +438,7 @@ corrected in the same change.
 | 5. Sustained multi-hour load | **Resolved at default rate** (M5W20T9, `3de3ce2`); re-scoped for high load | After Item 1/7 progress | High-rate soak with memory + published-vs-stored figures |
 | 6. End-to-end latency p95 5.7 s vs. ≤500 ms | Open, structural (5 s trigger) | M6 design → M10 | Combined throughput/latency design |
 | 7. Generator capacity + shared CPU | Open | Before the next bar-level benchmark / M10 | Pipeline capacity nearing the bar |
-| 8. Watermark operational caveats (monitoring-only in M5) | Open, operating rule documented | M6 | M6 join design |
+| 8. Watermark operational caveats (monitoring-only in M5) | Open, operating rule documented (corrected M6W21T3) | M6 | M6 join design |
 | 9. Spark exceeds the stop grace period (exit 137) | **Resolved** (M6W21T2) | — | N/A |
 | 10. Latent Compose issues for M6–M9 (build paths, KRaft voter address) | Open, no M5 impact | M6 onwards | Each later service's Dockerfile |
 

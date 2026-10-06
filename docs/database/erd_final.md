@@ -27,15 +27,15 @@ erDiagram
     }
 
     fused_events {
-        TIMESTAMPTZ time PK "Hypertable partition col"
+        BIGINT timestamp_ms PK "Hypertable partition col (integer ms)"
         uuid fused_event_id PK
-        uuid alice_event_id FK
-        uuid sensor_event_id FK
-        VARCHAR20 sensor_type
+        uuid alice_event_id "soft ref to events"
+        uuid sensor_event_id "soft ref to events"
+        VARCHAR20 sensor_type "RADAR, LIDAR or TELEMETRY"
         INT fusion_window_ms "default 500"
-        FLOAT latency_ms "Pipeline-written Module 5"
-        FLOAT data_loss_pct "Pipeline-written Module 3"
-        BIGINT timestamp_ms
+        BIGINT latency_ms "Fused-row write time minus timestamp_ms"
+        FLOAT data_loss_pct "Schema-enforcement rejects in the micro-batch"
+        VARCHAR10 schema_version "default 1.0"
         INT8 anomaly_label "NULL until M7"
         FLOAT risk_score "NULL until M7"
         FLOAT confidence "NULL until M7"
@@ -85,8 +85,8 @@ erDiagram
         VARCHAR20 status
     }
 
-    events ||--o{ fused_events : "alice_event_id"
-    events ||--o{ fused_events : "sensor_event_id"
+    events ||--o{ fused_events : "alice_event_id (soft ref)"
+    events ||--o{ fused_events : "sensor_event_id (soft ref)"
     fused_events ||--o{ anomaly_alerts : "fused_event_id"
     fused_events ||--o| xai_explanations : "fused_event_id"
 ```
@@ -98,7 +98,7 @@ erDiagram
 | Table | HT? | Partition Col | Chunk | Retention | Rationale |
 |---|---|---|---|---|---|
 | `events` | ✅ **(HT)** | `time` | 1 day | **30 days** | Covers the M10 testing window. Raw events are the highest-volume table (~600K rows/min); beyond 30 days, continuous aggregates serve all historical queries. |
-| `fused_events` | ✅ **(HT)** | `time` | 1 day | **90 days** | Multi-week anomaly analysis requires joined ALICE+sensor records beyond the raw event window. 90 days covers the full M7 ML training period. |
+| `fused_events` | ✅ **(HT)** | `timestamp_ms` (integer ms) | 1 day | **90 days** | Multi-week anomaly analysis requires joined ALICE+sensor records beyond the raw event window. 90 days covers the full M7 ML training period. |
 | `anomaly_alerts` | ✅ **(HT)** | `time` | 1 day | **365 days** | Full 12-month prototype trend analysis. Alerts are low-volume (~3K rows/min) and represent the primary operator record — long retention has negligible storage cost. |
 | `xai_explanations` | ✅ **(HT)** | `time` | 1 day | **365 days** | Hypertable, partitioned on the same timestamp as its paired anomaly_alerts row. An explanation has no standalone value once its alert has expired, so the two are retained together. |
 | `system_performance_metrics` | ✅ **(HT)** | `time` | 1 hour | **30 days** | Matched to events retention. Continuous aggregates (perf_1min, pipeline_health_1min) serve all long-term performance queries. Raw snapshots beyond 30 days add no value. |
@@ -135,15 +135,15 @@ erDiagram
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
-| `fused_event_id` | uuid | NOT NULL | PK — UUID v4, system-assigned by Module 6 |
-| `alice_event_id` | uuid | NOT NULL | FK → events.event_id (ALICE record) |
-| `sensor_event_id` | uuid | NOT NULL | FK → events.event_id (sensor record) |
-| `sensor_type` | VARCHAR(20) | NOT NULL | radar / lidar / telemetry |
-| `fusion_window_ms` | INT | NOT NULL | Default 500ms |
-| `timestamp_ms` | BIGINT | NOT NULL | Fusion timestamp ms, assigned by Module 6 |
-| `latency_ms` | FLOAT | NOT NULL | Pipeline-written by Module 5 |
-| `data_loss_pct` | FLOAT | NOT NULL | Pipeline-written by Module 3 |
+| `timestamp_ms` | BIGINT | NOT NULL | Hypertable partition column (integer ms). Fusion timestamp: the ALICE message's Kafka timestamp (M6 design note, Section 7) |
+| `fused_event_id` | uuid | NOT NULL | PK with `timestamp_ms`. UUID v4, system-assigned by Module 6 |
+| `alice_event_id` | uuid | NOT NULL | Soft reference to the ALICE record (no DB-level FK, M6W21T7) |
+| `sensor_event_id` | uuid | NOT NULL | Soft reference to the matched sensor record (no DB-level FK, M6W21T7) |
+| `sensor_type` | VARCHAR(20) | NOT NULL | RADAR / LIDAR / TELEMETRY (uppercase, matches the Avro enum) |
+| `fusion_window_ms` | INT | NOT NULL | Default 500 ms |
+| `data_loss_pct` | REAL | NOT NULL | Default 0.0. Share of the micro-batch rejected by fused-schema enforcement |
+| `latency_ms` | BIGINT | NOT NULL | Default 0. Fused-row write time minus `timestamp_ms` |
+| `schema_version` | VARCHAR(10) | NOT NULL | Default '1.0' |
 | `anomaly_label` | INT8 | NULL | NULL until M7 |
 | `risk_score` | FLOAT | NULL | NULL until M7 |
 | `confidence` | FLOAT | NULL | NULL until M7 |
@@ -207,6 +207,11 @@ erDiagram
 ```sql
 CREATE INDEX idx_fused_time_label
     ON fused_events (timestamp_ms, anomaly_label);
+
+-- Replay de-duplication (M6 design note, Section 7). Includes the partition column, as
+-- hypertable unique indexes must. Not yet applied in the live DB (M6W21T6 follow-up).
+CREATE UNIQUE INDEX fused_events_replay_uidx
+    ON fused_events (timestamp_ms, alice_event_id);
 
 CREATE INDEX idx_alerts_fused_risk
     ON anomaly_alerts (fused_event_id, risk_score DESC);
@@ -278,11 +283,13 @@ SELECT add_continuous_aggregate_policy('pipeline_health_1min',
 
 ### `summary_5min` — over `fused_events` (HT)
 
+Note (M6W21T6): `fused_events` is partitioned on integer `timestamp_ms`, so the bucket and the policy offsets are in milliseconds, and `bucket` is a bigint. Consumers convert it with `to_timestamp(bucket / 1000.0)`. Not yet created or tested; verify when the aggregate is built (M9).
+
 ```sql
 CREATE MATERIALIZED VIEW summary_5min
 WITH (timescaledb.continuous) AS
 SELECT
-    time_bucket('5 minutes', time)                                       AS bucket,
+    time_bucket(300000, timestamp_ms)                                  AS bucket,
     COUNT(*)                                                             AS total_fused_events,
     COUNT(*) FILTER (WHERE anomaly_label = 1)                           AS anomaly_count,
     AVG(risk_score) FILTER (WHERE risk_score IS NOT NULL)               AS avg_risk_score,
@@ -291,8 +298,8 @@ FROM fused_events
 GROUP BY bucket;
 
 SELECT add_continuous_aggregate_policy('summary_5min',
-    start_offset      => INTERVAL '15 minutes',
-    end_offset        => INTERVAL '30 seconds',
+    start_offset      => 900000,
+    end_offset        => 30000,
     schedule_interval => INTERVAL '30 seconds');
 ```
 
@@ -348,10 +355,10 @@ SELECT add_continuous_aggregate_policy('alerts_daily',
 
 | FK Column | References | Type |
 |---|---|---|
-| `fused_events.alice_event_id` | `events.event_id` | uuid |
-| `fused_events.sensor_event_id` | `events.event_id` | uuid |
-| `anomaly_alerts.fused_event_id` | `fused_events.fused_event_id` | uuid |
-| `xai_explanations.fused_event_id` | `fused_events.fused_event_id` | uuid |
+| `fused_events.alice_event_id` | `events.event_id` | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7) |
+| `fused_events.sensor_event_id` | `events.event_id` | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7) |
+| `anomaly_alerts.fused_event_id` | `fused_events.fused_event_id` | uuid. Cannot be a DB-level FK as drawn: the `fused_events` PK is composite and TimescaleDB does not support FKs that reference a hypertable. Decide at M7 |
+| `xai_explanations.fused_event_id` | `fused_events.fused_event_id` | uuid. Cannot be a DB-level FK as drawn: the `fused_events` PK is composite and TimescaleDB does not support FKs that reference a hypertable. Decide at M7 |
 
 ---
 

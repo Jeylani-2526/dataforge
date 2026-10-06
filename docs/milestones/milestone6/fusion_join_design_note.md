@@ -3,7 +3,7 @@
 **Task ID:** M6W21T1
 **Owner:** Abdullah
 **Milestone:** M6 · Week 21
-**Status:** Signed off by Abdullah (1 October 2026), except Section 10 (FK target), which is pending M6W21T7 (Beyza).
+**Status:** Signed off by Abdullah (1 October 2026). Section 10 (FK target) approved on 2 October 2026: Option C, soft reference (M6W21T7).
 **GitHub Path:** `/docs/milestones/milestone6/fusion_join_design_note.md`
 **Builds against:** `schemas/fused_event_schema_v1.avsc` (locked 25 June 2026). No schema bump.
 **Verified against:** `develop` HEAD `bb7ec81` (1 October 2026).
@@ -151,9 +151,9 @@ missing fused event.
 | `fused_event_id` | UUID v4, generated at write | Replay de-duplication uses the key below, not this ID |
 | `alice_event_id` | Kafka key of the ALICE message | |
 | `sensor_event_id` | Kafka key of the selected sensor message | |
-| `timestamp_ms` | **ALICE Kafka timestamp** (ms) | The shared timeline anchor for the pair. Deterministic on replay. ERD `time` = `to_timestamp(timestamp_ms)` |
+| `timestamp_ms` | **ALICE Kafka timestamp** (ms) | The shared timeline anchor for the pair. Deterministic on replay. Partition column of `fused_events` (integer ms) |
 | `fusion_window_ms` | `FUSION_WINDOW_MS` (500) | New env var. The value is written per row, as the schema requires |
-| `sensor_type` | From the topic name | Avro enum is uppercase (`RADAR`). The ERD note says lowercase. **T6 must pick one**; this note recommends uppercase to match the locked schema |
+| `sensor_type` | From the topic name | Avro enum is uppercase (`RADAR`). **Decided: uppercase in the table too.** The ERD is updated to match |
 | `data_loss_pct` | Share of the micro-batch rejected by fused-schema `enforce()` | Same definition as the M5 staging writes, so the column means the same thing across tables |
 | `latency_ms` | Write time − `timestamp_ms` | Event-to-fused-row latency, the same "creation → write" definition as M5 Item 6, so figures stay comparable |
 | `schema_version` | `"1.0"` | |
@@ -163,10 +163,13 @@ reports these per stateful operator as `numRowsDroppedByWatermark` in query prog
 should log them through a `StreamingQueryListener` and feed them into `fusion_status.data_loss`.
 Unmatched ALICE events (Section 4) are tracked as a separate match-rate figure, not as loss.
 
-**De-duplication key (requirement for T6):** a unique index on `(time, alice_event_id)` with
-`ON CONFLICT DO NOTHING`. It includes `time`, as hypertable unique indexes must. It also handles the
-fact that the ALICE producer reuses the same 68 `event_id`s every loop: each loop has a different
-`time`, so the rows stay distinct, while a checkpoint replay of the same loop is de-duplicated.
+**De-duplication key (requirement for T6):** a unique index on `(timestamp_ms, alice_event_id)` with
+`ON CONFLICT DO NOTHING`. It includes `timestamp_ms`, the partition column, as hypertable unique
+indexes must. The table's primary key `(fused_event_id, timestamp_ms)` does **not** de-duplicate a
+replay, because `fused_event_id` is a new UUID on every write. The index also handles the fact that
+the ALICE producer reuses the same 68 `event_id`s every loop: each loop has a different
+`timestamp_ms`, so the rows stay distinct, while a checkpoint replay of the same loop is
+de-duplicated.
 
 ## 8. (f) Trigger interval options and their cost (M5 Items 1 and 6)
 
@@ -206,18 +209,27 @@ is an env var (`FUSION_TRIGGER_SECONDS`), so this needs no code change.
 | CPU cost (Item 7) | One more JVM on 8 shared cores. Kept low by skipping Avro decode (Section 3) | No extra JVM |
 | Fit with the existing plan | Matches the Compose skeleton and the Week 22 plan (`fusion.Dockerfile`, Item 10 path fix) | Would change the Week 22 plan |
 
-## 10. FK target (pending M6W21T7, Beyza)
+## 10. FK target (decided: soft reference)
 
-**Pending.** The ERD points `fused_events.alice_event_id` and `sensor_event_id` at the production
-`events` table, but streamed records land only in staging. This section is filled in from Beyza's
-T7 recommendation at the Thursday 1 October checkpoint.
+**Decision (Abdullah, 2 October 2026): Option C, soft reference.** `fused_events.alice_event_id` and
+`sensor_event_id` are `uuid NOT NULL` with no DB-level FK. Integrity is checked in application code.
+The choice is revisited at M7 planning, when the team decides whether to enforce the FK (Option A)
+or keep the soft reference. Source: `docs/database/fused_events_fk_decision.md` (Beyza, M6W21T7).
 
-Inputs from this design that T7 should weigh:
-- Fused rows reference **raw Kafka keys** (Section 3). A record rejected by spark-processor's `enforce()`
-  could still be fused. At the observed 0 rejections this is rare, but a hard FK would make the
-  fused insert fail.
+Why it fits this design:
+- Fused rows reference **raw Kafka keys** (Section 3). A record rejected by spark-processor's
+  `enforce()` could still be fused, and a hard FK would make that fused insert fail.
 - ALICE `event_id`s repeat every loop. Staging keeps only the first copy (`ON CONFLICT DO NOTHING`),
-  so a staging FK would point every loop's fused rows at the loop-1 staging row.
+  so a staging FK (Option B) would point every loop's fused rows at the loop-1 staging row.
+- Streaming records are never promoted to `events` in the current path, so Option A would block the
+  join.
+
+Consequences:
+- M7 and M8 retrieve payload fields by joining on the two ids against the staging tables, or against
+  `events` for promoted rows.
+- An orphaned fused row is possible if staging rows are removed. Run the benchmark-row cleanup
+  (M6W21T8) **before** the first fused rows are written, because the `TRUNCATE` would orphan any
+  fused rows that reference the removed staging rows.
 
 ## 11. (h) Final shuffle-partition values
 
@@ -251,8 +263,11 @@ after a restart, and throughput at load.
 
 ## 13. Week 22 implementation checklist
 
-- [ ] T7 FK decision filled into Section 10; T6 DDL includes the `(time, alice_event_id)` unique index and
-  the agreed `sensor_type` case
+- [x] Section 10 decided (Option C, soft reference)
+- [ ] T6 follow-ups: commit the `fused_events` and `fusion_status` SQL to `infrastructure/scripts/init-db.sql`
+  and add the unique index on `(timestamp_ms, alice_event_id)`. Both were missing from `develop` on 2 October
+- [ ] Benchmark-row cleanup run on each local database before the first fused rows (stop `spark-processor`,
+  record the row counts, then `TRUNCATE`)
 - [ ] `services/fusion/fusion_engine.py` per Sections 4–7; `FUSION_WINDOW_MS`, `FUSION_TRIGGER_SECONDS` env vars
 - [ ] Checkpoint on a named volume, using the M6W21T2 pattern
 - [ ] `StreamingQueryListener` for `numRowsDroppedByWatermark`, then `fusion_status`
@@ -263,5 +278,5 @@ after a restart, and throughput at load.
 
 | Role | Name | Decision | Date |
 |---|---|---|---|
-| Schema authority | Abdullah | ☑ Approved (Section 10 pending T7) | 1 October 2026 |
-| Section 10 FK input | Beyza (M6W21T7) | ☐ Provided | |
+| Schema authority | Abdullah | ☑ Approved, including Section 10 (Option C) | 1–2 October 2026 |
+| Section 10 FK input | Beyza (M6W21T7) | ☑ Provided (`fused_events_fk_decision.md`) | 2 October 2026 |

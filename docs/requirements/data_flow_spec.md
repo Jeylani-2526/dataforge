@@ -213,7 +213,7 @@ All fields from Module 3 output schema, plus:
 | `latency_ms` | `long` | ms | Fused-row write time minus `timestamp_ms` |
 | `schema_version` | `string` | MAJOR.MINOR | `"1.0"` |
 
-ALICE and sensor payload fields are not carried in the fused record. Consumers retrieve them from TimescaleDB by `alice_event_id` and `sensor_event_id`.
+ALICE and sensor payload fields are not carried in the fused record. Consumers retrieve them from TimescaleDB by `alice_event_id` and `sensor_event_id`. These two ids are soft references (no DB-level FK, M6W21T7).
 
 **Output destinations:**
 - TimescaleDB `fused_events` hypertable (written from `foreachBatch`)

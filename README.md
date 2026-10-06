@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Milestone](https://img.shields.io/badge/Milestone-4%20%E2%80%94%20Data%20Adaptation%20Layer-blue)](docs/milestones/)
+[![Milestone](https://img.shields.io/badge/Milestone-6%20%E2%80%94%20Data%20Fusion%20%28In%20Progress%29-blue)](docs/milestones/)
 
 ---
 
@@ -130,6 +130,19 @@ Services will be available at:
 | API Docs (Swagger) | http://localhost:8000/docs |
 | Kafka UI | http://localhost:8080 |
 | TimescaleDB | localhost:5432 |
+
+#### Restart order (M5 Open Item 8)
+
+Restarting `alice-ingestion` while `spark-processor` keeps running makes the windowed ALICE counts drop records as late. Restarting only `spark-processor` does not fix it, because its checkpoint restores the saved watermark. Use this order:
+
+```bash
+docker compose stop spark-processor
+docker compose restart alice-ingestion
+docker compose run --rm --no-deps --entrypoint sh spark-processor -c "rm -rf /app/checkpoints/alice_throughput"
+docker compose up -d spark-processor
+```
+
+Staging writes and the fusion join are not affected by this caveat.
 
 ### 4. Run tests
 
@@ -290,4 +303,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full branching strategy, commit m
 MIT License — see [LICENSE](LICENSE).
 
 ---
-

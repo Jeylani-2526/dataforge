@@ -121,8 +121,8 @@ per-record processing time.
 | M5 open items log with resolution paths | Met | `open_items_m5.md`, 10 items |
 | Package assembled, cover note written, M5 review scheduled with Emrah | Met | This note; review held Wed 30 September 2026, package accepted as presented (Section 6) |
 
-The prototype bar is not an M5 exit criterion. Consistent with the M4 precedent, README keeps M5
-**In Progress** while the bar is missed (T6).
+The prototype bar is not an M5 exit criterion. After the 30 September review, the README marks M5
+**Completed**; the bar gaps stay open as Items 1 and 6.
 
 ---
 
@@ -195,6 +195,7 @@ The table and bullets above are the 27 September snapshot. Changes since then:
   latency (p95 5.7 s against ≤500 ms) are to be reported as measured, with their named causes, and
   fixed by M10. The prototype bar is unchanged.
 - **New requests or deadlines:** none.
+- **Status:** M4 and M5 are marked Completed in the README after the review. This does not mean the prototype bar is met: throughput and latency stay open as Items 1 and 6.
 - **Record:** no written minutes were taken. This entry records the outcome as recalled by the
   project lead on 1 October 2026.
 
@@ -206,6 +207,8 @@ The table and bullets above are the 27 September snapshot. Changes since then:
 - **Item 8's operating rule was corrected** (M6W21T3): a restarted `spark-processor` now restores
   its saved watermark, so the README "Restart order" section also deletes the `alice_throughput`
   checkpoint.
+- **Item 1 (throughput) stays open.** Beyza's staging review (M6W21T8, 2 October) found no index or
+  settings change needed. The benchmark-row cleanup is approved and pending execution.
 
 **Teammate items:**
 - **Ömer's M5W20T11 is committed** (`bb7ec81`, 1 October,
@@ -229,7 +232,7 @@ Core M5 deliverables are complete and committed to `develop`, each traced to a c
 The validation report confirms the pipeline is functionally correct, loss-free and schema-compliant
 across all four streams.
 
-**Recommendation: M5 is ready for review, but not closed on the prototype bar.**
+**Recommendation (27 September): M5 is ready for review, but not closed on the prototype bar. Update, 1 October: M5 is marked Completed after the review; the bar gaps remain open (Items 1 and 6).**
 - **Throughput** is missed, at 1,417 events/sec like-for-like and ~3,650 capacity. It is
   root-caused, improved 2.4×/6.1×, and measured per phase.
 - **Latency** is missed, at p95 5.7 s, for a structural reason.
