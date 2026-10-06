@@ -291,3 +291,23 @@ def test_real_db_values_nulls_and_duplicates(monkeypatch):
             cur.execute("DELETE FROM raw_sensor_events_staging "
                         "WHERE event_id::text = ANY(%s)", (ids,))
         sc._close_persistent_connections()
+
+
+# ── Checkpointing (M6W21T2) ─────────────────────────────────────────────────
+
+def test_each_query_gets_its_own_checkpoint_folder(monkeypatch):
+    monkeypatch.setattr(sc, "SPARK_CHECKPOINT_DIR", "/app/checkpoints")
+    names = ["alice_throughput", "sensor_throughput", "alice_staging_write", "sensor_staging_write"]
+    paths = [sc.checkpoint_path(n) for n in names]
+    assert paths[2] == "/app/checkpoints/alice_staging_write"
+    assert len(set(paths)) == 4
+
+
+def test_has_checkpoint_only_after_offsets_committed(monkeypatch, tmp_path):
+    monkeypatch.setattr(sc, "SPARK_CHECKPOINT_DIR", str(tmp_path))
+    assert not sc.has_checkpoint("alice_staging_write")          # nothing yet
+    offsets = tmp_path / "alice_staging_write" / "offsets"
+    offsets.mkdir(parents=True)
+    assert not sc.has_checkpoint("alice_staging_write")          # empty folder = fresh start
+    (offsets / "0").write_text("v1")
+    assert sc.has_checkpoint("alice_staging_write")

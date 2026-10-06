@@ -19,6 +19,7 @@ networks:
 volumes:
   timescaledb-data:
   kafka-data:
+  spark-checkpoints:   # M6W21T2: Spark streaming offsets + state; survives container restarts
 
 services:
   # ---------------------------------------------------------------------------
@@ -187,6 +188,8 @@ services:
       dockerfile: ../../../infrastructure/docker/spark.Dockerfile
     container_name: dataforge-spark
     networks: [dataforge-net]
+    # M5 Item 9: Docker's default 10 s killed Spark mid-stop (exit 137).
+    stop_grace_period: 30s
     depends_on:
       kafka:
         condition: service_healthy
@@ -207,7 +210,10 @@ services:
       SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-8}
       SPARK_MAX_OFFSETS_PER_TRIGGER: ${SPARK_MAX_OFFSETS_PER_TRIGGER:-50000}
       SPARK_STARTING_TIMESTAMP_MS: ${SPARK_STARTING_TIMESTAMP_MS:-}
+      SPARK_CHECKPOINT_DIR: /app/checkpoints
+      SPARK_STOP_TIMEOUT_MS: ${SPARK_STOP_TIMEOUT_MS:-15000}
     volumes:
+      - spark-checkpoints:/app/checkpoints
       - ./schemas:/app/schemas
       # M5W18T9: reuses the adaptation layer's schema_versioning.py rather
       # than duplicating it into this build context — single source of

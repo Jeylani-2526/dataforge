@@ -3,13 +3,14 @@
 **Milestone:** M5 — Streaming Pipeline
 **Task:** M5W20T5
 **Owner:** Abdullah
-**Date:** 27 September 2026
+**Date:** 27 September 2026 (updated 1 October 2026, M6W21T4)
 **Package status:** Assembled.
-- All seven M5 success criteria are met, or met on sending the Emrah update (T7).
+- All seven M5 success criteria are met. The M5 review with Emrah was held on 30 September 2026
+  (Section 6).
 - **Both prototype-bar metrics measured in M5 are missed** (throughput and latency); they are
   carried forward with named causes.
-- One teammate item is pending: Ömer's M5W20T11 (not started). Review comments on Beyza's
-  M5W20T10 were raised and resolved (`1dcd0ea`).
+- One teammate item was pending at assembly: Ömer's M5W20T11, committed on 1 October (Section 6).
+  Review comments on Beyza's M5W20T10 were raised and resolved (`1dcd0ea`).
 
 ---
 
@@ -113,15 +114,15 @@ per-record processing time.
 | Criterion (M5 milestone document) | Status | Evidence |
 |---|---|---|
 | Kafka in Docker Compose with live producers on all four topics | Met | M5W19T1; `alice-ingestion` restart verified 25 Sep |
-| Spark consumes all four topics with correct watermark/window logic | Met | Validation report §2–3; drain test: windowed count = stored count (2,191,854) |
+| Spark consumes all four topics with correct watermark/window logic | Met | Validation report Section 2–3; drain test: windowed count = stored count (2,191,854) |
 | Real streaming throughput benchmark reported against the bar, whatever the result | Met | M5W19T2, M5W20T2; bar missed, reported plainly |
 | Device diversity + repeat-generation mode, closing M4 Item 2 | Met | M5W19T8; `open_items_m4.md` Item 2 amended |
 | M4 carry-ins closed: tags applied and confirmed | Met | `M4-W16-*` tags, 20 September (`fb26fc9`) |
 | M5 open items log with resolution paths | Met | `open_items_m5.md`, 10 items |
-| Package assembled, cover note written, M5 review scheduled with Emrah | Met on sending T7 | This note; review proposed for Wed 30 September |
+| Package assembled, cover note written, M5 review scheduled with Emrah | Met | This note; review held Wed 30 September 2026, package accepted as presented (Section 6) |
 
-The prototype bar is not an M5 exit criterion. Consistent with the M4 precedent, README keeps M5
-**In Progress** while the bar is missed (T6).
+The prototype bar is not an M5 exit criterion. After the 30 September review, the README marks M5
+**Completed**; the bar gaps stay open as Items 1 and 6.
 
 ---
 
@@ -180,9 +181,42 @@ M4 Items 1, 3 and 4 remain open in `open_items_m4.md` (deferred to M6/M7).
   - The same memory/load wording in `docs/data/m5w20t9_soak_test.md` was aligned in the follow-up
     commit to this note.
 - **Ömer's M5W20T11 has not been started.** A likely cause is identified from the committed history
-  (§2); confirmation is his.
+  (Section 2); confirmation is his.
 - **No Beyza/Ömer sign-off on this document exists yet.** It is presented for their review, and both
   reviews are **PENDING**.
+
+### Update, 1 October 2026 (M6W21T4)
+
+The table and bullets above are the 27 September snapshot. Changes since then:
+
+**M5 review outcome.** The review with Emrah was held on Wednesday 30 September 2026.
+- **Result:** Emrah accepted the M5 package as presented. No changes were requested.
+- **Bar gaps:** throughput (1,417 events/sec like-for-like, ~3,650 capacity, against ≥10,000) and
+  latency (p95 5.7 s against ≤500 ms) are to be reported as measured, with their named causes, and
+  fixed by M10. The prototype bar is unchanged.
+- **New requests or deadlines:** none.
+- **Status:** M4 and M5 are marked Completed in the README after the review. This does not mean the prototype bar is met: throughput and latency stay open as Items 1 and 6.
+- **Record:** no written minutes were taken. This entry records the outcome as recalled by the
+  project lead on 1 October 2026.
+
+**Open items changed since 27 September:**
+- **Items 2 and 9 are resolved** (M6W21T2): checkpointing on a named volume, `stop_grace_period`,
+  and a shutdown-handler fix. The live restart test published 904 sensor events while Spark was
+  down and staged exactly 904 after the restart. Details are in
+  `docs/milestones/milestone6/m6w21t2_checkpoint_restart_test.md`.
+- **Item 8's operating rule was corrected** (M6W21T3): a restarted `spark-processor` now restores
+  its saved watermark, so the README "Restart order" section also deletes the `alice_throughput`
+  checkpoint.
+- **Item 1 (throughput) stays open.** Beyza's staging review (M6W21T8, 2 October) found no index or
+  settings change needed. The benchmark-row cleanup is approved and pending execution.
+
+**Teammate items:**
+- **Ömer's M5W20T11 is committed** (`bb7ec81`, 1 October,
+  `docs/milestones/milestone5/m5w20t11_build_verification.md`). A clean `--no-cache` rebuild fixed
+  the build, and the full `m5-and-above` stack came up healthy on his machine. His note calls the
+  cause consistent with stale local Docker build state. The `git status` and `git log -1` check
+  that the plan asked for is not recorded, so the cause is likely, not proven.
+- **Sign-offs on this note** are not updated here and remain shown as **PENDING** above.
 
 ---
 
@@ -198,12 +232,13 @@ Core M5 deliverables are complete and committed to `develop`, each traced to a c
 The validation report confirms the pipeline is functionally correct, loss-free and schema-compliant
 across all four streams.
 
-**Recommendation: M5 is ready for review, but not closed on the prototype bar.**
+**Recommendation (27 September): M5 is ready for review, but not closed on the prototype bar. Update, 1 October: M5 is marked Completed after the review; the bar gaps remain open (Items 1 and 6).**
 - **Throughput** is missed, at 1,417 events/sec like-for-like and ~3,650 capacity. It is
   root-caused, improved 2.4×/6.1×, and measured per phase.
 - **Latency** is missed, at p95 5.7 s, for a structural reason.
 - Neither should be represented as closed in any downstream summary.
-- All M5 success criteria are met, the last one on sending the Emrah update.
+- All M5 success criteria are met. The M5 review was held on 30 September 2026 and the package
+  was accepted as presented (Section 6).
 
 M6 kickoff is not blocked, provided checkpointing (Item 2) is planned into the join design from the
 start.

@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jeylani-2526/dataforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Milestone](https://img.shields.io/badge/Milestone-4%20%E2%80%94%20Data%20Adaptation%20Layer-blue)](docs/milestones/)
+[![Milestone](https://img.shields.io/badge/Milestone-6%20%E2%80%94%20Data%20Fusion%20%28In%20Progress%29-blue)](docs/milestones/)
 
 ---
 
@@ -131,6 +131,19 @@ Services will be available at:
 | Kafka UI | http://localhost:8080 |
 | TimescaleDB | localhost:5432 |
 
+#### Restart order (M5 Open Item 8)
+
+Restarting `alice-ingestion` while `spark-processor` keeps running makes the windowed ALICE counts drop records as late. Restarting only `spark-processor` does not fix it, because its checkpoint restores the saved watermark. Use this order:
+
+```bash
+docker compose stop spark-processor
+docker compose restart alice-ingestion
+docker compose run --rm --no-deps --entrypoint sh spark-processor -c "rm -rf /app/checkpoints/alice_throughput"
+docker compose up -d spark-processor
+```
+
+Staging writes and the fusion join are not affected by this caveat.
+
 ### 4. Run tests
 
 ```bash
@@ -226,9 +239,9 @@ dataforge/
 | M1 | Project Understanding & Requirements | 11 May – 7 Jun 2026 | ✅ Completed |
 | M2 | Data Schema & Model Design | 8 Jun – 5 Jul 2026 | ✅ Completed |
 | M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | ✅ Completed |
-| M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | 🔄 In Progress |
-| M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | 🔄 In Progress |
-| M6 | Data Fusion & Synchronization | 28 Sep – 25 Oct 2026 | ⏳ Upcoming |
+| M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | ✅ Completed |
+| M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | ✅ Completed |
+| M6 | Data Fusion & Synchronization | 28 Sep – 25 Oct 2026 | 🔄 In Progress |
 | M7 | AI/ML Anomaly Detection | 26 Oct – 22 Nov 2026 | ⏳ Upcoming |
 | M8 | Explainable AI Layer | 23 Nov – 20 Dec 2026 | ⏳ Upcoming |
 | M9 | Dashboard, API & Integration | 21 Dec 2026 – 14 Feb 2027 | ⏳ Upcoming |
@@ -236,24 +249,25 @@ dataforge/
 
 See the full [Roadmap document](docs/milestones/DataForge_Roadmap.md) for week-by-week breakdowns.
 
-**M4 status note:** Core M4 deliverables (data adaptation layer, schema-versioning enforcement, format conversion, staging-to-production promotion, TimescaleDB port-config fixes) are complete and committed. M4 remains **In Progress** rather than Completed because the pipeline throughput bar (≥10,000 events/sec) is not met — current measured throughput is 1,135.05 events/sec, root-caused but not resolved. See [`m4_package_cover_note.md`](docs/milestones/milestone4/m4_package_cover_note.md) and [`open_items_m4.md`](docs/milestones/milestone4/open_items_m4.md) for full detail. GitHub milestone tags (`M4-W16-abdullah`, `M4-W16-beyza`, `M4-W16-omer`) applied 20 September 2026, closing the carry-in open since Week 16.
+**M4 status note:** Core M4 deliverables (data adaptation layer, schema-versioning enforcement, format conversion, staging-to-production promotion, TimescaleDB port-config fixes) are complete and committed. M4 is marked **Completed** after the M5 review (30 September 2026). The throughput bar (≥10,000 events/sec) is not met and is carried forward: it is tracked as M5 Open Item 1 (superseding M4 Item 5) and will be fixed by M10. M4 Items 1, 3 and 4 also remain open in [`open_items_m4.md`](docs/milestones/milestone4/open_items_m4.md) (deferred to M6/M7). See [`m4_package_cover_note.md`](docs/milestones/milestone4/m4_package_cover_note.md) for full detail. GitHub milestone tags (`M4-W16-abdullah`, `M4-W16-beyza`, `M4-W16-omer`) applied 20 September 2026, closing the carry-in open since Week 16.
 
 **M5 status note:**
-- **Complete and committed:**
+- **Completed:** M5 is marked Completed after the review with Emrah on 30 September 2026, where the package was accepted as presented.
   - live Kafka (KRaft) producers on all four topics;
   - the Spark Structured Streaming consumer with event-time watermark/window logic;
   - schema-versioning enforcement on every streamed record;
   - the streaming throughput benchmark with its root-cause fix.
-- **Why "In Progress" rather than Completed:** two prototype-bar metrics are missed.
+- **Not met, carried forward:** two prototype-bar metrics. "Completed" does not mean the bar is met.
   - Throughput: 1,417 events/sec like-for-like and ~3,650 events/sec pipeline capacity, against
-    ≥10,000.
-  - End-to-end latency: p95 5.7 s against ≤500 ms, structural to the 5-second trigger.
+    ≥10,000 (Open Item 1).
+  - End-to-end latency: p95 5.7 s against ≤500 ms, structural to the 5-second trigger (Open Item 6).
+  - Both will be reported as measured, with named causes, and fixed by M10.
 - **Passes:** data loss (0.0%).
+- **Since M5:** Open Items 2 and 9 (checkpointing, clean shutdown) were resolved in M6W21T2.
 - **Details:** [`m5_package_cover_note.md`](docs/milestones/milestone5/m5_package_cover_note.md),
   [`m5_validation_report.md`](docs/milestones/milestone5/m5_validation_report.md) and
   [`open_items_m5.md`](docs/milestones/milestone5/open_items_m5.md).
 - **Tags:** `M5-W20-abdullah`, `M5-W20-beyza` and `M5-W20-omer`, applied 27 September 2026.
-
 ---
 
 ## Prototype Performance Bar
@@ -289,4 +303,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full branching strategy, commit m
 MIT License — see [LICENSE](LICENSE).
 
 ---
-
