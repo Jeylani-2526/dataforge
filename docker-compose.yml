@@ -20,6 +20,7 @@ volumes:
   timescaledb-data:
   kafka-data:
   spark-checkpoints:   # M6W21T2: Spark streaming offsets + state; survives container restarts
+  fusion-checkpoints:  # M6W22T3: fusion-engine join + aggregation state; reset procedure in M6W21T2
 
 services:
   # ---------------------------------------------------------------------------
@@ -227,13 +228,43 @@ services:
 
   fusion-engine:
     build:
+    
       context: ./services/fusion
-      dockerfile: ../infrastructure/docker/fusion.Dockerfile
+      dockerfile: ../../infrastructure/docker/fusion.Dockerfile
     container_name: dataforge-fusion
     networks: [dataforge-net]
+
+    stop_grace_period: 30s
+
     depends_on:
-      spark-processor:
-        condition: service_started
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_ALICE: alice-events
+      KAFKA_TOPIC_RADAR: sensor-radar
+      KAFKA_TOPIC_LIDAR: sensor-lidar
+      KAFKA_TOPIC_TELEMETRY: sensor-telemetry
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-dataforge}
+      DB_USER: ${POSTGRES_USER:-dataforge}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_dev}
+      WATERMARK_DELAY_SECONDS: ${WATERMARK_DELAY_SECONDS:-5}
+      FUSION_WINDOW_MS: ${FUSION_WINDOW_MS:-500}
+      FUSION_TRIGGER_SECONDS: ${FUSION_TRIGGER_SECONDS:-5}
+      # Design note Section 11: locked into the checkpoint on first write.
+      FUSION_SHUFFLE_PARTITIONS: ${FUSION_SHUFFLE_PARTITIONS:-8}
+      FUSION_CHECKPOINT_DIR: /app/checkpoints
+      SPARK_STOP_TIMEOUT_MS: ${SPARK_STOP_TIMEOUT_MS:-15000}
+    volumes:
+      - fusion-checkpoints:/app/checkpoints
+      - ./schemas:/app/schemas
+      # Same single-source-of-truth mount as spark-processor (M5W18T9):
+      # the fused writer calls enforce() from this module.
+      - ./services/adaptation-layer/schema_versioning.py:/app/src/schema_versioning.py:ro
     profiles: ["m6-and-above"]
 
   # ---------------------------------------------------------------------------
