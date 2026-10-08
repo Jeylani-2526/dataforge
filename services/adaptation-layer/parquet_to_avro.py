@@ -59,7 +59,9 @@ def read_parquet_records(spark: SparkSession, input_dir: Path) -> list[dict[str,
 # ---------------------------------------------------------------------------
 
 
-def _reorder_to_schema(record: dict[str, Any], field_order: list[str]) -> dict[str, Any]:
+def _reorder_to_schema(
+    record: dict[str, Any], field_order: list[str]
+) -> dict[str, Any]:
     """
     Parquet column order is not guaranteed to match the locked .avsc
     field order (Spark's schema inference from records_to_dataframe()

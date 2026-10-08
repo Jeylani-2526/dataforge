@@ -63,7 +63,9 @@ ALICE_LOOP_GAP_MS = int(os.environ.get("ALICE_LOOP_GAP_MS", "1000"))
 SCHEMA_PATH = Path(
     os.environ.get("ALICE_SCHEMA_PATH", "/app/schemas/alice_event_schema_v1.avsc")
 )
-CURRENT_SCHEMA_VERSION = "1.0"  # mirrors schema_versioning.CURRENT_SCHEMA_VERSIONS["alice_event"]
+CURRENT_SCHEMA_VERSION = (
+    "1.0"  # mirrors schema_versioning.CURRENT_SCHEMA_VERSIONS["alice_event"]
+)
 
 FETCH_QUERY = """
     SELECT event_id::text, run_number, timestamp_ms, track_count,
@@ -79,7 +81,10 @@ _running = True
 
 def _handle_shutdown(signum, frame):
     global _running
-    log.info("Shutdown signal received (%s) — finishing current record, then exiting.", signum)
+    log.info(
+        "Shutdown signal received (%s) — finishing current record, then exiting.",
+        signum,
+    )
     _running = False
 
 
@@ -136,7 +141,9 @@ def round_trip_encode(record: dict, parsed_schema: dict) -> bytes:
         if decoded.get(name) != record.get(name):
             # float32 rounding is expected for the momentum/energy fields;
             # only flag a real mismatch, not fastavro's own float32 cast.
-            if isinstance(record.get(name), float) and isinstance(decoded.get(name), float):
+            if isinstance(record.get(name), float) and isinstance(
+                decoded.get(name), float
+            ):
                 if abs(decoded[name] - record[name]) < 1e-3:
                     continue
             raise ValueError(
@@ -151,7 +158,9 @@ def delivery_report(err, msg):
     if err is not None:
         log.error("Delivery failed for event_id=%s: %s", msg.key(), err)
     else:
-        log.debug("Delivered event_id=%s to %s[%d]", msg.key(), msg.topic(), msg.partition())
+        log.debug(
+            "Delivered event_id=%s to %s[%d]", msg.key(), msg.topic(), msg.partition()
+        )
 
 
 def run():
@@ -161,13 +170,17 @@ def run():
 
     log.info(
         "Starting ALICE Kafka producer — topic=%s bootstrap=%s interval_ms=%d",
-        KAFKA_TOPIC_ALICE, KAFKA_BOOTSTRAP_SERVERS, ALICE_REPLAY_INTERVAL_MS,
+        KAFKA_TOPIC_ALICE,
+        KAFKA_BOOTSTRAP_SERVERS,
+        ALICE_REPLAY_INTERVAL_MS,
     )
 
     parsed_schema = load_schema()
     records = fetch_records()
     if not records:
-        log.error("No promoted ALICE records found (source_type='alice' in events). Exiting.")
+        log.error(
+            "No promoted ALICE records found (source_type='alice' in events). Exiting."
+        )
         sys.exit(1)
 
     # M5W17T2 fix — see design note #2b: precompute the dataset's own
@@ -178,7 +191,9 @@ def run():
     loop_span_ms = (max_ts - min_ts) + ALICE_LOOP_GAP_MS
     log.info(
         "Dataset event-time span=%dms; each loop rebased forward by %dms (span + %dms gap).",
-        max_ts - min_ts, loop_span_ms, ALICE_LOOP_GAP_MS,
+        max_ts - min_ts,
+        loop_span_ms,
+        ALICE_LOOP_GAP_MS,
     )
 
     producer = Producer({"bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS})
@@ -208,7 +223,9 @@ def run():
             if record.get("schema_version") != CURRENT_SCHEMA_VERSION:
                 log.warning(
                     "event_id=%s schema_version drift: db=%s expected=%s — stamping expected value.",
-                    record.get("event_id"), record.get("schema_version"), CURRENT_SCHEMA_VERSION,
+                    record.get("event_id"),
+                    record.get("schema_version"),
+                    CURRENT_SCHEMA_VERSION,
                 )
                 record["schema_version"] = CURRENT_SCHEMA_VERSION
 
@@ -217,7 +234,11 @@ def run():
             except ValueError as e:
                 round_trip_failed_total += 1
                 loop_failed += 1
-                log.error("event_id=%s round-trip check failed, NOT publishing: %s", record.get("event_id"), e)
+                log.error(
+                    "event_id=%s round-trip check failed, NOT publishing: %s",
+                    record.get("event_id"),
+                    e,
+                )
                 continue
 
             producer.produce(
@@ -237,13 +258,19 @@ def run():
         log.info(
             "Loop %d complete (timestamp offset=+%dms): published=%d failed=%d "
             "(running totals: published=%d failed=%d)",
-            loop_count, loop_offset_ms, loop_published, loop_failed,
-            published_total, round_trip_failed_total,
+            loop_count,
+            loop_offset_ms,
+            loop_published,
+            loop_failed,
+            published_total,
+            round_trip_failed_total,
         )
 
     log.info(
         "Producer stopped. Final totals: loops=%d published=%d round_trip_failed=%d",
-        loop_count, published_total, round_trip_failed_total,
+        loop_count,
+        published_total,
+        round_trip_failed_total,
     )
 
 
