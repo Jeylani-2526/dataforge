@@ -145,7 +145,9 @@ def run_full_volume_pipeline() -> dict:
 
     # ── Parquet conversion (existing M4W14T4 writer, unmodified) ───────
     log.info("Converting Avro output to Parquet...")
-    alice_parquet_count = convert_alice_to_parquet(spark, AVRO_OUTPUT_DIR, PARQUET_OUTPUT_DIR)
+    alice_parquet_count = convert_alice_to_parquet(
+        spark, AVRO_OUTPUT_DIR, PARQUET_OUTPUT_DIR
+    )
     sensor_parquet_counts = convert_sensor_streams_to_parquet(
         spark, AVRO_OUTPUT_DIR, PARQUET_OUTPUT_DIR
     )
@@ -167,7 +169,9 @@ def run_full_volume_pipeline() -> dict:
     )
     all_latencies_ms = alice_agg["latencies_ms"] + sensor_agg["latencies_ms"]
 
-    data_loss_pct = round(100.0 * total_rejected / total_input, 4) if total_input else 0.0
+    data_loss_pct = (
+        round(100.0 * total_rejected / total_input, 4) if total_input else 0.0
+    )
     throughput_events_per_sec = (
         round(total_passed / wall_clock_seconds, 2) if wall_clock_seconds else 0.0
     )
@@ -289,8 +293,10 @@ def _write_markdown_report(summary: dict) -> None:
         "",
     ]
 
-    overall_status = "ALL BARS MET" if summary["bar_check_all_pass"] else (
-        "ONE OR MORE BARS NOT MET — see Week 16 open item"
+    overall_status = (
+        "ALL BARS MET"
+        if summary["bar_check_all_pass"]
+        else ("ONE OR MORE BARS NOT MET — see Week 16 open item")
     )
     lines.append(f"**Overall: {overall_status}**")
     lines += [
@@ -300,7 +306,7 @@ def _write_markdown_report(summary: dict) -> None:
         "## Latency methodology (read before citing these numbers elsewhere)",
         "",
         "There is no live event stream in M4 — Kafka + Structured Streaming "
-        "is M5's deliverable. \"Latency\" here is the per-record processing "
+        'is M5\'s deliverable. "Latency" here is the per-record processing '
         "time inside the adaptation layer's actual unit of work: "
         "`schema_versioning.py`'s serialize -> deserialize -> compare "
         "round-trip check (M4W14T3), timed individually per record. This is "

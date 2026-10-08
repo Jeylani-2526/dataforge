@@ -87,8 +87,30 @@
 **What would trigger resolution:** Start of Module 6 planning/build work, once `services/fusion/`'s stream-stream join logic exists for `write_fused_events()` to call.
 
 **Action items:**
-- [ ] Module 6 owner: implement `write_fused_events()` against the stream-stream join once Module 6 is built, replacing the stub
-- [ ] Abdullah: reference this entry (not the code comment) as the authoritative scope record in future M4/M5 documents
+- [x] Module 6 owner: implement `write_fused_events()` against the stream-stream join once Module 6 is built, replacing the stub
+- [x] Abdullah: reference this entry (not the code comment) as the authoritative scope record in future M4/M5 documents
+
+---
+
+**Closed — M6W22T2 (8 October 2026, Abdullah).** Implemented in
+`services/fusion/fused_writer.py`, reading from the M6W22T1 join
+(`fusion_engine.py`). Every batch passes through `schema_versioning.enforce()`
+before any row reaches `fused_events` — the real round-trip check, not a
+lighter presence check, so `data_loss_pct` stays a meaningful figure rather
+than a column that can only ever read 0.0.
+
+The stub in `avro_adaptation_job.py` stays in place as a pointer to this
+entry and to the real implementation, rather than being deleted — the
+function name is still referenced by this item's history.
+
+Verified against a real PostgreSQL instance (`test_fused_writer.py`):
+a normal batch writes correctly with `schema_version` stamped and
+`sensor_type` preserved as the uppercase enum value; a checkpoint replay of
+the same batch is de-duplicated via `uq_fused_events_replay` (M6W21T6 gap
+repair) rather than double-counted; an empty batch is a no-op; and a batch
+mixing one schema-invalid record with one valid record writes only the
+valid one, with `data_loss_pct` correctly reflecting the 50% rejection rate
+for that batch.
 
 ---
 

@@ -24,7 +24,9 @@ from pathlib import Path
 
 from parquet_writer import get_spark_session, read_avro_records, records_to_dataframe
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s"
+)
 log = logging.getLogger(__name__)
 
 AVRO_SENSOR_DIR = Path("data/adaptation/avro/sensor_event")
