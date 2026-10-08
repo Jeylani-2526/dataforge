@@ -264,7 +264,7 @@ services:
       - ./schemas:/app/schemas
       # Same single-source-of-truth mount as spark-processor (M5W18T9):
       # the fused writer calls enforce() from this module.
-      - ./services/adaptation-layer/schema_versioning.py:/app/src/schema_versioning.py:ro
+      - ./services/adaptation-layer/schema_versioning.py:/app/schema_versioning.py:ro
     profiles: ["m6-and-above"]
 
   # ---------------------------------------------------------------------------

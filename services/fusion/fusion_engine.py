@@ -13,6 +13,7 @@ import time
 
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import abs as sabs, col, expr, lit, min as smin, struct
+from pyspark.sql.streaming import StreamingQueryListener
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s"
@@ -93,7 +94,7 @@ def _shutdown(spark: SparkSession, close_connections):
     log.info("Clean shutdown complete in %.1f s.", time.perf_counter() - t0)
 
 
-class DroppedRowListener:
+class DroppedRowListener(StreamingQueryListener):
     """Surfaces numRowsDroppedByWatermark per stateful operator (design note Section 7).
 
     Late-dropped join inputs are not counted by the fused writer's
@@ -105,19 +106,23 @@ class DroppedRowListener:
 
     def onQueryProgress(self, event):
         p = event.progress
+
         dropped = sum(
-            op.get("numRowsDroppedByWatermark", 0) for op in p.get("stateOperators", [])
+            op.numRowsDroppedByWatermark
+            for op in p.stateOperators
         )
+
         if dropped:
             log.warning(
-                "%s: %d row(s) dropped by watermark this batch", p.get("name"), dropped
+                "%s: %d row(s) dropped by watermark this batch",
+                p.name,
+                dropped,
             )
 
     def onQueryTerminated(self, event):
         pass
 
-    class Java:
-        implements = ["org.apache.spark.sql.streaming.StreamingQueryListener"]
+    
 
 
 # ── Spark session ────────────────────────────────────────────────────────
