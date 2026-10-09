@@ -295,3 +295,11 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
         (t2 - t1) * 1000,
         (t3 - t2) * 1000,
     )
+
+    # T5 heartbeat — per-source fusion_status write (M6W22T5).
+    # Import is local so spike_join_check.py and tests can import this module
+    # without heartbeat_writer on sys.path.
+    from heartbeat_writer import write_heartbeat
+    avg_latency = sum(v["latency_ms"] for v in values) / len(values) if values else 0.0
+    write_heartbeat("alice", result.data_loss_pct, avg_latency, 1.0)
+    write_heartbeat("sensor", result.data_loss_pct, avg_latency, 1.0)
