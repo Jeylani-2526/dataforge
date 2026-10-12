@@ -160,3 +160,26 @@ SELECT create_hypertable('fusion_status', 'time',
 
 SELECT add_retention_policy('fusion_status', INTERVAL '7 days',
     if_not_exists => TRUE);
+-- summary_5min: 5-minute continuous aggregate over fused_events.
+-- Named by ERD final and api_contracts_final.md (GET /summary endpoint).
+-- timestamp_ms is BIGINT (Unix ms), so time_bucket_ng is used with
+-- an integer bucket width of 300000 ms (5 minutes).
+CREATE MATERIALIZED VIEW IF NOT EXISTS summary_5min
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket(BIGINT '300000', timestamp_ms)  AS bucket,
+    sensor_type,
+    COUNT(*)                                     AS fused_count,
+    AVG(data_loss_pct)                           AS avg_data_loss_pct,
+    AVG(latency_ms)                              AS avg_latency_ms,
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95_latency_ms,
+    AVG(CASE WHEN anomaly_label IS NOT NULL THEN 1.0 ELSE 0.0 END) AS anomaly_rate
+FROM fused_events
+GROUP BY bucket, sensor_type
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('summary_5min',
+    start_offset => BIGINT '600000',
+    end_offset   => BIGINT '300000',
+    schedule_interval => INTERVAL '5 minutes',
+    if_not_exists => TRUE);
