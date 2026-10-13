@@ -17,7 +17,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY fusion_engine.py fused_writer.py ./
+COPY fusion_engine.py fused_writer.py heartbeat_writer.py ./
 
 RUN mkdir -p /app/checkpoints /app/schemas
 
