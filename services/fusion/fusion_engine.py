@@ -56,6 +56,8 @@ SPARK_STOP_TIMEOUT_MS = int(os.environ.get("SPARK_STOP_TIMEOUT_MS", "15000"))
 
 QUERY_NAME = "fusion_join"
 
+PROGRESS_DEBUG = os.environ.get("FUSION_PROGRESS_DEBUG", "0") == "1"
+
 # No Avro decode in this service (design note Section 3) — only the Kafka
 # connector is needed, not spark-avro.
 SPARK_KAFKA_PACKAGE = "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.9"
@@ -118,6 +120,34 @@ class DroppedRowListener(StreamingQueryListener):
                 p.name,
                 dropped,
             )
+
+        if PROGRESS_DEBUG:
+            self._dump(p)
+
+    @staticmethod
+    def _dump(p):
+        """Prints what Spark actually reports, so the blind spot can be located
+        rather than inferred."""
+        try:
+            log.info("[progress] eventTime=%s", dict(p.eventTime))
+        except Exception as e:
+            log.info("[progress] eventTime unavailable: %s", e)
+
+        try:
+            for src in p.sources:
+                log.info(
+                    "[progress] source=%s inputRows=%s",
+                    getattr(src, "description", "?"),
+                    getattr(src, "numInputRows", "?"),
+                )
+        except Exception as e:
+            log.info("[progress] sources unavailable: %s", e)
+
+        try:
+            for i, op in enumerate(p.stateOperators):
+                log.info("[progress] stateOperator[%d]=%s", i, op.json)
+        except Exception as e:
+            log.info("[progress] stateOperators unavailable: %s", e)
 
     def onQueryTerminated(self, event):
         pass

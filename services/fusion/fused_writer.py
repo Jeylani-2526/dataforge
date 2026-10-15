@@ -56,7 +56,28 @@ FUSED_FIELDS = [
     "schema_version",
 ]
 
-_parsed_schema = None  # loaded once, reused across batches
+_parsed_schema = None  
+_ALIGNMENT_SAMPLE_CAP = 50_000
+_alignment_samples: list = []
+
+
+def _alignment_stats(values: list) -> dict:
+    """Nearest-rank percentiles on the sorted sample, no interpolation. Stated
+    because T2 publishes each figure with its method."""
+    s = sorted(values)
+    n = len(s)
+
+    def pct(p: float):
+        return s[min(n - 1, int(round(p * (n - 1))))]
+
+    return {
+        "n": n,
+        "min": s[0],
+        "p50": pct(0.50),
+        "p95": pct(0.95),
+        "max": s[-1],
+        "mean": sum(s) / n,
+    }
 
 
 def _load_parsed_schema():
@@ -69,11 +90,7 @@ def _load_parsed_schema():
     return _parsed_schema
 
 
-# ── DB connection ─────────────────────────────────────────────────────────
-# One shared connection for this service (design note T2: coordinate with T5
-# so the heartbeat and the fused write don't contend for separate connections
-# — the M5 write-path fault). Beyza's heartbeat writer imports get_connection()
-# from this module rather than opening its own.
+
 
 _connections = []
 
@@ -195,23 +212,15 @@ def _copy_insert_fused(db: PersistentConnection, values: list) -> int:
 
 
 def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
-    """Closes M4 Item 4. Replaces the NotImplementedError stub that lived in
-    avro_adaptation_job.py — that function was a placeholder for exactly this,
-    pending the join this now reads from.
-
-    batch_df columns: alice_event_id, timestamp_ms, sensor_event_id,
-    sensor_type, abs_dt_ms (fusion_engine.py's select_nearest output).
-    abs_dt_ms is for logging only and is not a fused_events column.
-    """
-    from schema_versioning import enforce  # mounted read-only by docker-compose
-
+    
+    from schema_versioning import enforce 
     t0 = time.perf_counter()
-    rows = [
-        r.asDict()
-        for r in batch_df.select(
-            "alice_event_id", "timestamp_ms", "sensor_event_id", "sensor_type"
-        ).collect()
-    ]
+
+    cols = ["alice_event_id", "timestamp_ms", "sensor_event_id", "sensor_type"]
+    if "abs_dt_ms" in batch_df.columns:
+        cols.append("abs_dt_ms")
+
+    rows = [r.asDict() for r in batch_df.select(*cols).collect()]
     t1 = time.perf_counter()
 
     if not rows:
@@ -219,6 +228,21 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
             "fusion micro-batch %d: empty, nothing to enforce/write.", spark_batch_id
         )
         return
+
+ 
+    dts = [r["abs_dt_ms"] for r in rows if r.get("abs_dt_ms") is not None]
+    if dts:
+        if len(_alignment_samples) < _ALIGNMENT_SAMPLE_CAP:
+            _alignment_samples.extend(dts)
+        b = _alignment_stats(dts)
+        c = _alignment_stats(_alignment_samples)
+        log.info(
+            "[alignment] batch=%d n=%d p50=%dms p95=%dms max=%dms | cumulative "
+            "n=%d min=%dms p50=%dms p95=%dms max=%dms mean=%.1fms "
+            "(Kafka message timestamps, nearest-rank percentiles)",
+            spark_batch_id, b["n"], b["p50"], b["p95"], b["max"],
+            c["n"], c["min"], c["p50"], c["p95"], c["max"], c["mean"],
+        )
 
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
 

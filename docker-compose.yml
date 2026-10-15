@@ -151,6 +151,17 @@ services:
       KAFKA_TOPIC_TELEMETRY: sensor-telemetry
       EVENTS_PER_SECOND: ${EVENTS_PER_SECOND:-100}
       SENSOR_PUBLISH_INTERVAL_MS: ${SENSOR_PUBLISH_INTERVAL_MS:-200}
+      # M6W23T3 late / out-of-order injection. Every value defaults to 0, so an
+      # unconfigured stack behaves exactly as it did before injection existed and
+      # existing benchmarks stay comparable. Service README documents the rest.
+      SENSOR_LATE_FRACTION: ${SENSOR_LATE_FRACTION:-0}
+      SENSOR_LATE_MIN_MS: ${SENSOR_LATE_MIN_MS:-0}
+      SENSOR_LATE_MAX_MS: ${SENSOR_LATE_MAX_MS:-0}
+      SENSOR_DISORDER_FRACTION: ${SENSOR_DISORDER_FRACTION:-0}
+      SENSOR_DISORDER_BUFFER: ${SENSOR_DISORDER_BUFFER:-0}
+      SENSOR_INJECTION_SEED: ${SENSOR_INJECTION_SEED:-}
+      # Shared with fusion-engine so both sides use one definition of "late".
+      WATERMARK_DELAY_SECONDS: ${WATERMARK_DELAY_SECONDS:-5}
     volumes:
       - ./schemas:/app/schemas
     profiles: ["m3-and-above"]
