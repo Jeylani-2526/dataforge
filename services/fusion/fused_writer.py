@@ -56,7 +56,7 @@ FUSED_FIELDS = [
     "schema_version",
 ]
 
-_parsed_schema = None  
+_parsed_schema = None
 _ALIGNMENT_SAMPLE_CAP = 50_000
 _alignment_samples: list = []
 
@@ -88,8 +88,6 @@ def _load_parsed_schema():
         with open(FUSED_SCHEMA_PATH, "r", encoding="utf-8") as f:
             _parsed_schema = parse_schema(json.load(f))
     return _parsed_schema
-
-
 
 
 _connections = []
@@ -212,8 +210,9 @@ def _copy_insert_fused(db: PersistentConnection, values: list) -> int:
 
 
 def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
-    
-    from schema_versioning import enforce 
+
+    from schema_versioning import enforce
+
     t0 = time.perf_counter()
 
     cols = ["alice_event_id", "timestamp_ms", "sensor_event_id", "sensor_type"]
@@ -229,7 +228,6 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
         )
         return
 
- 
     dts = [r["abs_dt_ms"] for r in rows if r.get("abs_dt_ms") is not None]
     if dts:
         if len(_alignment_samples) < _ALIGNMENT_SAMPLE_CAP:
@@ -240,8 +238,17 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
             "[alignment] batch=%d n=%d p50=%dms p95=%dms max=%dms | cumulative "
             "n=%d min=%dms p50=%dms p95=%dms max=%dms mean=%.1fms "
             "(Kafka message timestamps, nearest-rank percentiles)",
-            spark_batch_id, b["n"], b["p50"], b["p95"], b["max"],
-            c["n"], c["min"], c["p50"], c["p95"], c["max"], c["mean"],
+            spark_batch_id,
+            b["n"],
+            b["p50"],
+            b["p95"],
+            b["max"],
+            c["n"],
+            c["min"],
+            c["p50"],
+            c["p95"],
+            c["max"],
+            c["mean"],
         )
 
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -324,6 +331,7 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
     # Import is local so spike_join_check.py and tests can import this module
     # without heartbeat_writer on sys.path.
     from heartbeat_writer import write_heartbeat
+
     avg_latency = sum(v["latency_ms"] for v in values) / len(values) if values else 0.0
     write_heartbeat("alice", result.data_loss_pct, avg_latency, 1.0)
     write_heartbeat("sensor", result.data_loss_pct, avg_latency, 1.0)

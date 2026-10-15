@@ -109,10 +109,7 @@ class DroppedRowListener(StreamingQueryListener):
     def onQueryProgress(self, event):
         p = event.progress
 
-        dropped = sum(
-            op.numRowsDroppedByWatermark
-            for op in p.stateOperators
-        )
+        dropped = sum(op.numRowsDroppedByWatermark for op in p.stateOperators)
 
         if dropped:
             log.warning(
@@ -151,8 +148,6 @@ class DroppedRowListener(StreamingQueryListener):
 
     def onQueryTerminated(self, event):
         pass
-
-    
 
 
 # ── Spark session ────────────────────────────────────────────────────────

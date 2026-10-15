@@ -7,7 +7,6 @@ from pathlib import Path
 from fastavro import parse_schema, schemaless_reader, schemaless_writer
 from fastavro.validation import validate
 
-
 # Fields required for every sensor record
 COMMON_REQUIRED_FIELDS = [
     "event_id",
@@ -64,10 +63,7 @@ def get_schema_field_names(schema):
     Extract the field names defined in the Avro schema.
     """
 
-    return {
-        field["name"]
-        for field in schema.get("fields", [])
-    }
+    return {field["name"] for field in schema.get("fields", [])}
 
 
 def read_jsonl(file_path):
@@ -106,9 +102,7 @@ def validate_schema_round_trip(record, parsed_schema, schema_fields):
     """
 
     schema_record = {
-        key: value
-        for key, value in record.items()
-        if key in schema_fields
+        key: value for key, value in record.items() if key in schema_fields
     }
 
     # Validate the record directly against the parsed Avro schema
@@ -188,16 +182,12 @@ def check_ranges(record):
     sensor_type = record.get("sensor_type")
 
     if sensor_type not in TYPE_REQUIRED_FIELDS:
-        violations.append(
-            ("sensor_type", sensor_type, "unsupported sensor type")
-        )
+        violations.append(("sensor_type", sensor_type, "unsupported sensor type"))
 
     timestamp_ms = record.get("timestamp_ms")
 
     if timestamp_ms is not None and timestamp_ms <= 0:
-        violations.append(
-            ("timestamp_ms", timestamp_ms, "must be greater than 0")
-        )
+        violations.append(("timestamp_ms", timestamp_ms, "must be greater than 0"))
 
     if record.get("schema_version") != "1.0":
         violations.append(
@@ -219,9 +209,7 @@ def check_ranges(record):
             )
 
         if bearing_deg is not None and not 0 <= bearing_deg <= 360:
-            violations.append(
-                ("bearing_deg", bearing_deg, "must be between 0 and 360")
-            )
+            violations.append(("bearing_deg", bearing_deg, "must be between 0 and 360"))
 
         if elevation_deg is not None and not -90 <= elevation_deg <= 90:
             violations.append(

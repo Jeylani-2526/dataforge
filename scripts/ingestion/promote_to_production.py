@@ -9,7 +9,9 @@ import logging
 import psycopg2
 from psycopg2.extras import execute_batch
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s"
+)
 log = logging.getLogger(__name__)
 
 DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5433/dataforge"
@@ -18,6 +20,7 @@ VALID_SENSOR_TYPES = {"RADAR", "LIDAR", "TELEMETRY"}
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
+
 
 def validate_alice_record(rec: dict) -> str | None:
     if not rec.get("event_id"):
@@ -164,6 +167,7 @@ def promote_sensors(conn) -> tuple[int, int]:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def run_promotion():
     conn = psycopg2.connect(DB_URL)
     try:
@@ -173,7 +177,7 @@ def run_promotion():
         log.info("Starting promotion — SENSOR")
         sensor_ok, sensor_fail = promote_sensors(conn)
 
-        total_ok   = alice_ok + sensor_ok
+        total_ok = alice_ok + sensor_ok
         total_fail = alice_fail + sensor_fail
 
         log.info("DONE — total_promoted=%d  total_skipped=%d", total_ok, total_fail)

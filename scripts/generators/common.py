@@ -5,7 +5,6 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable
 
-
 # Default number of records required for the fixed training corpus.
 RECORD_COUNT = 50_000
 

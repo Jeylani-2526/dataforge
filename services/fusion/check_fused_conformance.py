@@ -14,7 +14,9 @@ import sys
 import os
 import psycopg2
 
-DB_DSN = os.getenv("TIMESCALE_DSN", "postgresql://postgres:postgres@localhost:5432/dataforge")
+DB_DSN = os.getenv(
+    "TIMESCALE_DSN", "postgresql://postgres:postgres@localhost:5432/dataforge"
+)
 SAMPLE_SIZE = 1000
 
 REQUIRED_FIELDS = [
@@ -92,8 +94,13 @@ def run_checks():
                     type_failures.append(f"timestamp_ms not int: {type(val)}")
                 if field == "track_count" and not isinstance(val, int):
                     type_failures.append(f"track_count not int: {type(val)}")
-                if field in ("net_momentum_x", "net_momentum_y", "net_momentum_z",
-                             "max_energy_gev", "total_energy_gev"):
+                if field in (
+                    "net_momentum_x",
+                    "net_momentum_y",
+                    "net_momentum_z",
+                    "max_energy_gev",
+                    "total_energy_gev",
+                ):
                     if not isinstance(val, (int, float)):
                         type_failures.append(f"{field} not numeric: {type(val)}")
 

@@ -14,7 +14,6 @@ from scripts.generators.common import (
     write_fixed_file,
 )
 
-
 # One synthetic physical TELEMETRY sensor is used per generator process.
 # The sensor ID remains stable while each event receives a unique event ID.
 SENSOR_ID = new_uuid()
@@ -131,9 +130,7 @@ def generate_telemetry_record(
     Raises:
         ValueError: If anomaly_rate is outside the inclusive range [0.0, 1.0].
     """
-    parameter_name = random.choice(
-        list(TELEMETRY_PARAMETERS.keys())
-    )
+    parameter_name = random.choice(list(TELEMETRY_PARAMETERS.keys()))
     parameter_config = TELEMETRY_PARAMETERS[parameter_name]
 
     parameter_value = round(
@@ -153,7 +150,6 @@ def generate_telemetry_record(
         "sensor_id": SENSOR_ID,
         "sensor_type": "TELEMETRY",
         "timestamp_ms": timestamp_ms,
-
         # RADAR-specific fields are not applicable to TELEMETRY records.
         "target_id": None,
         "range_m": None,
@@ -161,7 +157,6 @@ def generate_telemetry_record(
         "elevation_deg": None,
         "velocity_ms": None,
         "signal_strength_db": None,
-
         # LIDAR-specific fields are not applicable to TELEMETRY records.
         "scan_id": None,
         "point_count": None,
@@ -171,14 +166,12 @@ def generate_telemetry_record(
         "max_range_m": None,
         "avg_intensity": None,
         "min_intensity": None,
-
         # TELEMETRY-specific fields.
         "device_id": DEVICE_ID,
         "parameter_name": parameter_name,
         "value": parameter_value,
         "unit": parameter_config["unit"],
         "sequence_number": sequence_number,
-
         # Locked SensorEvent schema version.
         "schema_version": SCHEMA_VERSION,
     }
