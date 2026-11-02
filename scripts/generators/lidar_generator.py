@@ -14,7 +14,6 @@ from scripts.generators.common import (
     write_fixed_file,
 )
 
-
 # One synthetic physical LIDAR device is used per generator process.
 # The sensor ID remains stable while each event receives a unique event ID.
 SENSOR_ID = new_uuid()
@@ -60,7 +59,6 @@ def generate_lidar_record(
         "sensor_id": SENSOR_ID,
         "sensor_type": "LIDAR",
         "timestamp_ms": current_timestamp_ms(),
-
         # RADAR-specific fields are not applicable to LIDAR records.
         "target_id": None,
         "range_m": None,
@@ -68,7 +66,6 @@ def generate_lidar_record(
         "elevation_deg": None,
         "velocity_ms": None,
         "signal_strength_db": None,
-
         # LIDAR-specific fields.
         "scan_id": new_uuid(),
         "point_count": random.randint(10_000, 200_000),
@@ -78,14 +75,12 @@ def generate_lidar_record(
         "max_range_m": round(random.uniform(50.0, 500.0), 2),
         "avg_intensity": avg_intensity,
         "min_intensity": min_intensity,
-
         # TELEMETRY-specific fields are not applicable to LIDAR records.
         "device_id": None,
         "parameter_name": None,
         "value": None,
         "unit": None,
         "sequence_number": None,
-
         # Locked SensorEvent schema version.
         "schema_version": SCHEMA_VERSION,
     }

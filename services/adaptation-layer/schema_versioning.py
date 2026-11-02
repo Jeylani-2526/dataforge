@@ -48,11 +48,18 @@ CURRENT_SCHEMA_VERSIONS = {
 @dataclass
 class EnforcementResult:
     """Outcome of running both checks over one batch of records."""
+
     stream_name: str
     total: int = 0
-    version_drift: list = field(default_factory=list)   # records whose incoming schema_version != registry
-    round_trip_failed: list = field(default_factory=list)  # records that failed serialize/deserialize
-    valid_records: list = field(default_factory=list)   # records that passed both checks, schema_version stamped
+    version_drift: list = field(
+        default_factory=list
+    )  # records whose incoming schema_version != registry
+    round_trip_failed: list = field(
+        default_factory=list
+    )  # records that failed serialize/deserialize
+    valid_records: list = field(
+        default_factory=list
+    )  # records that passed both checks, schema_version stamped
     # Per-record round-trip timing in ms (M4W15T4). Empty unless
     # collect_timings=True was passed to enforce() — other callers unaffected.
     record_latencies_ms: list = field(default_factory=list)
@@ -73,23 +80,32 @@ class EnforcementResult:
         log.info(
             "[%s] enforcement: total=%d  passed=%d  version_drift=%d  "
             "round_trip_failed=%d  data_loss_pct=%.4f%%",
-            self.stream_name, self.total, self.passed,
-            len(self.version_drift), len(self.round_trip_failed), self.data_loss_pct,
+            self.stream_name,
+            self.total,
+            self.passed,
+            len(self.version_drift),
+            len(self.round_trip_failed),
+            self.data_loss_pct,
         )
         for rec in self.version_drift:
             log.warning(
                 "[%s] VERSION DRIFT event_id=%s incoming_schema_version=%s expected=%s",
-                self.stream_name, rec.get("event_id", "?"),
-                rec.get("schema_version"), CURRENT_SCHEMA_VERSIONS.get(self.stream_name),
+                self.stream_name,
+                rec.get("event_id", "?"),
+                rec.get("schema_version"),
+                CURRENT_SCHEMA_VERSIONS.get(self.stream_name),
             )
         for rec, err in self.round_trip_failed:
             log.warning(
                 "[%s] ROUND-TRIP FAILURE event_id=%s error=%s",
-                self.stream_name, rec.get("event_id", "?"), err,
+                self.stream_name,
+                rec.get("event_id", "?"),
+                err,
             )
 
 
 # ── Check 1: schema_version population ───────────────────────────────────
+
 
 def populate_schema_version(records: list, stream_name: str) -> tuple:
     """
@@ -124,6 +140,7 @@ def populate_schema_version(records: list, stream_name: str) -> tuple:
 
 # ── Check 2: automated round-trip check ──────────────────────────────────
 
+
 def _avro_field_types(parsed_schema: dict) -> dict:
     """Maps field name -> Avro primitive type string, resolving ["null", T] unions."""
     types = {}
@@ -148,7 +165,9 @@ def _float32_round(value):
     return struct.unpack(">f", struct.pack(">f", value))[0]
 
 
-def round_trip_check(records: list, parsed_schema: dict, collect_timings: bool = False) -> tuple:
+def round_trip_check(
+    records: list, parsed_schema: dict, collect_timings: bool = False
+) -> tuple:
     """
     Serializes then immediately deserializes every record against the
     given (already fastavro.parse_schema()'d) schema, using the same
@@ -200,13 +219,22 @@ def round_trip_check(records: list, parsed_schema: dict, collect_timings: bool =
 
             expected = dict(rec)
             for key, value in expected.items():
-                if field_types.get(key) == "float" and isinstance(value, (int, float)) and value is not None:
+                if (
+                    field_types.get(key) == "float"
+                    and isinstance(value, (int, float))
+                    and value is not None
+                ):
                     expected[key] = _float32_round(value)
 
             if decoded == expected:
                 passed.append(rec)
             else:
-                failed.append((rec, f"round-trip mismatch: decoded={decoded} != expected={expected}"))
+                failed.append(
+                    (
+                        rec,
+                        f"round-trip mismatch: decoded={decoded} != expected={expected}",
+                    )
+                )
         except Exception as exc:
             failed.append((rec, str(exc)))
         finally:
@@ -219,6 +247,7 @@ def round_trip_check(records: list, parsed_schema: dict, collect_timings: bool =
 
 
 # ── Combined enforcement entry point ─────────────────────────────────────
+
 
 def enforce(
     records: list, stream_name: str, parsed_schema: dict, collect_timings: bool = False

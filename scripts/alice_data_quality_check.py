@@ -6,7 +6,6 @@ from pathlib import Path
 from fastavro import parse_schema, schemaless_reader, schemaless_writer
 from fastavro.validation import validate
 
-
 # Fields required for every ALICE event record
 REQUIRED_FIELDS = [
     "event_id",
@@ -77,11 +76,7 @@ def check_completeness(record):
     Check whether every required ALICE field is present.
     """
 
-    return [
-        field
-        for field in REQUIRED_FIELDS
-        if field not in record
-    ]
+    return [field for field in REQUIRED_FIELDS if field not in record]
 
 
 def check_required_nulls(record):
@@ -89,11 +84,7 @@ def check_required_nulls(record):
     Check whether any required ALICE field contains a null value.
     """
 
-    return [
-        field
-        for field in REQUIRED_FIELDS
-        if record.get(field) is None
-    ]
+    return [field for field in REQUIRED_FIELDS if record.get(field) is None]
 
 
 def check_ranges(record):
@@ -111,14 +102,10 @@ def check_ranges(record):
     schema_version = record.get("schema_version")
 
     if run_number is not None and run_number <= 0:
-        violations.append(
-            ("run_number", run_number, "must be greater than 0")
-        )
+        violations.append(("run_number", run_number, "must be greater than 0"))
 
     if timestamp_ms is not None and timestamp_ms <= 0:
-        violations.append(
-            ("timestamp_ms", timestamp_ms, "must be greater than 0")
-        )
+        violations.append(("timestamp_ms", timestamp_ms, "must be greater than 0"))
 
     if track_count is not None and track_count < 0:
         violations.append(
@@ -157,9 +144,7 @@ def check_ranges(record):
         )
 
     if schema_version != "1.0":
-        violations.append(
-            ("schema_version", schema_version, "must equal 1.0")
-        )
+        violations.append(("schema_version", schema_version, "must equal 1.0"))
 
     return violations
 
@@ -278,10 +263,7 @@ def main():
             print("Example violations:")
 
             for line_number, check_name, message in examples:
-                print(
-                    f"- Line {line_number} "
-                    f"[{check_name}]: {message}"
-                )
+                print(f"- Line {line_number} " f"[{check_name}]: {message}")
 
         total_failures = (
             invalid_json

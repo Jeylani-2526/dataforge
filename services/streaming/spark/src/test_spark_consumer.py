@@ -29,25 +29,45 @@ import psycopg2  # noqa: E402
 import spark_consumer as sc  # noqa: E402
 
 SENSOR_SCHEMA = sc.load_parsed_avro_schema(REPO / "schemas" / "sensor_schema_v1.avsc")
-ALICE_SCHEMA = sc.load_parsed_avro_schema(REPO / "schemas" / "alice_event_schema_v1.avsc")
+ALICE_SCHEMA = sc.load_parsed_avro_schema(
+    REPO / "schemas" / "alice_event_schema_v1.avsc"
+)
 
 
 # ── Fixtures and fakes ──────────────────────────────────────────────────────
 
+
 def telemetry(**overrides):
     rec = {f: None for f in sc.SENSOR_FIELDS}
-    rec.update(event_id=str(uuid.uuid4()), sensor_id=str(uuid.uuid4()), sensor_type="TELEMETRY",
-               timestamp_ms=1_790_000_000_000, device_id="SENSOR-UNIT-01",
-               parameter_name="cpu_temp_c", value=56.5, unit="C", sequence_number=1,
-               schema_version="1.0")
+    rec.update(
+        event_id=str(uuid.uuid4()),
+        sensor_id=str(uuid.uuid4()),
+        sensor_type="TELEMETRY",
+        timestamp_ms=1_790_000_000_000,
+        device_id="SENSOR-UNIT-01",
+        parameter_name="cpu_temp_c",
+        value=56.5,
+        unit="C",
+        sequence_number=1,
+        schema_version="1.0",
+    )
     rec.update(overrides)
     return rec
 
 
 def alice(**overrides):
-    rec = dict(event_id=str(uuid.uuid4()), run_number=137_000, timestamp_ms=1_291_000_000_000,
-               track_count=12, net_momentum_x=1.5, net_momentum_y=-2.25, net_momentum_z=0.0,
-               max_energy_gev=10.5, total_energy_gev=42.0, schema_version="1.0")
+    rec = dict(
+        event_id=str(uuid.uuid4()),
+        run_number=137_000,
+        timestamp_ms=1_291_000_000_000,
+        track_count=12,
+        net_momentum_x=1.5,
+        net_momentum_y=-2.25,
+        net_momentum_z=0.0,
+        max_energy_gev=10.5,
+        total_energy_gev=42.0,
+        schema_version="1.0",
+    )
     rec.update(overrides)
     return rec
 
@@ -61,8 +81,12 @@ class FakeBatchDF:
         return self
 
     def collect(self):
-        return [type("Row", (), {"asDict": lambda s, r=r: {c: r.get(c) for c in self.cols}})()
-                for r in self.rows]
+        return [
+            type(
+                "Row", (), {"asDict": lambda s, r=r: {c: r.get(c) for c in self.cols}}
+            )()
+            for r in self.rows
+        ]
 
 
 class FakeCursor:
@@ -126,9 +150,10 @@ def fake_db(monkeypatch):
 
 # ── COPY encoding ───────────────────────────────────────────────────────────
 
+
 def test_csv_field_null_vs_empty_and_quoting():
-    assert sc._csv_field(None) == ""            # unquoted empty = NULL in COPY CSV
-    assert sc._csv_field("") == '""'            # quoted empty = empty string
+    assert sc._csv_field(None) == ""  # unquoted empty = NULL in COPY CSV
+    assert sc._csv_field("") == '""'  # quoted empty = empty string
     assert sc._csv_field('say "hi"') == '"say ""hi"""'
     assert sc._csv_field("a,b") == '"a,b"'
     assert sc._csv_field(-0.0) == '"-0.0"'
@@ -136,32 +161,51 @@ def test_csv_field_null_vs_empty_and_quoting():
 
 
 def test_copy_buffer_round_trips_awkward_values():
-    tricky = ["", "a,b", 'q"q', "line1\nline2", "cr\r\nlf", "back\\slash", "\\N", "tab\t", "ünï 🚀"]
+    tricky = [
+        "",
+        "a,b",
+        'q"q',
+        "line1\nline2",
+        "cr\r\nlf",
+        "back\\slash",
+        "\\N",
+        "tab\t",
+        "ünï 🚀",
+    ]
     cols = ["a", "b"]
     rows = [{"a": s, "b": None} for s in tricky] + [{"a": 1.0 / 3, "b": 3.4e38}]
     parsed = list(csv.reader(io.StringIO(sc._copy_buffer(rows, cols).getvalue())))
     assert [r[0] for r in parsed] == [str(x["a"]) for x in rows]
-    assert all(r[1] == "" for r in parsed[:-1])           # NULLs
-    assert float(parsed[-1][1]) == 3.4e38                   # floats survive as repr text
+    assert all(r[1] == "" for r in parsed[:-1])  # NULLs
+    assert float(parsed[-1][1]) == 3.4e38  # floats survive as repr text
 
 
 # ── Column lists guard against DDL drift ────────────────────────────────────
 
+
 def _ddl_columns(table):
-    sql = (REPO / "infrastructure" / "scripts" / "init-db.sql").read_text(encoding="utf-8")
-    body = re.search(rf"CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);", sql, re.S).group(1)
+    sql = (REPO / "infrastructure" / "scripts" / "init-db.sql").read_text(
+        encoding="utf-8"
+    )
+    body = re.search(
+        rf"CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);", sql, re.S
+    ).group(1)
     return [line.split()[0] for line in body.strip().splitlines() if line.strip()]
 
 
-@pytest.mark.parametrize("table,columns", [
-    (sc.SENSOR_STAGING_TABLE, sc.SENSOR_STAGING_COLUMNS),
-    (sc.ALICE_STAGING_TABLE, sc.ALICE_STAGING_COLUMNS),
-])
+@pytest.mark.parametrize(
+    "table,columns",
+    [
+        (sc.SENSOR_STAGING_TABLE, sc.SENSOR_STAGING_COLUMNS),
+        (sc.ALICE_STAGING_TABLE, sc.ALICE_STAGING_COLUMNS),
+    ],
+)
 def test_staging_columns_match_init_db_sql(table, columns):
     assert columns == [c for c in _ddl_columns(table) if c != "load_id"]
 
 
 # ── Writer behaviour (fake DB) ──────────────────────────────────────────────
+
 
 def test_one_connection_reused_and_copy_then_insert(fake_db):
     write = sc.make_sensor_batch_writer(SENSOR_SCHEMA)
@@ -172,7 +216,8 @@ def test_one_connection_reused_and_copy_then_insert(fake_db):
     assert conn.commits == 5
     first_batch = conn.sql[:3]
     assert first_batch[0].startswith(
-        "CREATE TEMP TABLE IF NOT EXISTS tmp_raw_sensor_events_staging")
+        "CREATE TEMP TABLE IF NOT EXISTS tmp_raw_sensor_events_staging"
+    )
     assert first_batch[1].startswith("COPY tmp_raw_sensor_events_staging")
     assert "ON CONFLICT (event_id) DO NOTHING" in first_batch[2]
     assert all(data.count("\n") == 3 for data in conn.copied)
@@ -188,9 +233,11 @@ def test_sensor_rows_carry_label_defaults(fake_db):
 
 def test_connection_error_reconnects_once_and_resends_full_batch(fake_db):
     fake_db.fail_plan.append(psycopg2.OperationalError("server closed the connection"))
-    sc.make_alice_batch_writer(ALICE_SCHEMA)(FakeBatchDF([alice() for _ in range(4)]), 0)
+    sc.make_alice_batch_writer(ALICE_SCHEMA)(
+        FakeBatchDF([alice() for _ in range(4)]), 0
+    )
     assert len(fake_db) == 2 and fake_db[0].closed
-    assert fake_db[1].copied[0].count("\n") == 4        # buffer rewound, nothing lost
+    assert fake_db[1].copied[0].count("\n") == 4  # buffer rewound, nothing lost
 
 
 def test_persistent_outage_raises_after_one_retry(fake_db):
@@ -206,18 +253,21 @@ def test_data_error_rolls_back_without_reconnecting(fake_db):
     with pytest.raises(psycopg2.DataError):
         write(FakeBatchDF([alice()]), 0)
     assert len(fake_db) == 1 and fake_db[0].rollbacks == 1 and not fake_db[0].closed
-    write(FakeBatchDF([alice()]), 1)                     # same connection still usable
+    write(FakeBatchDF([alice()]), 1)  # same connection still usable
     assert len(fake_db) == 1 and fake_db[0].commits == 1
 
 
 def test_empty_and_fully_rejected_batches_touch_no_db(fake_db):
     write = sc.make_sensor_batch_writer(SENSOR_SCHEMA)
     write(FakeBatchDF([]), 0)
-    write(FakeBatchDF([telemetry(schema_version="9.9")]), 1)   # version drift -> rejected
+    write(
+        FakeBatchDF([telemetry(schema_version="9.9")]), 1
+    )  # version drift -> rejected
     assert fake_db == []
 
 
 # ── Kafka source options ────────────────────────────────────────────────────
+
 
 class FakeReader:
     def __init__(self):
@@ -245,8 +295,9 @@ def _kafka_options(monkeypatch, **config):
 
 
 def test_kafka_defaults_cap_batches_and_start_latest(monkeypatch):
-    opts = _kafka_options(monkeypatch, SPARK_MAX_OFFSETS_PER_TRIGGER=50000,
-                          SPARK_STARTING_TIMESTAMP_MS="")
+    opts = _kafka_options(
+        monkeypatch, SPARK_MAX_OFFSETS_PER_TRIGGER=50000, SPARK_STARTING_TIMESTAMP_MS=""
+    )
     assert opts["subscribe"] == "topic-a,topic-b"
     assert opts["startingOffsets"] == "latest"
     assert opts["maxOffsetsPerTrigger"] == 50000
@@ -254,8 +305,11 @@ def test_kafka_defaults_cap_batches_and_start_latest(monkeypatch):
 
 
 def test_kafka_cap_disabled_and_timestamp_replay(monkeypatch):
-    opts = _kafka_options(monkeypatch, SPARK_MAX_OFFSETS_PER_TRIGGER=0,
-                          SPARK_STARTING_TIMESTAMP_MS="1790000000000")
+    opts = _kafka_options(
+        monkeypatch,
+        SPARK_MAX_OFFSETS_PER_TRIGGER=0,
+        SPARK_STARTING_TIMESTAMP_MS="1790000000000",
+    )
     assert "maxOffsetsPerTrigger" not in opts
     assert opts["startingTimestamp"] == "1790000000000"
     assert opts["startingOffsetsByTimestampStrategy"] == "latest"
@@ -266,21 +320,31 @@ def test_kafka_cap_disabled_and_timestamp_replay(monkeypatch):
 DSN = os.environ.get("DATAFORGE_TEST_DB_DSN")
 
 
-@pytest.mark.skipif(not DSN, reason="set DATAFORGE_TEST_DB_DSN to run against a real Postgres")
+@pytest.mark.skipif(
+    not DSN, reason="set DATAFORGE_TEST_DB_DSN to run against a real Postgres"
+)
 def test_real_db_values_nulls_and_duplicates(monkeypatch):
     monkeypatch.setattr(sc, "_get_db_connection", lambda: psycopg2.connect(DSN))
-    recs = [telemetry(unit=""), telemetry(unit=None), telemetry(parameter_name='a,"b"\nc'),
-            telemetry(value=-0.0), telemetry(value=1.0 / 3)]
-    recs.append(dict(recs[0]))                               # in-batch duplicate
+    recs = [
+        telemetry(unit=""),
+        telemetry(unit=None),
+        telemetry(parameter_name='a,"b"\nc'),
+        telemetry(value=-0.0),
+        telemetry(value=1.0 / 3),
+    ]
+    recs.append(dict(recs[0]))  # in-batch duplicate
     ids = sorted({r["event_id"] for r in recs})
     write = sc.make_sensor_batch_writer(SENSOR_SCHEMA)
     try:
         write(FakeBatchDF(recs), 0)
-        write(FakeBatchDF(recs[:2]), 1)                      # redelivery: nothing new
+        write(FakeBatchDF(recs[:2]), 1)  # redelivery: nothing new
         with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
-            cur.execute("SELECT event_id::text, unit, parameter_name, value "
-                        "FROM raw_sensor_events_staging "
-                        "WHERE event_id::text = ANY(%s) ORDER BY load_id", (ids,))
+            cur.execute(
+                "SELECT event_id::text, unit, parameter_name, value "
+                "FROM raw_sensor_events_staging "
+                "WHERE event_id::text = ANY(%s) ORDER BY load_id",
+                (ids,),
+            )
             got = {r[0]: r[1:] for r in cur.fetchall()}
         assert len(got) == 5
         assert got[recs[0]["event_id"]][0] == "" and got[recs[1]["event_id"]][0] is None
@@ -288,16 +352,25 @@ def test_real_db_values_nulls_and_duplicates(monkeypatch):
         assert got[recs[4]["event_id"]][2] == pytest.approx(1.0 / 3, rel=1e-6)
     finally:
         with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
-            cur.execute("DELETE FROM raw_sensor_events_staging "
-                        "WHERE event_id::text = ANY(%s)", (ids,))
+            cur.execute(
+                "DELETE FROM raw_sensor_events_staging "
+                "WHERE event_id::text = ANY(%s)",
+                (ids,),
+            )
         sc._close_persistent_connections()
 
 
 # ── Checkpointing (M6W21T2) ─────────────────────────────────────────────────
 
+
 def test_each_query_gets_its_own_checkpoint_folder(monkeypatch):
     monkeypatch.setattr(sc, "SPARK_CHECKPOINT_DIR", "/app/checkpoints")
-    names = ["alice_throughput", "sensor_throughput", "alice_staging_write", "sensor_staging_write"]
+    names = [
+        "alice_throughput",
+        "sensor_throughput",
+        "alice_staging_write",
+        "sensor_staging_write",
+    ]
     paths = [sc.checkpoint_path(n) for n in names]
     assert paths[2] == "/app/checkpoints/alice_staging_write"
     assert len(set(paths)) == 4
@@ -305,9 +378,9 @@ def test_each_query_gets_its_own_checkpoint_folder(monkeypatch):
 
 def test_has_checkpoint_only_after_offsets_committed(monkeypatch, tmp_path):
     monkeypatch.setattr(sc, "SPARK_CHECKPOINT_DIR", str(tmp_path))
-    assert not sc.has_checkpoint("alice_staging_write")          # nothing yet
+    assert not sc.has_checkpoint("alice_staging_write")  # nothing yet
     offsets = tmp_path / "alice_staging_write" / "offsets"
     offsets.mkdir(parents=True)
-    assert not sc.has_checkpoint("alice_staging_write")          # empty folder = fresh start
+    assert not sc.has_checkpoint("alice_staging_write")  # empty folder = fresh start
     (offsets / "0").write_text("v1")
     assert sc.has_checkpoint("alice_staging_write")

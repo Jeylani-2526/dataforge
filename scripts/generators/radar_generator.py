@@ -14,7 +14,6 @@ from scripts.generators.common import (
     write_fixed_file,
 )
 
-
 # One synthetic physical RADAR device is used per generator process.
 # The sensor ID remains stable while each event receives a unique event ID.
 SENSOR_ID = new_uuid()
@@ -47,7 +46,6 @@ def generate_radar_record(
         "sensor_id": SENSOR_ID,
         "sensor_type": "RADAR",
         "timestamp_ms": current_timestamp_ms(),
-
         # RADAR-specific fields.
         "target_id": f"TARGET-{random.randint(1, 500):04d}",
         "range_m": round(random.uniform(50.0, 5000.0), 2),
@@ -55,7 +53,6 @@ def generate_radar_record(
         "elevation_deg": round(random.uniform(-30.0, 30.0), 2),
         "velocity_ms": round(random.uniform(-100.0, 300.0), 2),
         "signal_strength_db": round(random.uniform(-90.0, -20.0), 2),
-
         # LIDAR-specific fields are not applicable to RADAR records.
         "scan_id": None,
         "point_count": None,
@@ -65,14 +62,12 @@ def generate_radar_record(
         "max_range_m": None,
         "avg_intensity": None,
         "min_intensity": None,
-
         # TELEMETRY-specific fields are not applicable to RADAR records.
         "device_id": None,
         "parameter_name": None,
         "value": None,
         "unit": None,
         "sequence_number": None,
-
         # Locked schema version carried by every SensorEvent record.
         "schema_version": SCHEMA_VERSION,
     }

@@ -267,14 +267,18 @@ def test_sensor_streams_round_trip_combined_batch(spark, tmp_path):
 
     # ---- Leg 2: Avro -> Parquet (existing M4W14T4 writer, unmodified) ----
     counts = convert_sensor_streams_to_parquet(spark, tmp_path / "avro", parquet_root)
-    assert counts == {"radar": 1, "lidar": 1, "telemetry": 1}, (
-        f"Avro->Parquet leg produced unexpected per-type counts: {counts}"
-    )
+    assert counts == {
+        "radar": 1,
+        "lidar": 1,
+        "telemetry": 1,
+    }, f"Avro->Parquet leg produced unexpected per-type counts: {counts}"
 
     # ---- Leg 3: Parquet -> Avro (new M4W15T3 module), per subtype ----
     for sensor_type in fixtures:
         parquet_dir = parquet_root / sensor_type.lower()
-        avro_back_path = tmp_path / "avro_roundtrip" / f"sensor_event_{sensor_type.lower()}.avro"
+        avro_back_path = (
+            tmp_path / "avro_roundtrip" / f"sensor_event_{sensor_type.lower()}.avro"
+        )
 
         round_tripped_count = convert_parquet_to_avro(
             spark, parquet_dir, parsed_schema, SENSOR_FIELDS, avro_back_path
@@ -318,4 +322,6 @@ def test_sensor_single_type_batch_hits_known_spark_inference_gap(spark, tmp_path
     from pyspark.errors.exceptions.base import PySparkValueError
 
     with pytest.raises(PySparkValueError, match="CANNOT_DETERMINE_TYPE"):
-        convert_sensor_streams_to_parquet(spark, tmp_path / "avro", tmp_path / "parquet")
+        convert_sensor_streams_to_parquet(
+            spark, tmp_path / "avro", tmp_path / "parquet"
+        )

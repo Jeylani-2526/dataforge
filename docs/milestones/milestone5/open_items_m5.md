@@ -421,9 +421,35 @@ moves the failure.
 corrected in the same change.
 
 **Action items:**
-- [ ] M6 owners (Abdullah / Ömer): correct `fusion-engine`'s Dockerfile path to `../../infrastructure/docker/fusion.Dockerfile` when creating that Dockerfile; same pattern for later services
-- [ ] Ömer: M5W20T11 — confirm the stale-checkout hypothesis on his machine (`git status`, `git log -1`, `docker compose build --no-cache`)
+- [x] M6 owners (Abdullah / Ömer): correct `fusion-engine`'s Dockerfile path to `../../infrastructure/docker/fusion.Dockerfile` when creating that Dockerfile; same pattern for later services — **done for `fusion-engine` in M6W22T3 (see amendment below)**
+- [x] Ömer: M5W20T11 — confirm the stale-checkout hypothesis on his machine (`git status`, `git log -1`, `docker compose build --no-cache`) — closed under its original ID at M6W21T9; see `m5w20t11_build_verification.md`
 - [ ] Team: revisit the KRaft voter address only if the cluster grows beyond one broker
+
+---
+
+### Amendment — M6W22T3 (8 October 2026, Abdullah): `fusion-engine` path corrected and service wired
+
+Sub-item 1 is **resolved for `fusion-engine` only**. `anomaly-detection`, `xai-service`, `api` and
+`dashboard` still carry the same depth bug and this item stays open for them.
+
+Reassigned from Ömer to Abdullah in the Week 22 plan, and sequenced ahead of Ömer's `fusion.Dockerfile`
+(M6W22T8): a Dockerfile cannot be verified against a build context that is still wrong. The
+one-commit intent of the M6 document is preserved as an ordering rule instead.
+
+What changed in `docker-compose.yml`:
+
+| Change | Value | Why |
+|---|---|---|
+| Build-context depth | `../` → `../../infrastructure/docker/fusion.Dockerfile` | Context `./services/fusion` is two levels deep. Counted from the actual nesting, not copied from a neighbouring service — copying is how the bug spread from the M1 skeleton (`70cad0d`) |
+| `depends_on` | `spark-processor` → `kafka` + `timescaledb`, both `service_healthy` | Design note Section 9 chose a separate service so the join is isolated from `spark-processor`. A startup dependency on it worked against that, and would have blocked fusion from starting without the M5 service |
+| Checkpoint volume | Named volume `fusion-checkpoints:/app/checkpoints` | M6W21T2 pattern. Separate from `spark-checkpoints` so a fusion reset does not disturb the M5 queries |
+| `stop_grace_period` | `30s` | Matches `spark-processor`; M5 Item 9 found Docker's 10 s default kills Spark mid-stop (exit 137) |
+| `schema_versioning.py` mount | read-only, from the adaptation layer | Same single-source-of-truth mount as `spark-processor` (M5W18T9). The fused writer (M6W22T2) calls `enforce()` from it |
+| New env vars | `FUSION_WINDOW_MS=500`, `FUSION_TRIGGER_SECONDS=5`, `FUSION_SHUFFLE_PARTITIONS=8` | Design note Sections 8 and 11. Added to `.env.example` |
+
+**Verified:** the path now resolves to `infrastructure/docker/fusion.Dockerfile`, which is a real
+directory. The Dockerfile itself does not exist yet — that is M6W22T8 (Ömer), and `--build` will
+still fail until he writes it. That is the expected sequence, not a regression.
 
 ---
 
