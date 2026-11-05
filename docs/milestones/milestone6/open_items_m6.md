@@ -179,7 +179,7 @@ document the reset as the recovery procedure; (b) a terminated query exits non-z
 
 ## Item 12 — Compose and Environment Operability
 
-Four small issues, one owner:
+Five small issues, one owner:
 
 1. **Profiles do not cascade** (M6W23T9). `--profile m6-and-above` alone starts fusion with no
    producers and no spark-processor — a silently idle stack. Plans and README must give the
@@ -192,8 +192,14 @@ Four small issues, one owner:
    `open_items_m5.md`) and the M6W22T7 cleanup record exists only as an edit to
    `m6w21t8_staging_review.md`.
 
+5. **A fresh database has no ALICE records to stream** (found 5 November, preparing M6W26T7).
+   `alice_producer.py` reads the 68 promoted records from `events`, which is empty on a new
+   volume, so fusion receives no ALICE events and writes nothing. Seeding takes
+   `staging_ingestion_script.py` on `data/synthetic/alice.jsonl`, then
+   `promote_to_production.py` — documented nowhere.
+
 **Owner:** Omer · **Target:** M8
-**Trigger:** README "Running the stack" section covers 1–3; item 4 is committed or the
+**Trigger:** README "Running the stack" section covers 1–3 and 5; item 4 is committed or the
 references are corrected.
 
 ## Item 13 — Omer's Capacity
@@ -233,9 +239,8 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 ## Inherited Items
 
 - `open_items_m4.md` Items 1 and 3 (zero-track ALICE events, net-momentum outlier) were deferred
-  to M7 as candidate ALICE features. M6W26T5 excludes ALICE from detection, so neither is an M7
-  input any more. Proposed: close both as superseded by M6W26T5 in the next amendment to
-  `open_items_m4.md`.
+  to M7 as candidate ALICE features. M6W26T5 excludes ALICE from detection, so both are closed
+  as superseded in `open_items_m4.md` (M6W26T6 amendment).
 - `open_items_m4.md` Item 4 (fused-event stub) was closed in practice by M6W22T2's real
   `write_fused_events()`.
 

@@ -3,7 +3,7 @@
 **Originating Task ID:** M4W13T7
 **Owner:** Abdullah
 **Milestone:** M4 · Week 13 (originated) — amended M4 · Week 15, Week 16
-**Status:** Open — six items tracked; three open (Items 1, 3, 4), two resolved (Items 2, 6), one superseded (Item 5); see the M5W20T4 amendment
+**Status:** Open — six items tracked; one open (Item 4), two resolved (Items 2, 6), three superseded (Items 1, 3, 5); see the M5W20T4 and M6W26T6 amendments
 **GitHub Path:** `/docs/milestones/milestone4/open_items_m4.md`
 
 **Amendment history:**
@@ -12,6 +12,7 @@
 - M4W15T4 — Item 5 added: full-volume run throughput (1,665.56 events/sec) below the locked prototype bar (≥10,000 events/sec), surfaced by the M4W15T4 full-volume pipeline run.
 - M3W16T5 — Item 6 added and resolved same-day: missing `events` production table in the local dev Docker volume, found during Docker execution environment & port consistency verification.
 - M5W20T4 — Item 2 marked resolved (closed by M5W19T8, `docs/data/repeat_generation_device_diversity_closure.md`). Item 5 marked superseded by `docs/milestones/milestone5/open_items_m5.md` Item 1 (streaming throughput). Items 1, 3, 4 remain open here.
+- M6W26T6 (5 November 2026) — Items 1 and 3 marked superseded by `docs/milestones/milestone6/m6w26t5_feature_access_decision.md`: M7 excludes ALICE from detection, so neither is an M7 input any more. Item 4 remains open here.
 
 ---
 
@@ -35,6 +36,8 @@
 **Action items:**
 - [ ] Abdulla: continue tracking Prof. Uysal's physics interpretation status via Emrah's weekly channel
 - [ ] M7 owner: run filter-vs-keep comparison before finalizing the training dataset
+
+**Resolution (amended M6W26T6):** **Superseded.** M6W26T5 (signed 5 November 2026) excludes ALICE from M7 detection: the model trains on the M3 sensor corpus, which has no ALICE partner, and ALICE's role is architecture validation. The filter-vs-keep comparison therefore has no model to run against. Both action items above are withdrawn. All 68 records stay in `events`, unchanged. Prof. Uysal's interpretation is still worth having for the physics record, but it no longer gates anything.
 
 ---
 
@@ -71,6 +74,8 @@
 
 **Action items:**
 - [ ] M7 owner: consider `c1cc2e42…` as a reference case when defining anomaly-detection features/labels
+
+**Resolution (amended M6W26T6):** **Superseded.** M6W26T5 excludes ALICE features from M7, so this event cannot serve as an anomaly-detection feature or label case. The action item is withdrawn. The observation stands in `alice_staging_verification_m4w13.md` as a physics note.
 
 ---
 
@@ -193,11 +198,11 @@ is not logged here as an open item.
 
 | Item | Status | Deferred to | Trigger for resolution |
 |---|---|---|---|
-| 24 zero-track-count ALICE events | Open, keep all 68 through M4 | M7 | Prof. Uysal's interpretation + M7 model results |
+| 24 zero-track-count ALICE events | **Superseded** (M6W26T5) | — | N/A — ALICE excluded from M7 detection |
 | Telemetry `device_id` scope (single value) | **Resolved** (M5W19T8) | — | N/A — see Item 2 resolution |
-| Net-momentum outlier, event `c1cc2e42…` | Open, logged as observation | M7 | M7 anomaly-detection feature/label design |
+| Net-momentum outlier, event `c1cc2e42…` | **Superseded** (M6W26T5) | — | N/A — ALICE excluded from M7 detection |
 | Fused-event stub scope (`write_fused_events()`) | Open, confirmed out of scope for M4 | Module 6 (stream-stream join build) | Start of Module 6 planning/build work |
 | Full-volume run throughput below bar (1,665.56 vs. ≥10,000 events/sec) | **Superseded** by `open_items_m5.md` Item 1 | — | N/A — see Item 5 resolution |
 | Missing `events` production table in local dev volume | **Resolved** (M3W16T5) | — | N/A — fixed directly, see Item 6 |
 
-*(Amended M5W20T4: Item 2 is now resolved and Item 5 superseded, so three of six remain open: Items 1, 3 and 4. The original M4 close-out text follows.)* **Five of six items remain open by design**, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked. **Item 6 is the one exception**, closed directly this week because it was a mechanical schema-drift bug with a known-safe, idempotent fix rather than a question requiring team input.
+*(Amended M6W26T6: Items 1 and 3 superseded by M6W26T5, so one of six remains open: Item 4.)* *(Amended M5W20T4: Item 2 is now resolved and Item 5 superseded, so three of six remain open: Items 1, 3 and 4. The original M4 close-out text follows.)* **Five of six items remain open by design**, each tied to a specific downstream milestone where the team will have the information or infrastructure needed to decide properly, rather than being resolved prematurely or left untracked. **Item 6 is the one exception**, closed directly this week because it was a mechanical schema-drift bug with a known-safe, idempotent fix rather than a question requiring team input.
