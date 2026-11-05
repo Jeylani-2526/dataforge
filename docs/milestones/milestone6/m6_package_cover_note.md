@@ -12,8 +12,8 @@
   ≈100% match rate, zero duplicates, zero watermark drops.
 - **Latency is missed** (structural, carried). Fourteen open items, each with an owner, target
   and trigger.
-- Pending at assembly: Omer's M6W26T7 and M6W26T8, and the `init-db.sql` restore on `develop`
-  (open item 9).
+- Pending at assembly: Omer's M6W26T7 and M6W26T8. The `init-db.sql` restore (open item 9) landed
+  at `83d9a11`.
 
 ---
 
@@ -42,7 +42,7 @@ Module 6 fuses the ALICE stream with the three sensor streams:
 | Alignment persistence + `alignment_report.py` | M6W26T3 | `services/fusion/` | Complete (`70a0100`) |
 | Synchronization validation run | M6W26T4 | `docs/milestones/milestone6/m6w23t2_sync_validation.md` | Complete (`386523e`); final since M6W26T1 passed |
 | Feature-access decision | M6W26T5 | `docs/milestones/milestone6/m6w26t5_feature_access_decision.md` | Signed (`d04801e`) |
-| Open items log + this note | M6W26T6 | `docs/milestones/milestone6/` | This task's commit |
+| Open items log + this note | M6W26T6 | `docs/milestones/milestone6/` | Complete (`7e3fafb`) |
 
 ### Beyza
 
@@ -52,7 +52,7 @@ Module 6 fuses the ALICE stream with the three sensor streams:
 | FK-target decision — soft reference | M6W21T7 | `docs/database/fused_events_fk_decision.md` | Complete (`b981d57`) |
 | Staging review + cleanup plan; cleanup executed | M6W21T8, M6W22T7 | `docs/database/m6w21t8_staging_review.md` | Complete (`a62348f`, `5269e81`) |
 | Heartbeat writer | M6W22T5 | `services/fusion/heartbeat_writer.py` | Complete (`b6a2496`); three contract mismatches — open item 6 |
-| `summary_5min` aggregate + Fusion Monitor mapping | M6W23T7 | `docs/database/m6w23t7_fusion_monitor_source_mapping.md` | Complete (`e7d429a`); aggregate currently lost from `develop` — open item 9 |
+| `summary_5min` aggregate + Fusion Monitor mapping | M6W23T7 | `docs/database/m6w23t7_fusion_monitor_source_mapping.md` | Complete (`e7d429a`); lost in merge `4d90452`, restored at `83d9a11` |
 | Fusion soak test | M6W23T8 | `docs/database/m6w23t8_fusion_soak_test.md` | PASS (`6a7c688`) |
 | Fused-record conformance — script rewritten and executed | M6W22T6, M6W26T1 | `docs/database/m6w22t6_fused_conformance.md` | PASS (`766b6b7`) |
 | Fused-reference resolution | M6W26T2 | `docs/database/m6w26t2_fused_reference_resolution.md` | Complete (`0513fe1`) |
@@ -62,7 +62,7 @@ Module 6 fuses the ALICE stream with the three sensor streams:
 | Artifact | Task | Path | Status |
 |---|---|---|---|
 | Fusion Dockerfile + `schema_versioning.py` mount move to `/app/` | M6W22T8 | `infrastructure/docker/fusion.Dockerfile` | Complete (`9e045b2`) |
-| Cross-machine build verification | M6W22T8 → M6W26T7 | `m6w26t7_cross_machine_build.md` | **Pending** — blocked by open item 9 |
+| Cross-machine build verification | M6W22T8 → M6W26T7 | `m6w26t7_cross_machine_build.md` | **Pending** |
 | M6 milestone tags + README update | M6W26T8 | README; tags `M6-W26-*` | **Pending** |
 
 M6W23T3 and M6W23T9, planned for Omer, were carried out by the lead (open item 13).
@@ -139,7 +139,7 @@ Stated plainly, per the project's rule of verifying against committed files:
 
 ## 6. What Closes M6
 
-- [ ] `init-db.sql` restored on `develop` (open item 9)
+- [x] `init-db.sql` restored on `develop` (open item 9, `83d9a11`)
 - [ ] M6W26T7 cross-machine build recorded, including any failure
 - [ ] Tags `M6-W26-abdalla`, `M6-W26-beyza`, `M6-W26-omer` at the closing commit
 - [ ] README: M6 Completed, M7 In Progress

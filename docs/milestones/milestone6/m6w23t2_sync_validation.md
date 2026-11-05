@@ -18,10 +18,9 @@ measurements, and T4's boundary and restart results appended to them.
 | Watermark boundary | T4 | **Complete** |
 | Restart safety | T4 | **Complete** |
 
-> **Provisional.** The T2 figures below were taken before the fused-record
-> conformance gate (M6W26T1) has passed. Under the project's rule, measurement
-> results are not final until the rows they are drawn from are shown to conform.
-> They become final when M6W26T1 reports pass, and are re-run if it fails.
+> **Final.** The T2 figures were taken before the fused-record conformance gate
+> (M6W26T1) had reported. It passed on 5 November (`766b6b7`), so the figures stand
+> without a re-run.
 
 ## T2 blocker and the agreed route
 
