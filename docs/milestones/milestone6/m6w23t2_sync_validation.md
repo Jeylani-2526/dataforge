@@ -9,7 +9,7 @@ measurements, and T4's boundary and restart results appended to them.
 
 | Section | Task | Status |
 |---|---|---|
-| Timestamp-alignment error vs ±1 ms | T2 | Pending — Option A instrumentation agreed, not yet run |
+| Timestamp-alignment error vs ±1 ms | T2 | Pending measurement — instrumentation complete, see M6W26T3 below |
 | Match rate and unmatched count | T2 | Pending |
 | Fused-count reconciliation | T2 | Pending |
 | Fused-path p95 latency | T2 | Pending |
@@ -19,22 +19,72 @@ measurements, and T4's boundary and restart results appended to them.
 ## T2 blocker and the agreed route
 
 `select_nearest()` in `fusion_engine.py` computes `abs_dt_ms`, which is exactly
-the alignment error T2 must report. `fused_writer.py` then discards it — the
-docstring states it is "for logging only and is not a fused_events column", and
-it is not in fact logged either. There is no path from the database to an
-alignment distribution as the code stands.
+the alignment error T2 must report. As originally written, `fused_writer.py`
+discarded it.
 
 Three options were weighed: log the distribution per batch, add a side table, or
 add a column to `fused_events`. **Option A — log it — was chosen**, because
 `fused_event_schema_v1` is locked and T2's deliverable is a measured figure with
 its method, not permanent alignment monitoring. A side table is recorded as an
-M6 open item for Week 24.
+M6 open item for M9.
 
 One qualification applies whichever route is taken, and it belongs in the Emrah
 update: `abs_dt_ms` is the difference between the two events' **Kafka message
 timestamps**, not between the sensors' own recorded times. The ±1 ms figure in
 `data_flow_spec.md` is a software-timestamp synchronization target describing the
 latter. The two describe different quantities.
+
+## Status correction — written 5 November 2026 under M6W26T3
+
+The paragraph above said the instrumentation was not built. **It was** — in
+`34b0b7d`, the same commit that created this document, on 15 October. The
+document went stale against its own commit, and the Week 26–28 catch-up plan
+inherited the error from it. Recorded here rather than deleted, because this is
+the third time on this project that a committed `.md` has contradicted the
+branch, and the standing rule is to verify against committed files.
+
+What was actually missing, and is now closed under M6W26T3:
+
+1. **The sample did not survive a restart.** `_alignment_samples` was a module
+   global. T4's restart-safety phase uses `docker kill`, so the cumulative
+   distribution was lost exactly when the measurement run needed it most.
+2. **Nothing was persisted.** The figures existed only in container stdout,
+   which is not a measurement record.
+3. **The 50,000 cap froze silently.** Past the cap the cumulative line kept
+   printing a stale figure with no indication it had stopped collecting.
+
+Delivered:
+
+- `fused_writer.py` — `_persist_alignment()` appends one JSON line per batch,
+  `fsync`'d, to `FUSION_ALIGNMENT_LOG_PATH`. Append-only, so it spans restarts.
+  A failed write warns once and never fails the batch.
+- `fused_writer.py` — `_accumulate_alignment()` warns once when the in-memory
+  cap is reached and points at the report tool.
+- `services/fusion/alignment_report.py` — run-wide distribution from the file.
+  No dependencies, runs on the host. Filters by batch or wall-clock range, and
+  tolerates a torn final line from a kill.
+- `docker-compose.yml` — `./data/alignment` bind-mounted at `/app/alignment`.
+  A bind mount rather than a named volume, so the host reads the file without
+  `docker cp` and the M6W21T2 checkpoint reset cannot take the measurement
+  with it.
+
+Verified across a simulated two-process run with a truncated tail: 8 batches,
+320 samples, torn line detected and skipped, percentiles unaffected.
+
+### A correction to the planned detection method for open item 4
+
+The catch-up plan states that comparing `abs_dt_ms` against the ±500 ms join
+window is what detects open item 4's silent mis-pairing. **It cannot.**
+`build_candidate_pairs()` admits only pairs already inside ±500 ms, so
+`abs_dt_ms` is bounded by that window by construction. A record that drifts past
+the window and fuses against an *older* ALICE event still produces a small
+`abs_dt_ms` — for the wrong pair. The distribution will look clean either way.
+
+Detecting it requires comparing the ALICE event time against the sensor's own
+**payload** timestamp rather than its Kafka timestamp. `alignment_report.py`
+prints this caveat with every run so the figure is not over-read. The reachable
+payload timestamp depends on the M6W26T2 resolution rate, so the method is
+scoped in T4 rather than assumed here.
 
 ---
 

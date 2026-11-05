@@ -58,3 +58,7 @@ services/ai-ml/anomaly-detection/models/*.h5
 # --- Docker ---
 .docker/
 data/adaptation/
+
+# --- M6W26T3 alignment samples (measurement output, not source) ---
+data/alignment/*
+!data/alignment/.gitkeep
