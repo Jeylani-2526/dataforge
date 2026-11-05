@@ -70,7 +70,9 @@ def extract_alice_events(root_file_path: str, output_path: str) -> int:
 
             # timestamp_ms — uint32 seconds -> long ms + event index tie-breaker
             timestamp_s = int(tree.GetLeaf("AliESDHeader.fTimeStamp").GetValue(0))
-            event_number = int(tree.GetLeaf("AliESDHeader.fEventNumberInFile").GetValue(0))
+            event_number = int(
+                tree.GetLeaf("AliESDHeader.fEventNumberInFile").GetValue(0)
+            )
             timestamp_ms = timestamp_s * 1000 + event_number % 1000
 
             # track_count — length of the per-track fFlags array for this event
@@ -83,23 +85,23 @@ def extract_alice_events(root_file_path: str, output_path: str) -> int:
             net_momentum_z = float(sum(pz_list))
 
             energies = [
-                math.sqrt(px ** 2 + py ** 2 + pz ** 2 + M_PION ** 2)
+                math.sqrt(px**2 + py**2 + pz**2 + M_PION**2)
                 for px, py, pz in zip(px_list, py_list, pz_list)
             ]
             max_energy_gev = float(max(energies)) if energies else 0.0
             total_energy_gev = float(sum(energies))
 
             record = {
-                "event_id":         str(uuid.uuid4()),
-                "run_number":       run_number,
-                "timestamp_ms":     timestamp_ms,
-                "track_count":      track_count,
-                "net_momentum_x":   net_momentum_x,
-                "net_momentum_y":   net_momentum_y,
-                "net_momentum_z":   net_momentum_z,
-                "max_energy_gev":   max_energy_gev,
+                "event_id": str(uuid.uuid4()),
+                "run_number": run_number,
+                "timestamp_ms": timestamp_ms,
+                "track_count": track_count,
+                "net_momentum_x": net_momentum_x,
+                "net_momentum_y": net_momentum_y,
+                "net_momentum_z": net_momentum_z,
+                "max_energy_gev": max_energy_gev,
                 "total_energy_gev": total_energy_gev,
-                "schema_version":   "1.0"
+                "schema_version": "1.0",
             }
             out.write(json.dumps(record) + "\n")
             written += 1
@@ -115,14 +117,10 @@ if __name__ == "__main__":
         description="Extract ALICE ESD events to NDJSON using PyROOT."
     )
     parser.add_argument(
-        "--input",
-        default="data/alice/AliESDs.root",
-        help="Path to AliESDs.root file"
+        "--input", default="data/alice/AliESDs.root", help="Path to AliESDs.root file"
     )
     parser.add_argument(
-        "--output",
-        default="data/synthetic/alice.jsonl",
-        help="Output NDJSON path"
+        "--output", default="data/synthetic/alice.jsonl", help="Output NDJSON path"
     )
     args = parser.parse_args()
 

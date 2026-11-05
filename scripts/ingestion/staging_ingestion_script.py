@@ -32,28 +32,54 @@ DB_URL = "postgresql://dataforge:dataforge_dev@localhost:5433/dataforge"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 VALID_SCHEMA_VERSION = "1.0"
-VALID_SENSOR_TYPES   = {"RADAR", "LIDAR", "TELEMETRY"}
+VALID_SENSOR_TYPES = {"RADAR", "LIDAR", "TELEMETRY"}
 
 ALICE_REQUIRED = [
-    "event_id", "run_number", "timestamp_ms", "track_count",
-    "net_momentum_x", "net_momentum_y", "net_momentum_z",
-    "max_energy_gev", "total_energy_gev", "schema_version",
+    "event_id",
+    "run_number",
+    "timestamp_ms",
+    "track_count",
+    "net_momentum_x",
+    "net_momentum_y",
+    "net_momentum_z",
+    "max_energy_gev",
+    "total_energy_gev",
+    "schema_version",
 ]
 
 SENSOR_REQUIRED_COMMON = [
-    "event_id", "sensor_id", "sensor_type", "timestamp_ms", "schema_version",
+    "event_id",
+    "sensor_id",
+    "sensor_type",
+    "timestamp_ms",
+    "schema_version",
 ]
 
 SENSOR_REQUIRED_BY_TYPE = {
-    "RADAR":     ["target_id", "range_m", "bearing_deg", "elevation_deg",
-                  "velocity_ms", "signal_strength_db"],
-    "LIDAR":     ["scan_id", "point_count", "centroid_x_m", "centroid_y_m",
-                  "centroid_z_m", "max_range_m", "avg_intensity", "min_intensity"],
+    "RADAR": [
+        "target_id",
+        "range_m",
+        "bearing_deg",
+        "elevation_deg",
+        "velocity_ms",
+        "signal_strength_db",
+    ],
+    "LIDAR": [
+        "scan_id",
+        "point_count",
+        "centroid_x_m",
+        "centroid_y_m",
+        "centroid_z_m",
+        "max_range_m",
+        "avg_intensity",
+        "min_intensity",
+    ],
     "TELEMETRY": ["device_id", "parameter_name", "value", "unit", "sequence_number"],
 }
 
 
 # ── Stream Type Detection ─────────────────────────────────────────────────────
+
 
 def detect_stream_type(records: list[dict]) -> str:
     """
@@ -72,6 +98,7 @@ def detect_stream_type(records: list[dict]) -> str:
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
+
 
 def validate_alice(record: dict) -> str | None:
     if record.get("schema_version") != VALID_SCHEMA_VERSION:
@@ -162,21 +189,23 @@ def load_alice_batch(conn, records: list[dict], batch_id: str) -> tuple[int, int
             log.warning("ALICE reject [%s]: %s", rec.get("event_id", "?"), err)
             failed.append(rec)
             continue
-        valid.append({
-            "load_timestamp":   load_ts,
-            "batch_id":         batch_id,
-            "event_id":         rec["event_id"],
-            "run_number":       rec["run_number"],
-            "timestamp_ms":     rec["timestamp_ms"],
-            "track_count":      rec["track_count"],
-            "net_momentum_x":   rec["net_momentum_x"],
-            "net_momentum_y":   rec["net_momentum_y"],
-            "net_momentum_z":   rec["net_momentum_z"],
-            "max_energy_gev":   rec["max_energy_gev"],
-            "total_energy_gev": rec["total_energy_gev"],
-            "schema_version":   rec["schema_version"],
-            "load_status":      "validated",
-        })
+        valid.append(
+            {
+                "load_timestamp": load_ts,
+                "batch_id": batch_id,
+                "event_id": rec["event_id"],
+                "run_number": rec["run_number"],
+                "timestamp_ms": rec["timestamp_ms"],
+                "track_count": rec["track_count"],
+                "net_momentum_x": rec["net_momentum_x"],
+                "net_momentum_y": rec["net_momentum_y"],
+                "net_momentum_z": rec["net_momentum_z"],
+                "max_energy_gev": rec["max_energy_gev"],
+                "total_energy_gev": rec["total_energy_gev"],
+                "schema_version": rec["schema_version"],
+                "load_status": "validated",
+            }
+        )
 
     inserted = 0
     if valid:
@@ -202,37 +231,39 @@ def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, in
             log.warning("SENSOR reject [%s]: %s", rec.get("event_id", "?"), err)
             failed.append(rec)
             continue
-        valid.append({
-            "load_timestamp":     load_ts,
-            "batch_id":           batch_id,
-            "event_id":           rec["event_id"],
-            "sensor_id":          rec["sensor_id"],
-            "sensor_type":        rec["sensor_type"].upper(),
-            "timestamp_ms":       rec["timestamp_ms"],
-            "target_id":          rec.get("target_id"),
-            "range_m":            rec.get("range_m"),
-            "bearing_deg":        rec.get("bearing_deg"),
-            "elevation_deg":      rec.get("elevation_deg"),
-            "velocity_ms":        rec.get("velocity_ms"),
-            "signal_strength_db": rec.get("signal_strength_db"),
-            "scan_id":            rec.get("scan_id"),
-            "point_count":        rec.get("point_count"),
-            "centroid_x_m":       rec.get("centroid_x_m"),
-            "centroid_y_m":       rec.get("centroid_y_m"),
-            "centroid_z_m":       rec.get("centroid_z_m"),
-            "max_range_m":        rec.get("max_range_m"),
-            "avg_intensity":      rec.get("avg_intensity"),
-            "min_intensity":      rec.get("min_intensity"),
-            "device_id":          rec.get("device_id"),
-            "parameter_name":     rec.get("parameter_name"),
-            "value":              rec.get("value"),
-            "unit":               rec.get("unit"),
-            "sequence_number":    rec.get("sequence_number"),
-            "schema_version":     rec["schema_version"],
-            "label":              rec.get("label", 0),
-            "anomaly_type":       rec.get("anomaly_type"),
-            "load_status":        "validated",
-        })
+        valid.append(
+            {
+                "load_timestamp": load_ts,
+                "batch_id": batch_id,
+                "event_id": rec["event_id"],
+                "sensor_id": rec["sensor_id"],
+                "sensor_type": rec["sensor_type"].upper(),
+                "timestamp_ms": rec["timestamp_ms"],
+                "target_id": rec.get("target_id"),
+                "range_m": rec.get("range_m"),
+                "bearing_deg": rec.get("bearing_deg"),
+                "elevation_deg": rec.get("elevation_deg"),
+                "velocity_ms": rec.get("velocity_ms"),
+                "signal_strength_db": rec.get("signal_strength_db"),
+                "scan_id": rec.get("scan_id"),
+                "point_count": rec.get("point_count"),
+                "centroid_x_m": rec.get("centroid_x_m"),
+                "centroid_y_m": rec.get("centroid_y_m"),
+                "centroid_z_m": rec.get("centroid_z_m"),
+                "max_range_m": rec.get("max_range_m"),
+                "avg_intensity": rec.get("avg_intensity"),
+                "min_intensity": rec.get("min_intensity"),
+                "device_id": rec.get("device_id"),
+                "parameter_name": rec.get("parameter_name"),
+                "value": rec.get("value"),
+                "unit": rec.get("unit"),
+                "sequence_number": rec.get("sequence_number"),
+                "schema_version": rec["schema_version"],
+                "label": rec.get("label", 0),
+                "anomaly_type": rec.get("anomaly_type"),
+                "load_status": "validated",
+            }
+        )
 
     inserted = 0
     if valid:
@@ -250,13 +281,14 @@ def load_sensor_batch(conn, records: list[dict], batch_id: str) -> tuple[int, in
 
 # ── File Loader ───────────────────────────────────────────────────────────────
 
+
 def load_ndjson_file(filepath: Path, conn) -> dict:
     """
     Loads a single NDJSON file into the appropriate staging table.
     Stream type is auto-detected from file content.
     """
     batch_id = str(uuid.uuid4())
-    records  = []
+    records = []
 
     with open(filepath, "r", encoding="utf-8") as f:
         for i, line in enumerate(f, 1):
@@ -272,7 +304,14 @@ def load_ndjson_file(filepath: Path, conn) -> dict:
 
     if detected == "unknown":
         log.warning("Cannot detect stream type for %s — skipping", filepath.name)
-        return {"file": filepath.name, "stream": "unknown", "loaded": 0, "failed": 0, "duplicates": 0, "total": 0}
+        return {
+            "file": filepath.name,
+            "stream": "unknown",
+            "loaded": 0,
+            "failed": 0,
+            "duplicates": 0,
+            "total": 0,
+        }
 
     if detected == "alice":
         loaded, failed, duplicates = load_alice_batch(conn, records, batch_id)
@@ -281,27 +320,33 @@ def load_ndjson_file(filepath: Path, conn) -> dict:
 
     log.info(
         "%-30s  stream=%-10s  batch=%s  loaded=%d  failed=%d  duplicates=%d",
-        filepath.name, detected, batch_id[:8], loaded, failed, duplicates
+        filepath.name,
+        detected,
+        batch_id[:8],
+        loaded,
+        failed,
+        duplicates,
     )
     return {
-        "file":       filepath.name,
-        "stream":     detected,
-        "batch_id":   batch_id,
-        "loaded":     loaded,
-        "failed":     failed,
+        "file": filepath.name,
+        "stream": detected,
+        "batch_id": batch_id,
+        "loaded": loaded,
+        "failed": failed,
         "duplicates": duplicates,
-        "total":      loaded + failed + duplicates,
+        "total": loaded + failed + duplicates,
     }
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def ingest_directory(data_dir: str):
     """
     Ingests all .jsonl files in data_dir.
     Stream type is auto-detected per file from content.
     """
-    path  = Path(data_dir)
+    path = Path(data_dir)
     files = sorted(path.glob("*.jsonl"))
     if not files:
         log.warning("No .jsonl files found in %s", data_dir)
@@ -316,12 +361,15 @@ def ingest_directory(data_dir: str):
     finally:
         conn.close()
 
-    total_loaded     = sum(r["loaded"] for r in results)
-    total_failed     = sum(r["failed"] for r in results)
+    total_loaded = sum(r["loaded"] for r in results)
+    total_failed = sum(r["failed"] for r in results)
     total_duplicates = sum(r["duplicates"] for r in results)
     log.info(
         "DONE — files=%d  total_loaded=%d  total_failed=%d  total_duplicates=%d",
-        len(files), total_loaded, total_failed, total_duplicates
+        len(files),
+        total_loaded,
+        total_failed,
+        total_duplicates,
     )
     return results
 

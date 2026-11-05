@@ -20,6 +20,8 @@ from confluent_kafka import Producer
 from fastavro import parse_schema, schemaless_writer
 from dotenv import load_dotenv
 
+from injection import Injector
+
 load_dotenv()
 
 logging.basicConfig(
@@ -213,11 +215,18 @@ def run():
     schema = load_schema()
     producer = Producer({"bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS})
 
-    generators = [
-        (generate_radar, TOPIC_RADAR),
-        (generate_lidar, TOPIC_LIDAR),
-        (generate_telemetry, TOPIC_TELEMETRY),
-    ]
+    injector = Injector()
+    log.info(injector.describe())
+
+    generators = [generate_radar, generate_lidar, generate_telemetry]
+
+    # Topic is resolved from the record, not chosen alongside the generator,
+    # because the reorder buffer can release a record long after it was made.
+    topic_by_type = {
+        "RADAR": TOPIC_RADAR,
+        "LIDAR": TOPIC_LIDAR,
+        "TELEMETRY": TOPIC_TELEMETRY,
+    }
 
     published = {"radar": 0, "lidar": 0, "telemetry": 0}
     failed = {"radar": 0, "lidar": 0, "telemetry": 0}
@@ -226,21 +235,24 @@ def run():
         "Publishing to topics: %s | %s | %s", TOPIC_RADAR, TOPIC_LIDAR, TOPIC_TELEMETRY
     )
 
-    while _running:
-        gen_fn, topic = random.choice(generators)
-        record = gen_fn()
-        sensor_key = record["sensor_type"].lower()
+    def publish(rec: dict, kafka_ts: int | None):
+        sensor_key = rec["sensor_type"].lower()
 
-        payload = validate_and_serialize(record, schema)
+        payload = validate_and_serialize(rec, schema)
         if payload is None:
             failed[sensor_key] += 1
-            continue
+            return
+
+        # Only passed when injection shifted the record. Omitted otherwise, so
+        # Kafka assigns the current time exactly as before injection existed.
+        extra = {} if kafka_ts is None else {"timestamp": kafka_ts}
 
         producer.produce(
-            topic,
-            key=record["event_id"].encode("utf-8"),
+            topic_by_type[rec["sensor_type"]],
+            key=rec["event_id"].encode("utf-8"),
             value=payload,
             callback=delivery_report,
+            **extra,
         )
         producer.poll(0)
         published[sensor_key] += 1
@@ -256,10 +268,21 @@ def run():
                 failed["lidar"],
                 failed["telemetry"],
             )
+            injector.log_stats()
+
+    while _running:
+        record = random.choice(generators)()
+
+        for rec, kafka_ts in injector.apply(record):
+            publish(rec, kafka_ts)
 
         if SENSOR_PUBLISH_INTERVAL_MS > 0:
             time.sleep(SENSOR_PUBLISH_INTERVAL_MS / 1000.0)
 
+    for rec, kafka_ts in injector.flush():
+        publish(rec, kafka_ts)
+
+    injector.log_stats()
     producer.flush(timeout=10)
     log.info(
         "Producer stopped. Final totals — radar=%d lidar=%d telemetry=%d",

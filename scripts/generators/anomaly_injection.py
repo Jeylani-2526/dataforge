@@ -2,7 +2,6 @@ import random
 from collections.abc import Callable
 from typing import Any
 
-
 # A generated sensor record is represented as a Python dictionary.
 Record = dict[str, Any]
 
@@ -33,9 +32,7 @@ def require_numeric_field(record: Record, field_name: str) -> float:
     value = record.get(field_name)
 
     if not isinstance(value, (int, float)):
-        raise ValueError(
-            f"Record must contain a numeric {field_name} field."
-        )
+        raise ValueError(f"Record must contain a numeric {field_name} field.")
 
     return float(value)
 
@@ -274,9 +271,7 @@ def telemetry_out_of_range_value(
     }
 
     if parameter_name not in anomalous_ranges:
-        raise ValueError(
-            f"Unsupported telemetry parameter: {parameter_name}"
-        )
+        raise ValueError(f"Unsupported telemetry parameter: {parameter_name}")
 
     minimum, maximum = anomalous_ranges[parameter_name]
     record["value"] = round(random.uniform(minimum, maximum), 2)
@@ -306,9 +301,7 @@ def telemetry_timestamp_stall(
     """
     timestamp_ms = require_numeric_field(record, "timestamp_ms")
 
-    record["timestamp_ms"] = int(
-        timestamp_ms - timestamp_interval_ms
-    )
+    record["timestamp_ms"] = int(timestamp_ms - timestamp_interval_ms)
 
     return record
 
@@ -333,9 +326,7 @@ def telemetry_missing_reading(
         record,
         "sequence_number",
     )
-    record["sequence_number"] = int(
-        sequence_number + random.randint(2, 10)
-    )
+    record["sequence_number"] = int(sequence_number + random.randint(2, 10))
 
     return record
 
@@ -395,17 +386,13 @@ def get_sensor_anomalies(
     sensor_type = record.get("sensor_type")
 
     if not isinstance(sensor_type, str):
-        raise ValueError(
-            "Record must contain a valid sensor_type."
-        )
+        raise ValueError("Record must contain a valid sensor_type.")
 
     sensor_type = sensor_type.upper()
     sensor_anomalies = ANOMALIES.get(sensor_type)
 
     if sensor_anomalies is None:
-        raise ValueError(
-            f"Unsupported sensor type: {sensor_type}"
-        )
+        raise ValueError(f"Unsupported sensor type: {sensor_type}")
 
     return sensor_type, sensor_anomalies
 
@@ -430,9 +417,7 @@ def apply_anomaly(
         ValueError: If the sensor or anomaly type is unsupported.
     """
     if timestamp_interval_ms <= 0:
-        raise ValueError(
-            "timestamp_interval_ms must be greater than zero."
-        )
+        raise ValueError("timestamp_interval_ms must be greater than zero.")
 
     output = add_default_labels(record)
     sensor_type, sensor_anomalies = get_sensor_anomalies(output)
@@ -441,8 +426,7 @@ def apply_anomaly(
 
     if anomaly_function is None:
         raise ValueError(
-            f"Unsupported anomaly type for {sensor_type}: "
-            f"{anomaly_type}"
+            f"Unsupported anomaly type for {sensor_type}: " f"{anomaly_type}"
         )
 
     output = anomaly_function(
@@ -479,14 +463,10 @@ def inject_anomaly(
         ValueError: If anomaly_rate or timestamp_interval_ms is invalid.
     """
     if not 0.0 <= anomaly_rate <= 1.0:
-        raise ValueError(
-            "anomaly_rate must be between 0.0 and 1.0."
-        )
+        raise ValueError("anomaly_rate must be between 0.0 and 1.0.")
 
     if timestamp_interval_ms <= 0:
-        raise ValueError(
-            "timestamp_interval_ms must be greater than zero."
-        )
+        raise ValueError("timestamp_interval_ms must be greater than zero.")
 
     output = add_default_labels(record)
 
@@ -494,9 +474,7 @@ def inject_anomaly(
         return output
 
     _, sensor_anomalies = get_sensor_anomalies(output)
-    anomaly_type = random.choice(
-        list(sensor_anomalies.keys())
-    )
+    anomaly_type = random.choice(list(sensor_anomalies.keys()))
 
     return apply_anomaly(
         output,
