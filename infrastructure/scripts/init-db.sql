@@ -89,97 +89,67 @@ CREATE INDEX IF NOT EXISTS idx_events_source_type ON events (source_type, timest
 CREATE INDEX IF NOT EXISTS idx_events_label       ON events (label, timestamp_ms);
 
 -- ---------------------------------------------------------------------------
--- MODULE 6 — Fused layer (M6W21T6; committed here at M6W22T3)
+-- M6W21T6 — fused_events + fusion_status hypertables
+-- Added: 2 October 2026 · Owner: Beyza Ülkümen
+--
+-- FK note (T7 decision, docs/database/fused_events_fk_decision.md):
+--   alice_event_id and sensor_event_id are soft references — uuid NOT NULL
+--   with no REFERENCES clause. DB-level FK enforcement is deferred to M7
+--   when the promotion path is designed. Records at join time live in
+--   raw_sensor_events_staging, not events; a hard FK to events would fail.
 -- ---------------------------------------------------------------------------
 
--- Output of the Module 6 stream-stream join. Nine locked v1 fields from
--- fused_event_schema_v1.avsc, plus three nullable M7 columns.
--- Soft references (M6W21T7, Option C): alice_event_id and sensor_event_id are
--- uuid NOT NULL with no REFERENCES clause. They point at raw Kafka keys, which
--- may name records that were never promoted to events. Integrity is checked in
--- application code, not by the database.
 CREATE TABLE IF NOT EXISTS fused_events (
-    timestamp_ms      BIGINT      NOT NULL,
-    fused_event_id    UUID        NOT NULL,
-    alice_event_id    UUID        NOT NULL,
-    sensor_event_id   UUID        NOT NULL,
-    sensor_type       VARCHAR(20) NOT NULL,
-    fusion_window_ms  INTEGER     NOT NULL DEFAULT 500,
-    data_loss_pct     REAL        NOT NULL DEFAULT 0.0,
-    latency_ms        BIGINT      NOT NULL DEFAULT 0,
-    schema_version    VARCHAR(10) NOT NULL DEFAULT '1.0',
-    anomaly_label     BIGINT,
-    risk_score        REAL,
-    confidence        REAL,
+    timestamp_ms        BIGINT          NOT NULL,
+    fused_event_id      UUID            NOT NULL,
+    alice_event_id      UUID            NOT NULL,
+    sensor_event_id     UUID            NOT NULL,
+    sensor_type         VARCHAR(20)     NOT NULL,
+    fusion_window_ms    INTEGER         NOT NULL DEFAULT 500,
+    data_loss_pct       REAL            NOT NULL DEFAULT 0.0,
+    latency_ms          BIGINT          NOT NULL DEFAULT 0,
+    schema_version      VARCHAR(10)     NOT NULL DEFAULT '1.0',
+    anomaly_label       BIGINT          DEFAULT NULL,
+    risk_score          REAL            DEFAULT NULL,
+    confidence          REAL            DEFAULT NULL,
     PRIMARY KEY (fused_event_id, timestamp_ms)
 );
 
-SELECT create_hypertable('fused_events', 'timestamp_ms',
+SELECT create_hypertable(
+    'fused_events',
+    'timestamp_ms',
     chunk_time_interval => 86400000,
-    if_not_exists => TRUE);
-
-CREATE INDEX IF NOT EXISTS idx_fused_time_label ON fused_events (timestamp_ms, anomaly_label);
-
--- Replay de-duplication (design note Section 7). The primary key does NOT
--- de-duplicate a replay, because fused_event_id is a fresh UUID on every write.
--- timestamp_ms leads because a hypertable unique index must carry the partition
--- column. The ALICE producer reuses the same 68 event_ids each loop, but each
--- loop carries a different timestamp_ms, so legitimate loops stay distinct while
--- a checkpoint replay of one loop collapses. Paired with ON CONFLICT DO NOTHING.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_fused_events_replay
-    ON fused_events (timestamp_ms, alice_event_id);
-
--- Retention: 90 days. timestamp_ms is an integer column, so TimescaleDB needs an
--- explicit "now" function before a retention policy can be attached.
-CREATE OR REPLACE FUNCTION fused_events_now() RETURNS BIGINT
-    LANGUAGE SQL STABLE AS
-$$ SELECT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT $$;
-
-SELECT set_integer_now_func('fused_events', 'fused_events_now',
-    replace_if_exists => TRUE);
-
-SELECT add_retention_policy('fused_events', BIGINT '7776000000',
-    if_not_exists => TRUE);
-
--- Per-source fusion heartbeat, read by the Fusion Monitor endpoints
--- (GET /stream/info, WS /ws/fusion, GET /fusion/sensors). Only the latest row
--- per source matters for live display, hence the short retention.
-CREATE TABLE IF NOT EXISTS fusion_status (
-    time                TIMESTAMPTZ NOT NULL,
-    source_type         VARCHAR(20) NOT NULL,
-    quality_score       INTEGER     NOT NULL,
-    contribution_weight REAL        NOT NULL,
-    data_loss           REAL        NOT NULL,
-    latency             REAL        NOT NULL,
-    status              VARCHAR(20) NOT NULL
+    if_not_exists       => TRUE
 );
 
-SELECT create_hypertable('fusion_status', 'time',
+SELECT add_retention_policy(
+    'fused_events',
+    INTERVAL '90 days',
+    if_not_exists => TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_fused_time_label
+    ON fused_events (timestamp_ms, anomaly_label);
+
+CREATE TABLE IF NOT EXISTS fusion_status (
+    time                TIMESTAMPTZ     NOT NULL,
+    source_type         VARCHAR(20)     NOT NULL,
+    quality_score       INTEGER         NOT NULL,
+    contribution_weight REAL            NOT NULL,
+    data_loss           REAL            NOT NULL,
+    latency             REAL            NOT NULL,
+    status              VARCHAR(20)     NOT NULL
+);
+
+SELECT create_hypertable(
+    'fusion_status',
+    'time',
     chunk_time_interval => INTERVAL '1 hour',
-    if_not_exists => TRUE);
+    if_not_exists       => TRUE
+);
 
-SELECT add_retention_policy('fusion_status', INTERVAL '7 days',
-    if_not_exists => TRUE);
--- summary_5min: 5-minute continuous aggregate over fused_events.
--- Named by ERD final and api_contracts_final.md (GET /summary endpoint).
--- timestamp_ms is BIGINT (Unix ms), so time_bucket_ng is used with
--- an integer bucket width of 300000 ms (5 minutes).
-CREATE MATERIALIZED VIEW IF NOT EXISTS summary_5min
-WITH (timescaledb.continuous) AS
-SELECT
-    time_bucket(BIGINT '300000', timestamp_ms)  AS bucket,
-    sensor_type,
-    COUNT(*)                                     AS fused_count,
-    AVG(data_loss_pct)                           AS avg_data_loss_pct,
-    AVG(latency_ms)                              AS avg_latency_ms,
-    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95_latency_ms,
-    AVG(CASE WHEN anomaly_label IS NOT NULL THEN 1.0 ELSE 0.0 END) AS anomaly_rate
-FROM fused_events
-GROUP BY bucket, sensor_type
-WITH NO DATA;
-
-SELECT add_continuous_aggregate_policy('summary_5min',
-    start_offset => BIGINT '600000',
-    end_offset   => BIGINT '300000',
-    schedule_interval => INTERVAL '5 minutes',
-    if_not_exists => TRUE);
+SELECT add_retention_policy(
+    'fusion_status',
+    INTERVAL '7 days',
+    if_not_exists => TRUE
+);
