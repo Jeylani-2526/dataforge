@@ -12,24 +12,40 @@ Exit codes:
 
 import sys
 import os
+import uuid
 import psycopg2
 
-DB_DSN = os.getenv("TIMESCALE_DSN", "postgresql://postgres:postgres@localhost:5432/dataforge")
+DB_DSN = os.getenv("TIMESCALE_DSN", "postgresql://dataforge:dataforge_dev@localhost:5434/dataforge")
 SAMPLE_SIZE = 1000
 
 REQUIRED_FIELDS = [
-    "event_id",
-    "run_number",
+    "fused_event_id",
+    "alice_event_id",
+    "sensor_event_id",
     "timestamp_ms",
-    "track_count",
-    "net_momentum_x",
-    "net_momentum_y",
-    "net_momentum_z",
-    "max_energy_gev",
-    "total_energy_gev",
+    "fusion_window_ms",
+    "sensor_type",
+    "data_loss_pct",
+    "latency_ms",
+    "schema_version",
 ]
 
-NULLABLE_M7 = {"sensor_batch_id"}
+M7_NULLABLE = ["anomaly_label", "risk_score", "confidence"]
+
+VALID_SENSOR_TYPES = {"RADAR", "LIDAR", "TELEMETRY"}
+
+
+def is_valid_uuid(val):
+    """Accept both str and uuid.UUID — psycopg2 returns uuid.UUID for UUID columns."""
+    if isinstance(val, uuid.UUID):
+        return True
+    if isinstance(val, str):
+        try:
+            uuid.UUID(val)
+            return True
+        except ValueError:
+            return False
+    return False
 
 
 def run_checks():
@@ -51,74 +67,114 @@ def run_checks():
         conn.close()
         sys.exit(0)
 
-    cur.execute(f"SELECT * FROM fused_events LIMIT {SAMPLE_SIZE};")
-    rows = cur.fetchall()
+    # Select columns by name explicitly — column order in table may differ from schema
+    all_cols = REQUIRED_FIELDS + M7_NULLABLE
+    col_list = ", ".join(all_cols)
+    cur.execute(f"SELECT {col_list} FROM fused_events LIMIT {SAMPLE_SIZE};")
+    raw_rows = cur.fetchall()
     col_names = [desc[0] for desc in cur.description]
 
-    print(f"[INFO] Columns found: {col_names}")
+    # Convert rows to dicts
+    rows = [dict(zip(col_names, row)) for row in raw_rows]
+    sample_size = len(rows)
+
+    print(f"[INFO] Columns fetched: {col_names}")
+    print(f"[INFO] Sample size: {sample_size}")
 
     failures = []
-
-    # Check 1: required fields present
-    for field in REQUIRED_FIELDS:
-        if field not in col_names:
-            failures.append(f"MISSING COLUMN: {field}")
-
-    if failures:
-        for f in failures:
-            print(f"[FAIL] {f}")
-        cur.close()
-        conn.close()
-        sys.exit(1)
-
-    # Check 2: field-level value checks
-    field_idx = {name: i for i, name in enumerate(col_names)}
-
-    null_counts = {f: 0 for f in REQUIRED_FIELDS}
-    type_failures = []
-
-    for row in rows:
-        for field in REQUIRED_FIELDS:
-            val = row[field_idx[field]]
-            if val is None:
-                null_counts[field] += 1
-            else:
-                # Type checks
-                if field == "event_id" and not isinstance(val, str):
-                    type_failures.append(f"event_id not str: {type(val)}")
-                if field == "run_number" and not isinstance(val, int):
-                    type_failures.append(f"run_number not int: {type(val)}")
-                if field == "timestamp_ms" and not isinstance(val, int):
-                    type_failures.append(f"timestamp_ms not int: {type(val)}")
-                if field == "track_count" and not isinstance(val, int):
-                    type_failures.append(f"track_count not int: {type(val)}")
-                if field in ("net_momentum_x", "net_momentum_y", "net_momentum_z",
-                             "max_energy_gev", "total_energy_gev"):
-                    if not isinstance(val, (int, float)):
-                        type_failures.append(f"{field} not numeric: {type(val)}")
-
     passed = True
 
-    for field, count in null_counts.items():
-        if count > 0:
-            pct = count / len(rows) * 100
-            print(f"[FAIL] {field}: {count}/{len(rows)} NULLs ({pct:.1f}%)")
+    # --- Check 1: UUID fields ---
+    uuid_fields = ["fused_event_id", "alice_event_id", "sensor_event_id"]
+    for field in uuid_fields:
+        bad = [i for i, r in enumerate(rows) if not is_valid_uuid(r[field])]
+        if bad:
+            print(f"[FAIL] {field}: {len(bad)}/{sample_size} rows have invalid UUID")
             passed = False
         else:
-            print(f"[PASS] {field}: no NULLs")
+            print(f"[PASS] {field}: all {sample_size} rows valid UUID")
 
-    for tf in set(type_failures[:20]):
-        print(f"[FAIL] TYPE: {tf}")
+    # --- Check 2: timestamp_ms > 0 ---
+    bad = [i for i, r in enumerate(rows) if not (r["timestamp_ms"] is not None and r["timestamp_ms"] > 0)]
+    if bad:
+        print(f"[FAIL] timestamp_ms: {len(bad)}/{sample_size} rows not > 0")
         passed = False
+    else:
+        print(f"[PASS] timestamp_ms: all {sample_size} rows > 0")
+
+    # --- Check 3: fusion_window_ms == 500 ---
+    bad = [i for i, r in enumerate(rows) if r["fusion_window_ms"] != 500]
+    if bad:
+        print(f"[FAIL] fusion_window_ms: {len(bad)}/{sample_size} rows != 500")
+        passed = False
+    else:
+        print(f"[PASS] fusion_window_ms: all {sample_size} rows == 500")
+
+    # --- Check 4: sensor_type in valid set ---
+    bad = [i for i, r in enumerate(rows) if r["sensor_type"] not in VALID_SENSOR_TYPES]
+    if bad:
+        bad_vals = set(rows[i]["sensor_type"] for i in bad)
+        print(f"[FAIL] sensor_type: {len(bad)}/{sample_size} rows invalid — found {bad_vals}")
+        passed = False
+    else:
+        print(f"[PASS] sensor_type: all {sample_size} rows in {{RADAR, LIDAR, TELEMETRY}}")
+
+    # --- Check 5: data_loss_pct in [0, 100] ---
+    bad = [i for i, r in enumerate(rows)
+           if r["data_loss_pct"] is None or not (0 <= r["data_loss_pct"] <= 100)]
+    if bad:
+        print(f"[FAIL] data_loss_pct: {len(bad)}/{sample_size} rows out of [0, 100]")
+        passed = False
+    else:
+        print(f"[PASS] data_loss_pct: all {sample_size} rows in [0, 100]")
+
+    # --- Check 6: latency_ms >= 0 ---
+    bad = [i for i, r in enumerate(rows)
+           if r["latency_ms"] is None or r["latency_ms"] < 0]
+    if bad:
+        print(f"[FAIL] latency_ms: {len(bad)}/{sample_size} rows < 0")
+        passed = False
+    else:
+        print(f"[PASS] latency_ms: all {sample_size} rows >= 0")
+
+    # --- Check 7: schema_version == "1.0" ---
+    bad = [i for i, r in enumerate(rows) if str(r["schema_version"]) != "1.0"]
+    if bad:
+        bad_vals = set(str(rows[i]["schema_version"]) for i in bad)
+        print(f"[FAIL] schema_version: {len(bad)}/{sample_size} rows != '1.0' — found {bad_vals}")
+        passed = False
+    else:
+        print(f"[PASS] schema_version: all {sample_size} rows == '1.0'")
+
+    # --- Check 8: M7 nullable columns MUST be NULL (model not yet run) ---
+    for field in M7_NULLABLE:
+        non_null = [i for i, r in enumerate(rows) if r[field] is not None]
+        if non_null:
+            print(f"[FAIL] {field}: {len(non_null)}/{sample_size} rows are NOT NULL (model not yet run)")
+            passed = False
+        else:
+            print(f"[PASS] {field}: all {sample_size} rows NULL (correct — M7 not yet run)")
+
+    # --- Check 9: duplicate fused_event_id ---
+    cur.execute(
+        "SELECT COUNT(*) - COUNT(DISTINCT fused_event_id) FROM fused_events;"
+    )
+    dup_count = cur.fetchone()[0]
+    if dup_count > 0:
+        print(f"[FAIL] fused_event_id: {dup_count} duplicate(s) across full table")
+        passed = False
+    else:
+        print(f"[PASS] fused_event_id: no duplicates across full table ({total} rows)")
 
     cur.close()
     conn.close()
 
+    print()
     if passed:
-        print(f"\n[RESULT] PASS — {len(rows)} rows checked, all fields conform.")
+        print(f"[RESULT] PASS — {sample_size} rows sampled, all checks passed.")
         sys.exit(0)
     else:
-        print(f"\n[RESULT] FAIL — conformance check failed.")
+        print(f"[RESULT] FAIL — one or more checks failed.")
         sys.exit(1)
 
 
