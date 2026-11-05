@@ -56,9 +56,20 @@ FUSED_FIELDS = [
     "schema_version",
 ]
 
+# M6W26T3: append-only sample file. The in-memory sample below is capped and
+# dies with the process; this is neither, so T2's run-wide distribution
+# survives the restart test. Read it with alignment_report.py.
+ALIGNMENT_LOG_PATH = Path(
+    os.environ.get(
+        "FUSION_ALIGNMENT_LOG_PATH", "/app/alignment/alignment_samples.jsonl"
+    )
+)
+
 _parsed_schema = None
 _ALIGNMENT_SAMPLE_CAP = 50_000
 _alignment_samples: list = []
+_alignment_cap_warned = False
+_alignment_write_failed = False
 
 
 def _alignment_stats(values: list) -> dict:
@@ -78,6 +89,48 @@ def _alignment_stats(values: list) -> dict:
         "max": s[-1],
         "mean": sum(s) / n,
     }
+
+
+def _persist_alignment(batch_id: int, dts: list) -> None:
+    """One JSON line per batch, appended. Never fails the batch."""
+    global _alignment_write_failed
+
+    record = {
+        "batch": batch_id,
+        "written_at_ms": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "abs_dt_ms": dts,
+    }
+    try:
+        ALIGNMENT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(ALIGNMENT_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, separators=(",", ":")) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        _alignment_write_failed = False
+    except OSError as exc:
+        if not _alignment_write_failed:
+            log.warning(
+                "[alignment] cannot write %s (%s) — figures will come from the "
+                "in-memory sample only.",
+                ALIGNMENT_LOG_PATH,
+                exc,
+            )
+            _alignment_write_failed = True
+
+
+def _accumulate_alignment(dts: list) -> None:
+    global _alignment_cap_warned
+
+    if len(_alignment_samples) < _ALIGNMENT_SAMPLE_CAP:
+        _alignment_samples.extend(dts)
+    elif not _alignment_cap_warned:
+        log.warning(
+            "[alignment] in-memory sample capped at %d — the cumulative figures "
+            "logged below are now frozen. Use alignment_report.py for the "
+            "run-wide distribution.",
+            _ALIGNMENT_SAMPLE_CAP,
+        )
+        _alignment_cap_warned = True
 
 
 def _load_parsed_schema():
@@ -230,8 +283,8 @@ def write_fused_events(batch_df: DataFrame, spark_batch_id: int):
 
     dts = [r["abs_dt_ms"] for r in rows if r.get("abs_dt_ms") is not None]
     if dts:
-        if len(_alignment_samples) < _ALIGNMENT_SAMPLE_CAP:
-            _alignment_samples.extend(dts)
+        _persist_alignment(spark_batch_id, dts)
+        _accumulate_alignment(dts)
         b = _alignment_stats(dts)
         c = _alignment_stats(_alignment_samples)
         log.info(
