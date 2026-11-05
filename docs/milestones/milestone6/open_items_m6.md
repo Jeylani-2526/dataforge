@@ -3,13 +3,16 @@
 **Originating Task ID:** M6W26T6 (planned as M6W24T1, never written)
 **Owner:** Abdalla
 **Milestone:** M6 · Week 26
-**Status:** Open — fourteen items. Item 10 closed for M7 by M6W26T5. Items 1–9 and 11–14 open.
+**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`). Item 10 closed for M7 by M6W26T5.
+Items 1–8 and 11–14 open.
 **GitHub Path:** `/docs/milestones/milestone6/open_items_m6.md`
 
 **Amendment history:**
 - M6W26T6 (5 November 2026) — Document created. Items 1–7 and 13 carried from Week 23
   (`m6w23t1_live_run_verification.md`, `m6w23t2_sync_validation.md`). Items 8–12 and 14
   surfaced in Week 26 (M6W26T1–T5).
+- M6W26T6 amendment (5 November 2026) — Item 9 resolved: `init-db.sql` restored on `develop` at
+  `83d9a11` (PR #60), identical to `eb1b8e8`. Item 8 is unblocked.
 
 ---
 
@@ -115,8 +118,8 @@ build has run on the lead's machine only. This is the exact gap that cost M5 a c
 
 **Owner:** Omer · **Target:** M6W26T7 (this week)
 **Trigger:** `m6w26t7_cross_machine_build.md` committed with the result, including any failure.
-**Blocked by Item 9** — a fresh database on a second machine will fail fusion writes until
-Item 9 is on `develop`.
+Unblocked since Item 9 was resolved. A second machine starts from an empty volume, so this run
+also confirms the restored `init-db.sql` end to end.
 
 ## Item 9 — `init-db.sql` Regression on `develop`
 
@@ -131,8 +134,9 @@ Item 9 is on `develop`.
 
 Existing databases are unaffected — `init-db.sql` only runs on an empty volume.
 
-**Status:** restore prepared (`git checkout eb1b8e8 -- infrastructure/scripts/init-db.sql`).
-**Not on `develop` as of PR #58** (`1effffe`).
+**Resolved (`83d9a11`, PR #60):** `init-db.sql` restored from `eb1b8e8`; all three objects
+present on `develop`. A fresh-volume start is still to be confirmed — M6W26T7 does that as a
+side effect.
 
 **Owner:** Abdalla · **Target:** M6W26 — before Item 8 runs
 **Trigger:** `develop` carries all three objects, verified by `grep` and by a fresh-volume start.
@@ -249,7 +253,7 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 | 6 Heartbeat mismatches | Open | Beyza | M9 | Fusion Monitor work |
 | 7 Alignment side table | Deferred | Beyza | M9 | Fusion Monitor page |
 | 8 Cross-machine build | Open | Omer | M6W26T7 | Result committed |
-| 9 `init-db.sql` regression | **Open — blocking** | Abdalla | M6W26 | Restore on `develop` |
+| 9 `init-db.sql` regression | **Resolved** (`83d9a11`) | Abdalla | — | — |
 | 10 Feature access | **Closed for M7** | — | — | M6W26T5 |
 | 10 residual: staging retention | Open | Beyza | M7W27T4 | Rule documented |
 | 11 Checkpoint vs retention | Open | Abdalla | M8 | Retention set; non-zero exit |

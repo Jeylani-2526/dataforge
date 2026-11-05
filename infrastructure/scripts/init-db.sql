@@ -58,8 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_sensor_staging_type   ON raw_sensor_events_stagin
 CREATE INDEX IF NOT EXISTS idx_sensor_staging_status ON raw_sensor_events_staging (load_status);
 CREATE INDEX IF NOT EXISTS idx_sensor_staging_label  ON raw_sensor_events_staging (label);
 
--- Production hypertable
--- PRIMARY KEY (event_id, timestamp_ms) — timestamp_ms required for hypertable partitioning
+
 CREATE TABLE IF NOT EXISTS events (
     event_id          UUID        NOT NULL,
     timestamp_ms      BIGINT      NOT NULL,
@@ -88,16 +87,7 @@ SELECT create_hypertable('events', 'timestamp_ms',
 CREATE INDEX IF NOT EXISTS idx_events_source_type ON events (source_type, timestamp_ms);
 CREATE INDEX IF NOT EXISTS idx_events_label       ON events (label, timestamp_ms);
 
--- ---------------------------------------------------------------------------
--- MODULE 6 — Fused layer (M6W21T6; committed here at M6W22T3)
--- ---------------------------------------------------------------------------
 
--- Output of the Module 6 stream-stream join. Nine locked v1 fields from
--- fused_event_schema_v1.avsc, plus three nullable M7 columns.
--- Soft references (M6W21T7, Option C): alice_event_id and sensor_event_id are
--- uuid NOT NULL with no REFERENCES clause. They point at raw Kafka keys, which
--- may name records that were never promoted to events. Integrity is checked in
--- application code, not by the database.
 CREATE TABLE IF NOT EXISTS fused_events (
     timestamp_ms      BIGINT      NOT NULL,
     fused_event_id    UUID        NOT NULL,
@@ -120,17 +110,10 @@ SELECT create_hypertable('fused_events', 'timestamp_ms',
 
 CREATE INDEX IF NOT EXISTS idx_fused_time_label ON fused_events (timestamp_ms, anomaly_label);
 
--- Replay de-duplication (design note Section 7). The primary key does NOT
--- de-duplicate a replay, because fused_event_id is a fresh UUID on every write.
--- timestamp_ms leads because a hypertable unique index must carry the partition
--- column. The ALICE producer reuses the same 68 event_ids each loop, but each
--- loop carries a different timestamp_ms, so legitimate loops stay distinct while
--- a checkpoint replay of one loop collapses. Paired with ON CONFLICT DO NOTHING.
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fused_events_replay
     ON fused_events (timestamp_ms, alice_event_id);
 
--- Retention: 90 days. timestamp_ms is an integer column, so TimescaleDB needs an
--- explicit "now" function before a retention policy can be attached.
 CREATE OR REPLACE FUNCTION fused_events_now() RETURNS BIGINT
     LANGUAGE SQL STABLE AS
 $$ SELECT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT $$;
@@ -141,9 +124,7 @@ SELECT set_integer_now_func('fused_events', 'fused_events_now',
 SELECT add_retention_policy('fused_events', BIGINT '7776000000',
     if_not_exists => TRUE);
 
--- Per-source fusion heartbeat, read by the Fusion Monitor endpoints
--- (GET /stream/info, WS /ws/fusion, GET /fusion/sensors). Only the latest row
--- per source matters for live display, hence the short retention.
+
 CREATE TABLE IF NOT EXISTS fusion_status (
     time                TIMESTAMPTZ NOT NULL,
     source_type         VARCHAR(20) NOT NULL,
@@ -160,10 +141,7 @@ SELECT create_hypertable('fusion_status', 'time',
 
 SELECT add_retention_policy('fusion_status', INTERVAL '7 days',
     if_not_exists => TRUE);
--- summary_5min: 5-minute continuous aggregate over fused_events.
--- Named by ERD final and api_contracts_final.md (GET /summary endpoint).
--- timestamp_ms is BIGINT (Unix ms), so time_bucket_ng is used with
--- an integer bucket width of 300000 ms (5 minutes).
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS summary_5min
 WITH (timescaledb.continuous) AS
 SELECT
