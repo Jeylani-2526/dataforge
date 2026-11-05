@@ -2,19 +2,26 @@
 
 **Week:** M6W23  **Owner:** Abdalla
 **Branch:** develop @ `6a7c688` plus the M6W23T3 injection mode
-**Executed:** 15 October 2026, 10:04 – 12:09 (+03:00)
+**Executed:** 15 October 2026, 10:04 – 12:09 (+03:00) — T4 sections
+**Executed:** 5 November 2026, 15:54 – 16:12 (+03:00) — T2 measurements, under M6W26T4
 
 This file carries two tasks, as the Week 23 plan specifies: T2's synchronization
 measurements, and T4's boundary and restart results appended to them.
 
 | Section | Task | Status |
 |---|---|---|
-| Timestamp-alignment error vs ±1 ms | T2 | Pending measurement — instrumentation complete, see M6W26T3 below |
-| Match rate and unmatched count | T2 | Pending |
-| Fused-count reconciliation | T2 | Pending |
-| Fused-path p95 latency | T2 | Pending |
+| Timestamp-alignment error vs ±1 ms | T2 | **Measured** — target missed, cause stated |
+| Match rate and unmatched count | T2 | **Measured** |
+| Fused-count reconciliation | T2 | **Measured** |
+| Fused-path p95 latency | T2 | **Measured** — not comparable to the ≤500 ms bar |
+| Silent mis-pairing (open item 4) | T2 | **Not measured** — method cannot detect it |
 | Watermark boundary | T4 | **Complete** |
 | Restart safety | T4 | **Complete** |
+
+> **Provisional.** The T2 figures below were taken before the fused-record
+> conformance gate (M6W26T1) has passed. Under the project's rule, measurement
+> results are not final until the rows they are drawn from are shown to conform.
+> They become final when M6W26T1 reports pass, and are re-run if it fails.
 
 ## T2 blocker and the agreed route
 
@@ -85,6 +92,199 @@ Detecting it requires comparing the ALICE event time against the sensor's own
 prints this caveat with every run so the figure is not over-read. The reachable
 payload timestamp depends on the M6W26T2 resolution rate, so the method is
 scoped in T4 rather than assumed here.
+
+---
+
+# T2 — Synchronization Measurements (M6W26T4)
+
+## Method
+
+One live run, injection off, driven by `scripts/m6w26t4_sync_run.sh`:
+
+| Phase | Duration | What happens |
+|---|---|---|
+| Warm-up | 120 s | Stack up with `--build`, so the M6W26T3 code is in the fusion image. Script stops if fusion is not running and writing |
+| START | — | Wall-clock time and end offset of all four topics recorded |
+| Window | 600 s | Producers and fusion run untouched |
+| END | — | Same as START |
+| Drain | 60 s | Producers keep running so the ~13 s effective watermark passes END and the window's last rows are emitted |
+
+- **Published counts**: END offset minus START offset, per topic.
+- **Fused counts**: `fused_events` rows with `timestamp_ms` inside START–END,
+  by SQL through `docker exec` + psql. Not Adminer.
+- **Latency**: `percentile_cont` over `latency_ms` on the same rows.
+- **Alignment**: `alignment_report.py` over the M6W26T3 sample file.
+
+Stack state: `develop` + M6W26T3 at `70a0100`. Window START `1793883404000`,
+END `1793884033000` (epoch ms).
+
+### A failed first run — recorded because it is a finding
+
+The first attempt (15:27) wrote **zero fused rows**. Fusion had crashed two
+minutes after start with `OffsetOutOfRangeException` on `sensor-lidar-0`:
+
+```
+Cannot fetch offset 4687364 ... Some data may have been lost because they are
+not available in Kafka any more; either the data was aged out by Kafka ...
+```
+
+The fusion checkpoint still held 15 October offsets. Kafka's default retention
+is 7 days and `docker-compose.yml` does not override it, so those segments had
+been deleted during the 21-day pause. Spark refused to skip them, which is the
+correct behaviour with `failOnDataLoss` at its default.
+
+Resolved by the checkpoint reset procedure (remove `fusion-engine`, delete
+`dataforgerepo_fusion-checkpoints`, restart). No database rows were touched.
+
+Two consequences, both carried to `open_items_m6.md`:
+
+1. **Any pause longer than 7 days breaks the fusion checkpoint.** Recovery
+   needs a manual reset that silently abandons unread messages.
+2. **The crash exited with code 0.** `run()` catches the query exception and
+   exits normally, so `docker ps` reports `Exited (0)` — indistinguishable from
+   a clean stop. Nothing in the stack would raise an alert.
+
+`failOnDataLoss=false` was deliberately **not** used as a workaround. It would
+convert a visible failure into silent loss on a project that measures data loss.
+
+The run script now aborts after warm-up if fusion is not running or has written
+no alignment samples, so a dead engine cannot produce an empty measurement again.
+
+## Results
+
+### Published and fused inside the window
+
+| Topic | Published |
+|---|---|
+| `alice-events` | 1,250 |
+| `sensor-radar` | 1,027 |
+| `sensor-lidar` | 1,039 |
+| `sensor-telemetry` | 1,020 |
+| **Sensors total** | **3,086** |
+
+| Fused rows by `sensor_type` | Rows |
+|---|---|
+| LIDAR | 426 |
+| RADAR | 417 |
+| TELEMETRY | 413 |
+| **Total** | **1,256** |
+
+### 1. Match rate and unmatched count
+
+| Figure | Value |
+|---|---|
+| Fused rows / ALICE published | 1,256 / 1,250 = 100.48 % |
+| **Reported match rate** | **≈ 100 %, ±6 events boundary error** |
+| Unmatched ALICE events | **0 detectable** |
+
+A rate above 100 % is not real output. The window is bounded two different
+ways: published counts by Kafka offset, fused counts by `timestamp_ms`. The
+offsets are read a few seconds after the timestamp is taken, and the timestamp
+has one-second resolution, so the two edges do not coincide. Six rows is about
+three seconds of ALICE traffic at ~2 events/s, which fits.
+
+With injection off, every ALICE event found a sensor event within ±500 ms.
+That is expected: sensor traffic across the three topics arrives roughly every
+200 ms, well inside the window.
+
+**Script limitation, recorded for re-runs:** reading offsets before taking the
+timestamp and using millisecond resolution would narrow the boundary error. It
+cannot remove it, because offsets and timestamps are different clocks.
+
+### 2. Fused-count reconciliation
+
+| Check | Result |
+|---|---|
+| Fused rows ≤ ALICE published (within boundary error) | **Pass** |
+| Duplicate `(timestamp_ms, alice_event_id)` pairs | **0** |
+| Distinct `sensor_event_id` / fused rows | 1,256 / 1,256 — **no sensor event used twice** |
+| Rows dropped by watermark (`DroppedRowListener`) | **0** |
+| Split across sensor types | 33.9 / 33.2 / 32.9 % — even |
+
+Sensor events not used in a fused row: 3,086 − 1,256 = 1,830. **This is not
+loss.** The join keeps one sensor event per ALICE event, the nearest, so with
+sensors arriving ~2.5 times as often as ALICE, most sensor events are correctly
+left unpaired.
+
+This closes the scope limit stated under T4 restart safety: zero duplicates was
+already proven, and every published ALICE event in the window is now accounted
+for in fused output.
+
+### 3. Timestamp-alignment error against ±1 ms
+
+| Statistic | `abs_dt_ms` |
+|---|---|
+| Batches | 153 |
+| Samples | 1,559 |
+| min | 0 ms |
+| p50 | 50 ms |
+| p90 | 90 ms |
+| **p95** | **96 ms** |
+| p99 | 100 ms |
+| max | 105 ms |
+| mean | 50.33 ms |
+| Within ±1 ms | 21 (1.35 %) |
+| Over 500 ms | 0 |
+
+**Against the ±1 ms target: missed, as measured.**
+
+**Cause.** The distribution is almost exactly uniform on 0–100 ms: mean 50,
+p90 90, p95 96. That is the signature of nearest-neighbour sampling, not of
+clock error. Combined sensor traffic arrives about every 200 ms, so the nearest
+sensor event to any ALICE event is at most ~100 ms away and 50 ms on average.
+The 105 ms maximum is publish jitter at the edge of that interval.
+
+So `abs_dt_ms` measures **how far apart two independent streams' events are**,
+not how well their clocks agree. The ±1 ms figure in `data_flow_spec.md` is a
+clock-synchronization target. These are different quantities. To bring
+`abs_dt_ms` near 1 ms, sensor events would have to be published at ~1 ms
+spacing; no clock improvement changes it.
+
+**Kafka-timestamp qualification.** Values are differences between Kafka
+message timestamps (producer `CreateTime`), not the sensors' own recorded times.
+
+**Scope.** The alignment sample covers the whole run, warm-up and drain
+included, not only the 600 s window: 1,559 samples against 1,256 windowed rows.
+With injection off and a steady producer rate, the distribution does not depend
+on the window.
+
+### 4. Fused-path p95 latency
+
+| Statistic | `latency_ms` |
+|---|---|
+| p50 | 16,640 ms |
+| **p95** | **19,255 ms** |
+| p99 | 20,392 ms |
+| max | 21,755 ms |
+| Rows | 1,256 |
+
+**Definition.** `latency_ms` is fused-row write time minus the ALICE event's
+Kafka timestamp. Both are taken from the same Docker host clock.
+
+**This is not the ≤500 ms bar's quantity.** The bar describes processing
+latency. Fused-path latency includes, by design:
+
+1. **The watermark wait.** In append mode a fused row is emitted only once the
+   watermark passes its window, and the effective watermark is ~13 s (T4
+   headline finding below), not the configured 5 s.
+2. **The trigger interval.** Up to 5 s waiting for the next micro-batch.
+3. **Batch lag.** Commits measured 8–10 s against a 5 s trigger in Week 23.
+
+The ~13 s watermark plus up to ~5 s of trigger and batch delay gives the
+observed 16–20 s. The figure moves with the effective-watermark decision
+(open item 1), not with processing speed. For comparison, M5's staging-path
+p95 was 5.7 s.
+
+## Not measured: silent mis-pairing (open item 4)
+
+The Week 26–28 plan assigned this to the `abs_dt_ms` reconciliation. As set out
+under M6W26T3 above, `abs_dt_ms` cannot detect it: a mis-paired row is still
+within ±500 ms of the wrong ALICE event, so it looks clean.
+
+With injection off, no drift was introduced, so the run does not suggest any
+mis-pairing occurred. That is not the same as having measured it. Detecting it
+needs the sensor's payload timestamp, whose availability depends on M6W26T2.
+Carried to `open_items_m6.md` as unquantified.
 
 ---
 
