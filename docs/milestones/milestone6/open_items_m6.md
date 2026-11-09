@@ -3,7 +3,7 @@
 **Originating Task ID:** M6W26T6 (planned as M6W24T1, never written)
 **Owner:** Abdalla
 **Milestone:** M6 · Week 26
-**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`). Item 10 closed for M7 by M6W26T5.
+**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5.
 Items 1–8 and 11–14 open.
 **GitHub Path:** `/docs/milestones/milestone6/open_items_m6.md`
 
@@ -13,6 +13,10 @@ Items 1–8 and 11–14 open.
   surfaced in Week 26 (M6W26T1–T5).
 - M6W26T6 amendment (5 November 2026) — Item 9 resolved: `init-db.sql` restored on `develop` at
   `83d9a11` (PR #60), identical to `eb1b8e8`. Item 8 is unblocked.
+- M6W26T7 amendment (9 November 2026) — Omer's fresh-volume build exposed two defects. Item 9
+  was not fully resolved: the restored file had never started on an empty database
+  (`summary_5min` policy window). Fixed. Item 11 gains a fresh-start case: fusion fails when it
+  starts before the producers have created their topics.
 
 ---
 
@@ -134,12 +138,27 @@ also confirms the restored `init-db.sql` end to end.
 
 Existing databases are unaffected — `init-db.sql` only runs on an empty volume.
 
-**Resolved (`83d9a11`, PR #60):** `init-db.sql` restored from `eb1b8e8`; all three objects
-present on `develop`. A fresh-volume start is still to be confirmed — M6W26T7 does that as a
-side effect.
+**Restored (`83d9a11`, PR #60):** `init-db.sql` restored from `eb1b8e8`; all three objects
+present on `develop`.
 
-**Owner:** Abdalla · **Target:** M6W26 — before Item 8 runs
-**Trigger:** `develop` carries all three objects, verified by `grep` and by a fresh-volume start.
+**Second defect, found by M6W26T7 (8 November):** the restored file had never run on an empty
+volume. TimescaleDB exited during init:
+
+```
+ERROR:  policy refresh window too small
+DETAIL: The start and end offsets must cover at least two buckets ...
+```
+
+`summary_5min` uses 5-minute buckets (300,000 ms). `start_offset` 600,000 and `end_offset`
+300,000 leave a window of one bucket; the policy needs two. Every existing database had been
+created before this policy was added, so nothing had ever run the file from empty — which is
+exactly the gap M6W26T7 exists to close.
+
+**Resolved:** `start_offset` raised to 900,000 ms, matching Omer's local workaround. The
+aggregate now refreshes data between 5 and 15 minutes old.
+
+**Owner:** Abdalla · **Target:** M6W26
+**Trigger:** a fresh-volume start succeeds without local edits — re-run by Omer or the lead.
 
 ## Item 10 — Feature Access and Ground Truth for M7 — Closed for M7
 
@@ -173,9 +192,16 @@ and exits normally, so `docker ps` shows `Exited (0)` — indistinguishable from
 `failOnDataLoss=false` was deliberately not used: it turns a visible failure into silent loss on
 a project that measures data loss.
 
+**Fresh-start case (M6W26T7, 8 November):** on an empty Kafka, fusion failed with
+`UnknownTopicOrPartitionException` and exited; a manual restart fixed it. Topics are created by
+the producers on first publish, so fusion can start before they exist. Same family as above:
+the query dies, and nothing restarts it.
+
 **Owner:** Abdalla · **Target:** M8
 **Trigger:** (a) set an explicit Kafka retention matched to the longest expected pause, or
-document the reset as the recovery procedure; (b) a terminated query exits non-zero.
+document the reset as the recovery procedure; (b) a terminated query exits non-zero, so a
+`restart: on-failure` policy can recover it; (c) topics exist before fusion subscribes —
+pre-created at Kafka start, or fusion waits for them.
 
 ## Item 12 — Compose and Environment Operability
 
@@ -258,10 +284,10 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 | 6 Heartbeat mismatches | Open | Beyza | M9 | Fusion Monitor work |
 | 7 Alignment side table | Deferred | Beyza | M9 | Fusion Monitor page |
 | 8 Cross-machine build | Open | Omer | M6W26T7 | Result committed |
-| 9 `init-db.sql` regression | **Resolved** (`83d9a11`) | Abdalla | — | — |
+| 9 `init-db.sql` regression | **Resolved** (`83d9a11` + policy fix) | Abdalla | — | Fresh start re-run clean |
 | 10 Feature access | **Closed for M7** | — | — | M6W26T5 |
 | 10 residual: staging retention | Open | Beyza | M7W27T4 | Rule documented |
-| 11 Checkpoint vs retention | Open | Abdalla | M8 | Retention set; non-zero exit |
+| 11 Checkpoint, retention, topic race | Open | Abdalla | M8 | Retention set; non-zero exit; topics pre-exist |
 | 12 Compose operability | Open | Omer | M8 | README section + references fixed |
 | 13 Omer's capacity | Open | Abdalla | Weekly | Two delivered weeks or redistribution |
 | 14 Cross-sensor detection | Open | Abdalla | M10 | Emrah's answer |
