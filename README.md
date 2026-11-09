@@ -227,7 +227,7 @@ dataforge/
 | **Beyza** | Full-Stack Developer | Dashboard (ReactJS), FastAPI backend, TimescaleDB, UI/UX |
 | **Omer** | Data Engineer | Kafka/Spark streaming, Docker, data simulation, performance testing |
 
-**Supervisor:** Emrah Uysal — Dataseed Yazılım Elektronik (weekly written update every Friday)  
+**Supervisor:** Emrah Uysal — Dataseed Yazılım Elektronik (report at each milestone close)  
 **Scientific Advisor:** Prof. Dr. Ayben Karasu Uysal — Yıldız Teknik Üniversitesi
 
 ---
@@ -241,8 +241,8 @@ dataforge/
 | M3 | Data Generation & Preprocessing | 6 Jul – 2 Aug 2026 | ✅ Completed |
 | M4 | Data Adaptation Layer | 3 Aug – 30 Aug 2026 | ✅ Completed |
 | M5 | Streaming Pipeline | 31 Aug – 27 Sep 2026 | ✅ Completed |
-| M6 | Data Fusion & Synchronization | 28 Sep – 25 Oct 2026 | 🔄 In Progress |
-| M7 | AI/ML Anomaly Detection | 26 Oct – 22 Nov 2026 | ⏳ Upcoming |
+| M6 | Data Fusion & Synchronization | 28 Sep – 8 Nov 2026 | ✅ Completed |
+| M7 | AI/ML Anomaly Detection | 2 Nov – 22 Nov 2026 | 🔄 In Progress |
 | M8 | Explainable AI Layer | 23 Nov – 20 Dec 2026 | ⏳ Upcoming |
 | M9 | Dashboard, API & Integration | 21 Dec 2026 – 14 Feb 2027 | ⏳ Upcoming |
 | M10 | Testing & Final Delivery | 15 Feb – 9 Apr 2027 | ⏳ Upcoming |
@@ -269,6 +269,23 @@ See the full [Roadmap document](docs/milestones/DataForge_Roadmap.md) for week-b
   [`open_items_m5.md`](docs/milestones/milestone5/open_items_m5.md).
 - **Tags:** `M5-W20-abdullah`, `M5-W20-beyza` and `M5-W20-omer`, applied 27 September 2026.
 ---
+
+
+**M6 status note:**
+- **Completed, with open items:** M6 closed on 8 November 2026 after an 18-day pause, running Weeks 21–26.
+  - live fusion of the ALICE and sensor streams, ±500 ms join window;
+  - checkpointed, replay-safe writes to `fused_events`;
+  - conformance PASS and 100% fused-reference resolution.
+- **Not met, carried forward:** two metrics. "Completed" does not mean the bar is met.
+  - Fused-path latency: p95 19.3 s against ≤500 ms — structural (Open Item 5).
+  - Timestamp alignment: p95 96 ms against ±1 ms — sensor event spacing, not clock error.
+- **Passes:** data loss (0.0%), zero duplicates, zero watermark drops.
+- **Details:** [`m6_package_cover_note.md`](docs/milestones/milestone6/m6_package_cover_note.md) and
+  [`open_items_m6.md`](docs/milestones/milestone6/open_items_m6.md).
+- **Tags:** `M6-W26-abdalla`, `M6-W26-beyza` and `M6-W26-omer`, applied 8 November 2026.
+
+
+
 
 ## Prototype Performance Bar
 
