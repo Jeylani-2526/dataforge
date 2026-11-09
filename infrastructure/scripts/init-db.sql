@@ -157,7 +157,7 @@ GROUP BY bucket, sensor_type
 WITH NO DATA;
 
 SELECT add_continuous_aggregate_policy('summary_5min',
-    start_offset => BIGINT '600000',
+    start_offset => BIGINT '900000',  -- must cover >= 2 buckets past end_offset (M6W26T7)
     end_offset   => BIGINT '300000',
     schedule_interval => INTERVAL '5 minutes',
     if_not_exists => TRUE);
