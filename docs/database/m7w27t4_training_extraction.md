@@ -1,4 +1,4 @@
-﻿# M7W27T4 — Training Set Extraction & Class Balance
+# M7W27T4 â€” Training Set Extraction & Class Balance
 
 ---
 
@@ -13,7 +13,9 @@
 
 ---
 
-## 2. 80/20 Stratified Split (before SMOTE)
+## 2. 80/20 Stratified Split
+
+Fixed split, stratified by `anomaly_type`, seed=42. Test IDs saved to `data/splits/` for reproducibility.
 
 | Stream | Train (80%) | Train Anomaly | Test (20%) | Test Anomaly |
 |---|---|---|---|---|
@@ -21,35 +23,55 @@
 | LIDAR | 40,000 | 1,189 | 10,000 | 297 |
 | TELEMETRY | 40,000 | 1,186 | 10,000 | 297 |
 
-Test set is not touched by SMOTE -- it reflects the real class distribution (~2.97% anomaly).
+Per-type counts (make_split.py, seed=42):
+
+| Stream | Type | Train | Test |
+|---|---|---|---|
+| RADAR | ghost_target | 410 | 103 |
+| RADAR | normal | 38,815 | 9,703 |
+| RADAR | sensor_dropout | 398 | 100 |
+| RADAR | velocity_spike | 377 | 94 |
+| LIDAR | ghost_point | 398 | 100 |
+| LIDAR | noise_burst | 402 | 100 |
+| LIDAR | normal | 38,811 | 9,703 |
+| LIDAR | point_cloud_dropout | 389 | 97 |
+| TELEMETRY | missing_reading | 372 | 93 |
+| TELEMETRY | normal | 38,813 | 9,704 |
+| TELEMETRY | out_of_range_value | 397 | 99 |
+| TELEMETRY | timestamp_stall | 418 | 104 |
 
 ---
 
-## 3. SMOTE Oversampling (train set only)
+## 3. Class Balance Approach
 
-SMOTE (Synthetic Minority Oversampling Technique, k=5 neighbors, random_state=42) applied to train set only. Target ratio: 1.0 (50/50). Test set unchanged.
+SMOTE degerlendiridi ve reddedildi (Abdalla, 9 Kasim 2026).
 
-| Stream | Train before SMOTE | Train after SMOTE | Anomaly % after |
-|---|---|---|---|
-| RADAR | 40,000 (1,186 anom / 38,814 normal) | 77,628 (38,814 / 38,814) | 50.00% |
-| LIDAR | 40,000 (1,189 anom / 38,811 normal) | 77,622 (38,811 / 38,811) | 50.00% |
-| TELEMETRY | 40,000 (1,186 anom / 38,814 normal) | 77,628 (38,814 / 38,814) | 50.00% |
+Isolation Forest denetimsiz bir model ve anomalilerin nadir olmasina dayanir.
+%50 dengeli egitim (SMOTE veya gercek veri) FPR'yi %13-26'ya cikariyor.
 
-Verification: 37,628 synthetic anomaly rows generated for RADAR (confirmed distinct from originals). SMOTE execution time: ~0.05s per stream (numpy matrix operation, not file I/O).
+| Yaklasim | RADAR FPR | LIDAR FPR |
+|---|---|---|
+| Dogal ~%3 (mevcut) | %0.4 PASS | %0.5 PASS |
+| SMOTE %50 | %18.3 FAIL | %25.8 FAIL |
+| Gercek %50 veri | %13.5 FAIL | %24.8 FAIL |
+
+Karar: Train seti dogal ~%3 oraninda kalir. Dengesizlik AUC/FPR ve anomaly_type basina recall ile olcularak yonetilir.
 
 ---
 
 ## 4. Feature Columns
 
+Gecici -- kesin liste M7W27T1'de belirlenecek.
+
 All three streams carry identical column sets.
 
-**Features used for training (sensor measurement columns only):**  
+**Features used for training (sensor measurement columns only):**
 `range_m`, `bearing_deg`, `elevation_deg`, `velocity_ms`, `signal_strength_db`, `scan_id`, `point_count`, `centroid_x_m`, `centroid_y_m`, `centroid_z_m`, `max_range_m`, `avg_intensity`, `min_intensity`, `value`
 
-**Excluded from training:**  
-- `event_id`, `sensor_id`, `sensor_type`, `timestamp_ms`, `device_id`, `parameter_name`, `unit`, `sequence_number`, `schema_version` -- identifiers and metadata  
-- `label`, `anomaly_type` -- target columns (not features)  
-- ALICE features -- excluded per M6W26T5 Decision C
+**Excluded from training:**
+- `event_id`, `sensor_id`, `sensor_type`, `timestamp_ms`, `device_id`, `parameter_name`, `unit`, `sequence_number`, `schema_version` -- identifiers and metadata
+- `label`, `anomaly_type` -- target columns (not features)
+- ALICE features -- excluded per M6W26T5 Section 4
 
 ---
 
@@ -57,16 +79,17 @@ All three streams carry identical column sets.
 
 | Requirement | Source | Status |
 |---|---|---|
-| Per-stream corpus, 50,000 records each | `labeled_training_data_spec.md` s1 | PASS |
+| Per-stream corpus, 50,000 records each | labeled_training_data_spec.md s1 | PASS |
 | Anomaly rate ~2.96-2.97% per stream | M6W26T5 E6 | PASS |
-| 80/20 stratified split | `labeled_training_data_spec.md` s3 | PASS |
+| 80/20 stratified split, stratified by anomaly_type, seed=42 | labeled_training_data_spec.md s3 | PASS |
 | Test set ~296-297 anomalies per stream | M6W26T5 s4 bar | PASS |
-| Train set class-balanced via SMOTE 50/50 | `labeled_training_data_spec.md` s3, Abdalla approval 2026-11-06 | PASS |
+| Train set dogal ~%3 (SMOTE reddedildi) | Abdalla, 9 Kasim 2026 | PASS |
 | Labels sourced from corpus, not live stream | M6W26T5 Decision B1 | PASS |
-| ALICE excluded from training features | M6W26T5 Decision C | PASS |
+| ALICE excluded from training features | M6W26T5 Section 4 | PASS |
+| Test IDs saved to data/splits/ | make_split.py | PASS |
 
 ---
 
 ## 6. Gate Status
 
-**PASS** -- M3 corpus class balance confirmed. 80/20 stratified split counts match spec. SMOTE applied to train set (50/50), test set reflects real distribution. M7W27T2 (Isolation Forest training) unblocked.
+**PASS** -- M3 corpus class balance confirmed. 80/20 stratified split saved to data/splits/ (seed=42, stratified by anomaly_type). SMOTE rejected -- train set retains natural ~3% anomaly rate. M7W27T2 (Isolation Forest training) unblocked.

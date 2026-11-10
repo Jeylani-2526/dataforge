@@ -1,4 +1,4 @@
-﻿# M7W27T5 — Scored-Row Write Path Conformance
+# M7W27T5 — Scored-Row Write Path Conformance
 
 ---
 
@@ -55,30 +55,74 @@ The INSERT statement targets only `FUSED_FIELDS` columns. PostgreSQL fills the r
 
 ### 2.4 schema_versioning.enforce()
 
-`enforce()` validates against `fused_event_schema_v1.avsc`. That schema carries no `anomaly_label`, `risk_score`, or `confidence` field — confirmed by M6W26T1 conformance check (PASS, 2026-11-05). The enforcement round-trip cannot introduce these values.
+`enforce()` validates against `fused_event_schema_v1.avsc`. That schema carries no `anomaly_label`, `risk_score`, or `confidence` field -- confirmed by M6W26T1 conformance check (PASS, 2026-11-05). The enforcement round-trip cannot introduce these values.
 
 ---
 
 ## 3. Database Verification
 
-From M6W26T1 (executed 2026-11-05, 34,560 rows, 1,000 sampled):
+Full table count (34,560 rows, executed 2026-11-10):
 
-| Column | NULL count in sample | Result |
-|---|---|---|
-| `anomaly_label` | 1,000 / 1,000 | PASS |
-| `risk_score` | 1,000 / 1,000 | PASS |
-| `confidence` | 1,000 / 1,000 | PASS |
+| Column | NOT NULL count | Total rows | Result |
+|---|---|---|---|
+| `anomaly_label` | 0 | 34,560 | PASS |
+| `risk_score` | 0 | 34,560 | PASS |
+| `confidence` | 0 | 34,560 | PASS |
+
+Query: `SELECT COUNT(*) FILTER (WHERE anomaly_label IS NOT NULL) AS scored, COUNT(*) AS total FROM fused_events;`
 
 All M7 nullable columns are NULL across the full 34,560-row table. No write path populates them before M7 inference.
 
 ---
 
-## 4. M7 Write Path (forward reference)
+## 4. Write Test (ROLLBACK)
+
+Executed 2026-11-10 via `docker exec dataforge-timescaledb psql`. Transaction rolled back -- no data modified.
+
+### 4.1 Valid score write
+
+```sql
+UPDATE fused_events SET anomaly_label = 1, risk_score = 0.91, confidence = 0.94
+WHERE fused_event_id = (SELECT fused_event_id FROM fused_events LIMIT 1)
+RETURNING fused_event_id, anomaly_label, risk_score, confidence;
+```
+
+Result:
+
+| fused_event_id | anomaly_label | risk_score | confidence |
+|---|---|---|---|
+| 00033274-e360-4170-8449-7d0673a46a3b | 1 | 0.91 | 0.94 |
+
+UPDATE 1 -- PASS. Values written and returned correctly.
+
+### 4.2 Out-of-range write (risk_score = 1.5)
+
+```sql
+UPDATE fused_events SET risk_score = 1.5
+WHERE fused_event_id = (SELECT fused_event_id FROM fused_events LIMIT 1)
+RETURNING risk_score;
+```
+
+Result: `risk_score = 1.5` -- UPDATE 1 accepted.
+
+**FINDING:** No CHECK constraint on `risk_score` or `confidence` in the database schema. The API contract specifies 0.0-1.0 but the DB accepts values outside this range. Schema enforcement decision deferred to Abdalla (schema authority).
+
+### 4.3 Type compatibility
+
+| Column | DB type | API contract | Compatible |
+|---|---|---|---|
+| `anomaly_label` | BIGINT | int 0/1 | YES |
+| `risk_score` | REAL | float 0.0-1.0 | YES (range not enforced at DB level) |
+| `confidence` | REAL | float 0.0-1.0 | YES (range not enforced at DB level) |
+
+---
+
+## 5. M7 Write Path (forward reference)
 
 When M7W28T3 (Live Inference) runs, the scoring engine will UPDATE these columns in-place per fused row. The write path for that update is outside the current scope and will be verified in M7W28T8.
 
 ---
 
-## 5. Gate Status
+## 6. Gate Status
 
-**PASS** -- M7 nullable columns (`anomaly_label`, `risk_score`, `confidence`) are absent from `FUSED_FIELDS`, absent from record construction, and confirmed NULL across all 34,560 rows in the live DB. The write path does not corrupt M7 scoring inputs.
+**PASS** -- M7 nullable columns (`anomaly_label`, `risk_score`, `confidence`) are absent from `FUSED_FIELDS`, absent from record construction, and confirmed NULL across all 34,560 rows in the live DB. Write test confirms correct type acceptance. FINDING: no CHECK constraint for 0.0-1.0 range -- reported, decision deferred to Abdalla.

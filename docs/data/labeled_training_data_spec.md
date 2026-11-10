@@ -1,4 +1,6 @@
-﻿# DataForge — Labeled Training Data Specification
+# DataForge — Labeled Training Data Specification
+
+
 
 ---
 
@@ -69,39 +71,20 @@ The 80/20 split is applied to the **realized** labeled corpus (Section 2), strat
 
 | Split | Normal (target) | Anomalous (target) | Total | Realized anomalous (Radar / LIDAR / Telemetry) |
 |---|---|---|---|---|
-| Train (80%) | 38,800 | 1,200 (400 x 3 types) | 40,000 | ~1,186 / ~1,189 / ~1,186 |
-| Test (20%) | 9,700 | 300 (100 x 3 types) | 10,000 | ~296 / ~297 / ~297 |
+| Train (80%) | 38,800 | 1,200 (400 × 3 types) | 40,000 | ≈1,186 / ≈1,189 / ≈1,186 |
+| Test (20%) | 9,700 | 300 (100 × 3 types) | 10,000 | ≈296 / ≈297 / ≈297 |
 
 (Per stream, target: train = 38,800 normal + 1,200 anomalous; test = 9,700 normal + 300 anomalous. Realized anomalous = 20% of each stream's actual `label=1` count from Section 2, stratified across its three types.)
 
 **Rationale for per-stream (not combined) splitting:** Radar, LIDAR, and telemetry have structurally different fields (only the subtype-specific columns are populated per `sensor_type`) and will very likely be modeled with stream-aware features or even separate model instances at M7 — pooling before splitting risks an uneven per-stream test set if one stream's records happen to cluster differently in a combined shuffle. Per-stream splitting guarantees each stream independently hits the 80/20 target with clean anomaly-type stratification.
 
-**Correction to a Week 9 approximate figure:** The Week 9 kickoff note estimated "~450 held out for testing" per stream as an illustrative figure only, not a locked convention. With the 80/20 split now finalized, the actual test-set anomaly count is **300 per stream** (1,500 x 20%), not 450. This spec's figures supersede the earlier illustrative estimate.
-
-### SMOTE oversampling on train set (added M7W27, approved by Abdalla 2026-11-06)
-
-The raw train set is class-imbalanced (~2.97% anomaly). To improve model training quality, SMOTE (Synthetic Minority Oversampling Technique) is applied to the **train set only** after the 80/20 split. The test set is never resampled — it retains the real class distribution for honest evaluation.
-
-| Parameter | Value |
-|---|---|
-| Method | SMOTE (imblearn 0.12.4, k=5 neighbors) |
-| Target ratio | 1.0 (50/50 normal / anomaly) |
-| random_state | 42 |
-| Applied to | Train set only |
-
-**Resulting train set after SMOTE:**
-
-| Stream | Before SMOTE | After SMOTE | Anomaly % |
-|---|---|---|---|
-| RADAR | 40,000 (1,186 anom / 38,814 normal) | 77,628 (38,814 / 38,814) | 50.00% |
-| LIDAR | 40,000 (1,189 anom / 38,811 normal) | 77,622 (38,811 / 38,811) | 50.00% |
-| TELEMETRY | 40,000 (1,186 anom / 38,814 normal) | 77,628 (38,814 / 38,814) | 50.00% |
+**Correction to a Week 9 approximate figure:** The Week 9 kickoff note estimated "~450 held out for testing" per stream as an illustrative figure only, not a locked convention. With the 80/20 split now finalized, the actual test-set anomaly count is **300 per stream** (1,500 × 20%), not 450. This spec's figures supersede the earlier illustrative estimate.
 
 ---
 
 ## 4. Downstream Use — M7 AUC / FPR Targets
 
-The test set (~300 anomalous + ~9,700 normal per stream ~ 10,000 records/stream) is what M7 model evaluation measures AUC >=0.85 and FPR <=5% against, per the locked Prototype Performance Bar. ~300 anomalous test examples per stream (~890 total across all three streams, given realized counts of 296/297/297) is the sample size available for that evaluation — worth flagging now, not discovering at M7, in case a larger anomalous test sample becomes necessary for statistically stable AUC/FPR estimates.
+The test set (≈300 anomalous + ≈9,700 normal per stream ≈ 10,000 records/stream) is what M7 model evaluation measures AUC ≥0.85 and FPR ≤5% against, per the locked Prototype Performance Bar. ≈300 anomalous test examples per stream (≈890 total across all three streams, given realized counts of 296/297/297) is the sample size available for that evaluation — worth flagging now, not discovering at M7, in case a larger anomalous test sample becomes necessary for statistically stable AUC/FPR estimates.
 
 ---
 
@@ -111,8 +94,9 @@ A record is training-ready when:
 1. It conforms to `sensor_schema_v1.avsc` for its `sensor_type`.
 2. It carries valid `label` (0/1) and `anomaly_type` (populated iff `label=1`, one of the nine locked types) fields.
 3. It has been assigned to train or test per the 80/20, per-stream, anomaly-type-stratified split above.
-4. If in the train set: SMOTE has been applied to balance the class distribution to 50/50.
 
 This is the acceptance criterion M3W10T3 (label-assignment verification) checks Omer's first labeled batches (M3W10T8) against.
 
 ---
+
+
