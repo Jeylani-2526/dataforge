@@ -1,4 +1,4 @@
-# M7W27T4 â€” Training Set Extraction & Class Balance
+# M7W27T4 — Training Set Extraction & Class Balance
 
 ---
 
