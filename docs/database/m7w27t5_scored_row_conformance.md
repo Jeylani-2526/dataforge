@@ -107,6 +107,12 @@ Result: `risk_score = 1.5` -- UPDATE 1 accepted.
 
 **FINDING:** No CHECK constraint on `risk_score` or `confidence` in the database schema. The API contract specifies 0.0-1.0 but the DB accepts values outside this range. Schema enforcement decision deferred to Abdalla (schema authority).
 
+**Resolved (Abdalla, 12 November 2026):** CHECK constraints added to `fused_events` —
+`chk_fused_anomaly_label` (0 or 1), `chk_fused_risk_score` and `chk_fused_confidence`
+(0.0–1.0). NULL still passes, so unscored rows are unaffected. New databases get them from
+`init-db.sql`; existing ones from `infrastructure/scripts/migrations/m7w27_fused_score_checks.sql`.
+Verified: valid values and the 0.0 / 1.0 edges accepted; 1.5, -0.1 and label 2 rejected.
+
 ### 4.3 Type compatibility
 
 | Column | DB type | API contract | Compatible |
