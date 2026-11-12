@@ -155,7 +155,10 @@ SELECT
     AVG(data_loss_pct)                           AS avg_data_loss_pct,
     AVG(latency_ms)                              AS avg_latency_ms,
     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95_latency_ms,
-    AVG(CASE WHEN anomaly_label IS NOT NULL THEN 1.0 ELSE 0.0 END) AS anomaly_rate
+    -- Share of SCORED rows labelled anomalous; NULL while a bucket is unscored.
+    -- (Was "share of rows with any label", which reads 100% once scoring starts.)
+    AVG(CASE WHEN anomaly_label = 1 THEN 1.0
+             WHEN anomaly_label = 0 THEN 0.0 END)    AS anomaly_rate
 FROM fused_events
 GROUP BY bucket, sensor_type
 WITH NO DATA;
