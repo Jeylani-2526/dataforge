@@ -1,0 +1,639 @@
+{
+  "alarm_line": 0.99,
+  "streams": {
+    "radar": {
+      "train": {
+        "isolation_forest": {
+          "auc": 0.9978743156300769,
+          "fpr": 0.01002189875048306,
+          "recall": 0.9409282700421941,
+          "precision": 0.7413563829787234,
+          "fp": 389,
+          "fn": 70,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 410,
+              "n": 410
+            },
+            "sensor_dropout": {
+              "caught": 398,
+              "n": 398
+            },
+            "velocity_spike": {
+              "caught": 307,
+              "n": 377
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9999871183820689,
+          "fpr": 0.01002189875048306,
+          "recall": 1.0,
+          "precision": 0.752858958068615,
+          "fp": 389,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 410,
+              "n": 410
+            },
+            "sensor_dropout": {
+              "caught": 398,
+              "n": 398
+            },
+            "velocity_spike": {
+              "caught": 377,
+              "n": 377
+            }
+          }
+        },
+        "either": {
+          "auc": 0.9999742367641375,
+          "fpr": 0.019245137189230967,
+          "recall": 1.0,
+          "precision": 0.6133540372670807,
+          "fp": 747,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 410,
+              "n": 410
+            },
+            "sensor_dropout": {
+              "caught": 398,
+              "n": 398
+            },
+            "velocity_spike": {
+              "caught": 377,
+              "n": 377
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.9999742367641375,
+          "fpr": 0.009764266391858817,
+          "recall": 1.0,
+          "precision": 0.7576726342710998,
+          "fp": 379,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 410,
+              "n": 410
+            },
+            "sensor_dropout": {
+              "caught": 398,
+              "n": 398
+            },
+            "velocity_spike": {
+              "caught": 377,
+              "n": 377
+            }
+          }
+        }
+      },
+      "test": {
+        "isolation_forest": {
+          "auc": 0.9980243189044591,
+          "fpr": 0.009172420900752345,
+          "recall": 0.936026936026936,
+          "precision": 0.7574931880108992,
+          "fp": 89,
+          "fn": 19,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 103,
+              "n": 103
+            },
+            "sensor_dropout": {
+              "caught": 100,
+              "n": 100
+            },
+            "velocity_spike": {
+              "caught": 75,
+              "n": 94
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9999484695455014,
+          "fpr": 0.00937854271874678,
+          "recall": 1.0,
+          "precision": 0.7654639175257731,
+          "fp": 91,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 103,
+              "n": 103
+            },
+            "sensor_dropout": {
+              "caught": 100,
+              "n": 100
+            },
+            "velocity_spike": {
+              "caught": 94,
+              "n": 94
+            }
+          }
+        },
+        "either": {
+          "auc": 0.9999484695455014,
+          "fpr": 0.0178295372565186,
+          "recall": 1.0,
+          "precision": 0.6319148936170212,
+          "fp": 173,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 103,
+              "n": 103
+            },
+            "sensor_dropout": {
+              "caught": 100,
+              "n": 100
+            },
+            "velocity_spike": {
+              "caught": 94,
+              "n": 94
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.9999484695455014,
+          "fpr": 0.00937854271874678,
+          "recall": 1.0,
+          "precision": 0.7654639175257731,
+          "fp": 91,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_target": {
+              "caught": 103,
+              "n": 103
+            },
+            "sensor_dropout": {
+              "caught": 100,
+              "n": 100
+            },
+            "velocity_spike": {
+              "caught": 94,
+              "n": 94
+            }
+          }
+        }
+      }
+    },
+    "lidar": {
+      "train": {
+        "isolation_forest": {
+          "auc": 0.9998621015575275,
+          "fpr": 0.010022931643090876,
+          "recall": 1.0,
+          "precision": 0.7534854245880862,
+          "fp": 389,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 398,
+              "n": 398
+            },
+            "noise_burst": {
+              "caught": 402,
+              "n": 402
+            },
+            "point_cloud_dropout": {
+              "caught": 389,
+              "n": 389
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9974546051697906,
+          "fpr": 0.010022931643090876,
+          "recall": 0.9015979814970564,
+          "precision": 0.7337440109514032,
+          "fp": 389,
+          "fn": 117,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 398,
+              "n": 398
+            },
+            "noise_burst": {
+              "caught": 285,
+              "n": 402
+            },
+            "point_cloud_dropout": {
+              "caught": 389,
+              "n": 389
+            }
+          }
+        },
+        "either": {
+          "auc": 0.9999739740662513,
+          "fpr": 0.013424029270052304,
+          "recall": 1.0,
+          "precision": 0.6953216374269006,
+          "fp": 521,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 398,
+              "n": 398
+            },
+            "noise_burst": {
+              "caught": 402,
+              "n": 402
+            },
+            "point_cloud_dropout": {
+              "caught": 389,
+              "n": 389
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.9999739740662513,
+          "fpr": 0.007137151838396331,
+          "recall": 1.0,
+          "precision": 0.8110504774897681,
+          "fp": 277,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 398,
+              "n": 398
+            },
+            "noise_burst": {
+              "caught": 402,
+              "n": 402
+            },
+            "point_cloud_dropout": {
+              "caught": 389,
+              "n": 389
+            }
+          }
+        }
+      },
+      "test": {
+        "isolation_forest": {
+          "auc": 0.9996472679663445,
+          "fpr": 0.010718334535710606,
+          "recall": 1.0,
+          "precision": 0.7406483790523691,
+          "fp": 104,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 100,
+              "n": 100
+            },
+            "noise_burst": {
+              "caught": 100,
+              "n": 100
+            },
+            "point_cloud_dropout": {
+              "caught": 97,
+              "n": 97
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9972310622109654,
+          "fpr": 0.011130578171699474,
+          "recall": 0.9090909090909091,
+          "precision": 0.7142857142857143,
+          "fp": 108,
+          "fn": 27,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 100,
+              "n": 100
+            },
+            "noise_burst": {
+              "caught": 73,
+              "n": 100
+            },
+            "point_cloud_dropout": {
+              "caught": 97,
+              "n": 97
+            }
+          }
+        },
+        "either": {
+          "auc": 0.9998454086365042,
+          "fpr": 0.01442852725961043,
+          "recall": 1.0,
+          "precision": 0.6796338672768879,
+          "fp": 140,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 100,
+              "n": 100
+            },
+            "noise_burst": {
+              "caught": 100,
+              "n": 100
+            },
+            "point_cloud_dropout": {
+              "caught": 97,
+              "n": 97
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.9998454086365042,
+          "fpr": 0.008038750901782953,
+          "recall": 1.0,
+          "precision": 0.792,
+          "fp": 78,
+          "fn": 0,
+          "recall_by_type": {
+            "ghost_point": {
+              "caught": 100,
+              "n": 100
+            },
+            "noise_burst": {
+              "caught": 100,
+              "n": 100
+            },
+            "point_cloud_dropout": {
+              "caught": 97,
+              "n": 97
+            }
+          }
+        }
+      }
+    },
+    "telemetry": {
+      "train": {
+        "isolation_forest": {
+          "auc": 0.9928552174141707,
+          "fpr": 0.010048179733594413,
+          "recall": 0.9890480202190396,
+          "precision": 0.7506393861892583,
+          "fp": 390,
+          "fn": 13,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 372,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 405,
+              "n": 418
+            }
+          }
+        },
+        "isolation_forest_no_rules": {
+          "auc": 0.6639701095467128,
+          "fpr": 0.010048179733594413,
+          "recall": 0.34203875315922494,
+          "precision": 0.5100502512562815,
+          "fp": 390,
+          "fn": 781,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 6,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 3,
+              "n": 418
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9932004234938872,
+          "fpr": 0.01009970886043336,
+          "recall": 0.9890480202190396,
+          "precision": 0.7496807151979565,
+          "fp": 392,
+          "fn": 13,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 372,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 405,
+              "n": 418
+            }
+          }
+        },
+        "baseline_no_rules": {
+          "auc": 0.6642793277189738,
+          "fpr": 0.01009970886043336,
+          "recall": 0.34203875315922494,
+          "precision": 0.5087719298245614,
+          "fp": 392,
+          "fn": 781,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 5,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 4,
+              "n": 418
+            }
+          }
+        },
+        "either": {
+          "auc": 0.992734121795538,
+          "fpr": 0.011568288975343313,
+          "recall": 0.9890480202190396,
+          "precision": 0.7233518176216882,
+          "fp": 449,
+          "fn": 13,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 372,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 405,
+              "n": 418
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.992734121795538,
+          "fpr": 0.007832427279519749,
+          "recall": 0.9890480202190396,
+          "precision": 0.7943166441136671,
+          "fp": 304,
+          "fn": 13,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 372,
+              "n": 372
+            },
+            "out_of_range_value": {
+              "caught": 397,
+              "n": 397
+            },
+            "timestamp_stall": {
+              "caught": 405,
+              "n": 418
+            }
+          }
+        }
+      },
+      "test": {
+        "isolation_forest": {
+          "auc": 0.9919514591363829,
+          "fpr": 0.010923330585325639,
+          "recall": 0.9898648648648649,
+          "precision": 0.7343358395989975,
+          "fp": 106,
+          "fn": 3,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 93,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 101,
+              "n": 104
+            }
+          }
+        },
+        "isolation_forest_no_rules": {
+          "auc": 0.6873130472805864,
+          "fpr": 0.010923330585325639,
+          "recall": 0.35135135135135137,
+          "precision": 0.49523809523809526,
+          "fp": 106,
+          "fn": 192,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 2,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 3,
+              "n": 104
+            }
+          }
+        },
+        "baseline": {
+          "auc": 0.9925455649383926,
+          "fpr": 0.010820280296784831,
+          "recall": 0.9898648648648649,
+          "precision": 0.7361809045226131,
+          "fp": 105,
+          "fn": 3,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 93,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 101,
+              "n": 104
+            }
+          }
+        },
+        "baseline_no_rules": {
+          "auc": 0.684434253915911,
+          "fpr": 0.010820280296784831,
+          "recall": 0.35135135135135137,
+          "precision": 0.49760765550239233,
+          "fp": 105,
+          "fn": 192,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 2,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 3,
+              "n": 104
+            }
+          }
+        },
+        "either": {
+          "auc": 0.9919995028519863,
+          "fpr": 0.012056883759274526,
+          "recall": 0.9898648648648649,
+          "precision": 0.7146341463414634,
+          "fp": 117,
+          "fn": 3,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 93,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 101,
+              "n": 104
+            }
+          }
+        },
+        "either_half_budget": {
+          "auc": 0.9919995028519863,
+          "fpr": 0.008965375103050288,
+          "recall": 0.9898648648648649,
+          "precision": 0.7710526315789473,
+          "fp": 87,
+          "fn": 3,
+          "recall_by_type": {
+            "missing_reading": {
+              "caught": 93,
+              "n": 93
+            },
+            "out_of_range_value": {
+              "caught": 99,
+              "n": 99
+            },
+            "timestamp_stall": {
+              "caught": 101,
+              "n": 104
+            }
+          }
+        }
+      }
+    }
+  }
+}

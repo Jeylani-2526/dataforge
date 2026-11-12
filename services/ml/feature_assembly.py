@@ -189,7 +189,8 @@ def cmd_corpus():
     tel = read_corpus("telemetry")
     stats = fit_value_stats(tel, read_test_ids("telemetry"))
     STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    STATS_PATH.write_text(json.dumps(stats, indent=2) + "\n", encoding="utf-8")
+    STATS_PATH.write_text(json.dumps(stats, indent=2) + "\n", encoding="utf-8",
+                          newline="\n")
     print(f"telemetry value stats -> {STATS_PATH}")
     for name, s in sorted(stats.items()):
         print(f"  {name:12s} mean {s['mean']:8.3f}  std {s['std']:7.3f}  (n={s['n']:,})")
