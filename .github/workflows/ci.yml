@@ -87,6 +87,10 @@ jobs:
             if [ -f services/streaming/spark/requirements.txt ]; then
               pip install -r services/streaming/spark/requirements.txt
             fi
+            # M7W27T2: model tests need numpy + scikit-learn
+            if [ -f services/ml/requirements.txt ]; then
+              pip install -r services/ml/requirements.txt
+            fi
             pytest services/ -v
           else
             echo "No tests yet — test suite activates in M3 ✓"

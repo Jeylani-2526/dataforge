@@ -1,0 +1,6 @@
+# M7 — feature assembly, Isolation Forest training and scoring.
+# scikit-learn is pinned: saved models only load with the version that trained them.
+numpy>=2.0,<3
+scikit-learn==1.7.2
+joblib>=1.4
+psycopg2-binary==2.9.9

@@ -62,3 +62,6 @@ data/adaptation/
 # --- M6W26T3 alignment samples (measurement output, not source) ---
 data/alignment/*
 !data/alignment/.gitkeep
+
+# --- M7 trained models: rebuilt by `python services/ml/isolation_forest.py train` ---
+services/ml/artifacts/*.joblib
