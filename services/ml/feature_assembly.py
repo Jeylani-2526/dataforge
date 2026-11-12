@@ -140,27 +140,42 @@ def load_corpus(stream, value_stats=None):
 
 
 # Scoring path: fused row -> its sensor event in staging (M6W26T5 Decision A1).
+# Columns are named explicitly: staging also has sensor_type and event_id, and with s.*
+# a missing staging row would overwrite the fused row's sensor_type with NULL.
+STAGING_COLS = sorted({c for cols in REQUIRED.values() for c in cols}
+                      | {"device_id", "sequence_number", "timestamp_ms"})
 SCORING_SQL = """
-SELECT f.fused_event_id, f.sensor_type, s.*
+SELECT f.fused_event_id, f.sensor_type, f.timestamp_ms AS fused_timestamp_ms,
+       s.event_id AS staging_event_id, {cols}
 FROM fused_events f
 LEFT JOIN raw_sensor_events_staging s ON s.event_id = f.sensor_event_id
 {where}
-"""
+""".replace("{cols}", ", ".join(f"s.{c}" for c in STAGING_COLS))
+
+DIAGNOSE_SQL = {
+    "staging rows (sensor)": "SELECT COUNT(*) FROM raw_sensor_events_staging",
+    "newest staging load": "SELECT MAX(load_timestamp) FROM raw_sensor_events_staging",
+    "newest fused row": "SELECT to_timestamp(MAX(timestamp_ms) / 1000.0) FROM fused_events",
+    "fused rows with a staging match":
+        "SELECT COUNT(*) FROM fused_events f "
+        "JOIN raw_sensor_events_staging s ON s.event_id = f.sensor_event_id",
+}
 
 
-def fetch_scoring_rows(conn, limit=None):
+def fetch_scoring_rows(conn, since_ms=None, limit=None):
     from psycopg2.extras import RealDictCursor
 
-    sql = SCORING_SQL.format(where="") + (f" LIMIT {int(limit)}" if limit else "")
+    where = "WHERE f.timestamp_ms >= %(since)s" if since_ms is not None else ""
+    sql = SCORING_SQL.format(where=where) + (f" LIMIT {int(limit)}" if limit else "")
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(sql)
+        cur.execute(sql, {"since": since_ms})
         return cur.fetchall()
 
 
 def assemble_scoring_row(row, value_stats):
     """Return (stream, features) or (stream, None) with the reason it failed."""
     stream = (row["sensor_type"] or "").lower()
-    if row.get("event_id") is None:
+    if row.get("staging_event_id") is None:
         return stream, None, "no staging row"
     missing = [c for c in REQUIRED[stream] if row.get(c) is None]
     if missing:
@@ -191,14 +206,24 @@ def cmd_corpus():
                 print(f"  rules fire on {t:20s} {(d['rule'][sel] != '').sum():5,} / {sel.sum():6,}")
 
 
-def cmd_db():
+def cmd_db(since_minutes=None):
+    import time
+
     import psycopg2
 
     dsn = os.environ.get("TIMESCALE_DSN",
                          "postgresql://dataforge:dataforge_dev@localhost:5433/dataforge")
     stats = load_value_stats()
     with psycopg2.connect(dsn) as conn:
-        rows = fetch_scoring_rows(conn)
+        since_ms = None
+        if since_minutes is not None:
+            since_ms = int(time.time() * 1000) - since_minutes * 60_000
+            print(f"window: fused rows from the last {since_minutes} min")
+        rows = fetch_scoring_rows(conn, since_ms)
+        with conn.cursor() as cur:
+            for label, sql in DIAGNOSE_SQL.items():
+                cur.execute(sql)
+                print(f"{label:34s} {cur.fetchone()[0]}")
     total, ok, by, reasons = len(rows), 0, {}, {}
     for row in rows:
         stream, feats, why = assemble_scoring_row(row, stats)
@@ -220,8 +245,10 @@ def cmd_db():
 def main():
     ap = argparse.ArgumentParser(description="M7W27T1 feature assembly")
     ap.add_argument("mode", choices=["corpus", "db"])
+    ap.add_argument("--since-minutes", type=int,
+                    help="db mode: only fused rows newer than this many minutes")
     args = ap.parse_args()
-    cmd_corpus() if args.mode == "corpus" else cmd_db()
+    cmd_corpus() if args.mode == "corpus" else cmd_db(args.since_minutes)
     return 0
 
 

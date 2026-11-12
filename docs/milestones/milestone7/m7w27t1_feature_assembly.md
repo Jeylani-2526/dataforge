@@ -6,7 +6,7 @@
 **Built to:** M6W26T5 (signed 5 November) — features from staging, labels from the M3 corpus
 **Code:** `services/ml/feature_assembly.py`, `services/ml/test_feature_assembly.py`,
 `services/ml/artifacts/telemetry_value_stats.json`
-**Status:** Complete on the corpus path. Scoring-path row count **pending** — see Section 6.
+**Status:** Complete. Scoring path assembles **100%** of fused rows from a run with the full stack — Section 6.
 
 ---
 
@@ -148,25 +148,41 @@ be needed for the per-row lookup in W28T3.
 | LIDAR | 8 | 40,000 | 1,189 | 10,000 | 297 |
 | TELEMETRY | 1 + 2 rules | 40,000 | 1,187 | 10,000 | 296 |
 
-### Scoring path — pending
+### Scoring path — complete
 
-The plan asks for the assembled-row count against total fused rows. This needs the live database:
+Measured 12 November 2026 on the lead's machine, with `python services/ml/feature_assembly.py db`.
 
-```bash
-python services/ml/feature_assembly.py db
-```
+**First run: 0 of 37,060 fused rows assembled.** Every row failed with "no staging row":
 
-| Measure | Result |
+| Check | Value |
 |---|---|
-| Fused rows | *pending* |
-| Assembled | *pending* |
-| Not assembled, by reason | *pending* |
+| Newest staging load | **2 October 2026** |
+| Newest fused row | 5 November 2026 |
+| Fused rows with a staging match | 0 |
 
-M6W26T2 measured 100% reference resolution on Beyza's database. Rows fused before the D1 change
-carry the old live ranges, so they will assemble but score as out-of-distribution. Scoring in W28
-should run on rows fused **after** this change.
+spark-processor had not run on this machine since 2 October. Every fusion run since — Week 23 and
+M6W26T4 — ran without it, so their sensor events never reached staging. This is M6W26T5
+condition A2 ("spark-processor must run whenever fusion runs"), now shown on real data rather
+than reasoned. The 37,060 rows cannot be recovered: their Kafka data has aged out.
 
----
+The first run also exposed a defect in this task's own query: staging's `sensor_type` column
+overwrote the fused row's value with NULL whenever the join failed, hiding which stream each row
+belonged to. Fixed by selecting staging columns by name; guarded by
+`test_scoring_sql_keeps_fused_sensor_type`.
+
+**Second run: full stack, after the D1 producer rebuild.** Both Spark checkpoints were reset first
+(open item 11: their Kafka offsets had aged out), then all four profiles were started together.
+
+| Stream | Assembled / fused (last 4 min) |
+|---|---|
+| LIDAR | 71 / 71 |
+| RADAR | 68 / 68 |
+| TELEMETRY | 66 / 66 |
+| **Total** | **205 / 205 (100%)** |
+
+`--since-minutes` limits the count to rows from the new run. Rows from before it never had staging
+rows on this machine and use the old producer ranges, so M7W28T3 scores only rows fused after the
+rebuild.
 
 ## 7. Preview — not the T2 result
 
@@ -190,12 +206,13 @@ figures, threshold and reporting.
 | M6W26T5 | "train on the corpus that feeds the fused stream" | Not true until D1 — Section 3 |
 | M7W27T4 Section 2 | RADAR test anomalies 296, TELEMETRY 297 | Swapped: RADAR **297**, TELEMETRY **296** (her own per-type table sums to these) |
 | M7W27T4 Section 4 | `scan_id` used for training; "identical column sets" | `scan_id` dropped; each stream fills only its own columns |
+| M6 cover note, Section 4 | Cleanup removed "450,000 rows, not the ~3.5M estimated" | True on Beyza's database only. The lead's staging still holds 3.5M rows; the estimate described that database |
 
 ---
 
 ## 9. Tests
 
-`services/ml/test_feature_assembly.py` — 15 tests: feature shapes, the LIDAR transforms, per-parameter
+`services/ml/test_feature_assembly.py` — 16 tests: feature shapes, the LIDAR transforms, per-parameter
 standardisation, staging and corpus rows giving identical features, all rule cases including the
-record after an anomaly and per-device separation, scoring-row failure reasons, and the live/corpus
-alignment guard.
+record after an anomaly and per-device separation, scoring-row failure reasons, the scoring-query
+column regression, and the live/corpus alignment guard.

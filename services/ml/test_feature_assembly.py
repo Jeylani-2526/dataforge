@@ -61,7 +61,7 @@ def test_scoring_row_and_corpus_record_give_same_features():
     """A staging row carries extra columns; features must not change."""
     corpus = dict(range_m=100.5, bearing_deg=10, elevation_deg=5, velocity_ms=20,
                   signal_strength_db=-40)
-    staging = dict(corpus, fused_event_id="x", sensor_type="RADAR", event_id="e",
+    staging = dict(corpus, fused_event_id="x", sensor_type="RADAR", staging_event_id="e",
                    point_count=None, value=None, label=0)
     assert fa.featurize("radar", corpus) == fa.featurize("radar", staging)
 
@@ -94,14 +94,21 @@ def test_rules_are_per_device():
 # ── scoring-row assembly ────────────────────────────────────────────────
 
 def test_assemble_reports_missing_staging_row():
-    stream, feats, why = fa.assemble_scoring_row({"sensor_type": "RADAR", "event_id": None},
+    stream, feats, why = fa.assemble_scoring_row({"sensor_type": "RADAR", "staging_event_id": None},
                                                  STATS)
     assert (stream, feats, why) == ("radar", None, "no staging row")
 
 
 def test_assemble_reports_unknown_parameter():
-    row = dict(tel(1, 0, name="altitude_m"), sensor_type="TELEMETRY", event_id="e")
+    row = dict(tel(1, 0, name="altitude_m"), sensor_type="TELEMETRY", staging_event_id="e")
     assert fa.assemble_scoring_row(row, STATS)[2] == "unknown parameter altitude_m"
+
+
+def test_scoring_sql_keeps_fused_sensor_type():
+    """Regression: s.* used to overwrite f.sensor_type with NULL on a missing join."""
+    select = fa.SCORING_SQL.split("FROM")[0]
+    assert "s.*" not in select
+    assert "s.sensor_type" not in select
 
 
 # ── live producer stays inside the corpus's normal ranges ───────────────
