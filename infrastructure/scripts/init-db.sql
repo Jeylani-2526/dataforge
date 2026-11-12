@@ -101,7 +101,11 @@ CREATE TABLE IF NOT EXISTS fused_events (
     anomaly_label     BIGINT,
     risk_score        REAL,
     confidence        REAL,
-    PRIMARY KEY (fused_event_id, timestamp_ms)
+    PRIMARY KEY (fused_event_id, timestamp_ms),
+    -- M7 scored columns: NULL until scored, then within the API contract's range.
+    CONSTRAINT chk_fused_anomaly_label CHECK (anomaly_label IN (0, 1)),
+    CONSTRAINT chk_fused_risk_score    CHECK (risk_score BETWEEN 0.0 AND 1.0),
+    CONSTRAINT chk_fused_confidence    CHECK (confidence BETWEEN 0.0 AND 1.0)
 );
 
 SELECT create_hypertable('fused_events', 'timestamp_ms',
