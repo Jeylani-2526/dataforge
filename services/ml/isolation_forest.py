@@ -158,7 +158,7 @@ def cmd_train():
     card["pooled"] = evaluate(p["y"], p["risk"], p["label"], p["type"], rng)
 
     (ARTIFACTS / "model_card.json").write_text(json.dumps(card, indent=2) + "\n",
-                                               encoding="utf-8")
+                                               encoding="utf-8", newline="\n")
     report(card)
 
 
