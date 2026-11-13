@@ -246,3 +246,82 @@ Follow-up actions:
 4. Repeat clean-start verification after the permanent fix.
 
 **Conclusion:** Functional cross-machine verification succeeded after documented interventions. Strict no-intervention clean-start reproducibility failed for baseline commit 62b2ce9.
+
+
+
+## Re-test (2026-11-13)
+
+### Environment
+- **OS:** Windows (PowerShell)
+- **Project:** Dataforge M6
+- **Test:** T7 Cross-Machine Build
+- **Docker Compose profiles:** m3-and-above, m4-and-above, m5-and-above, m6-and-above
+
+### 1. Docker Build and Startup
+- Executed `docker compose down -v` to remove existing containers and volumes.
+- Rebuilt and started the environment using `docker compose up -d --build` with all required profiles.
+- Docker Compose completed successfully (`19/19`).
+- Kafka and TimescaleDB reported healthy status.
+- **Policy refresh window error:** No. The previously encountered TimescaleDB policy error did not reappear during this re-test.
+
+### 2. Alice Data Ingestion
+- Loaded `alice.jsonl` into staging.
+- **Alice staging:** 68 records loaded, 0 failed, 0 duplicates.
+- **Production promotion:**
+  - ALICE: 68 records promoted.
+  - SENSOR: 1,006 records promoted.
+  - Total: 1,074 records promoted, 0 skipped.
+- Restarted the `alice-ingestion` service.
+
+### 3. Fusion Engine Startup
+- **Did Fusion Engine start successfully on the first attempt?** No.
+- The initial Fusion Engine process terminated after encountering a Kafka topic/partition error:
+
+  `UnknownTopicOrPartitionException: This server does not host this topic-partition.`
+
+- Verified that the required Kafka topics were present:
+  - `alice-events`
+  - `sensor-lidar`
+  - `sensor-radar`
+  - `sensor-telemetry`
+- Restarted Fusion Engine using:
+
+  `docker compose --profile m6-and-above up -d fusion-engine`
+
+- Following the restart, Fusion Engine remained running and successfully processed streaming micro-batches.
+- Fusion logs confirmed successful database writes with 0 rejected records and 0.0000% reported data loss.
+
+### 4. Fused Events Verification
+Executed the following SQL query against TimescaleDB:
+
+`SELECT COUNT(*) FROM fused_events;`
+
+| Measurement | Fused Events Count |
+|-------------|-------------------:|
+| First measurement | 123 |
+| Second measurement | 130 |
+| Additional verification 1 | 193 |
+| Additional verification 2 | 202 |
+
+- The count increased from 123 to 130 between the first two measurements.
+- Subsequent measurements confirmed continued growth to 193 and 202.
+- This verifies that Fusion Engine was actively writing records to TimescaleDB.
+
+### 5. Additional Observations
+- Kafka and TimescaleDB remained healthy.
+- Fusion Engine successfully resumed processing after restart.
+- Fusion micro-batch logs reported 0 rejected records and 0.0000% data loss.
+- Heartbeat logs still reported `status=critical` for ALICE and SENSOR, indicating a remaining latency/quality issue requiring separate investigation.
+- Docker Compose displayed an obsolete `version` attribute warning, which did not prevent startup.
+
+### 6. Final Result
+**Re-test result: PASS WITH OBSERVATIONS**
+
+- **Policy error encountered:** No.
+- **Fusion Engine started successfully on first attempt:** No.
+- **Fusion Engine restart required:** Yes.
+- **Fused events (two measurements):** 123 → 130.
+- **Additional verification:** 193 → 202.
+- **Final outcome:** Docker build succeeded, ingestion and promotion completed, and the end-to-end fusion pipeline was confirmed operational after restarting Fusion Engine.
+
+**Follow-up:** Investigate Fusion Engine startup ordering and heartbeat latency/quality warnings.
