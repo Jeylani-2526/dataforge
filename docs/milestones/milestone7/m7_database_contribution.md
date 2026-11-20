@@ -70,23 +70,43 @@ Design note: `docs/database/m7w27t5_scored_row_conformance.md`
 
 ## Scored-Row Verification (M7W28T8)
 
-Run on Beyza’s machine, 20 November 2026, window from 2026-10-01T00:00:00Z UTC. Model `combined-m7w28t1-v2`.
+**Checks run:** 20 November 2026 · **Model:** `combined-m7w28t1-v2` · SQL through `docker exec`, not Adminer.
 
-Pre-alignment rows (34,560) dry-run: LIDAR 98.2%, RADAR 66.1%, TELEMETRY 36.6%; 4,548 skipped for old parameters (`altitude_m`, `signal_rssi`) — not written, same decision as M7W28T3.
+**Plan B** (decided 20 November, Abdalla). The planned second-machine run on **aligned** data was
+not completed: Docker Desktop on Beyza's machine failed during the image rebuild (read-only
+filesystem). Aligned-data scores are therefore verified on Abdalla's machine; Beyza's machine
+contributes write-path evidence on pre-alignment data only.
 
-| Stream | Rows | Scored | Flagged | Rate |
-|---|---|---|---|---|
-| LIDAR | 11,406 | 11,406 | 11,198 | 98.18% |
-| RADAR | 11,798 | 11,798 | 7,797 | 66.09% |
-| TELEMETRY | 11,356 | 6,808 | 2,494 | 36.63% |
+### A. Aligned data — Abdalla's machine
 
-Checks (SQL through docker exec, not Adminer):
+Window from 2026-11-12 07:06:00 UTC — after the producer alignment (`8af19aa`) and image rebuild.
+Rows scored by M7W28T3.
+
+| Stream | Rows | Scored | Alarms | Rate | risk_score | confidence |
+|---|---|---|---|---|---|---|
+| LIDAR | 4,077 | 4,077 | 42 | 1.03% | 0.0006–1.0000 | 0.0004–1.0000 |
+| RADAR | 4,053 | 4,053 | 44 | 1.09% | 0.0005–1.0000 | 0.0001–0.9995 |
+| TELEMETRY | 3,993 | 3,993 | 40 | 1.00% | 0.0176–1.0000 | 0.0018–1.0000 |
 
 | Check | Result | PASS / FAIL |
 |---|---|---|
-| All scored rows in window, values within 0–1 | rows = scored, risk/conf 0.0000–1.0000 | PASS |
-| anomaly_label consistent with risk_score >= 0.995 | 0 inconsistent | PASS |
-| CHECK constraints present | 3 (chk_fused_anomaly_label, chk_fused_confidence, chk_fused_risk_score) | PASS |
-| summary_5min anomaly_rate populated | 61/61 buckets per stream | PASS |
+| Every fused row in the window scored | 12,123 / 12,123 | PASS |
+| Values inside the CHECK ranges | risk 0.0005–1.0000, confidence 0.0001–1.0000 | PASS |
+| `anomaly_label` = 1 exactly when `risk_score` ≥ 0.995 | 0 inconsistent | PASS |
+| CHECK constraints present | 3 constraints, on the hypertable and each of its 3 daily chunks (12 entries in `pg_constraint`) | PASS |
+| `summary_5min.anomaly_rate` populated | 20 / 20 buckets per stream; mean 0.0103 / 0.0111 / 0.0099 | PASS |
+| Rows before the window untouched | 37,060 rows, 0 scored | PASS |
 
-Reference — Abdalla’s machine (M7W28T3, 19 November): 12,123 rows, flag rates 1.00–1.09%.
+### B. Second machine — Beyza's, pre-alignment data
+
+- Window from 2026-10-01: Beyza's 34,560 M6 fused rows, all produced **before** the producer
+  alignment. Flagged: LIDAR 98.18%, RADAR 66.09%, TELEMETRY 36.63%; 4,548 telemetry rows skipped
+  for parameters only the old producer emits (`altitude_m`, `signal_rssi`). This reproduces the
+  M7W27T1 finding that the corpus-trained model flags the old producer's records (LIDAR 93.9% there).
+- These scores were **written by mistake**, then **reverted on 20 November** (scores set back to
+  NULL, `summary_5min` refreshed, scored count confirmed 0).
+- **What it still shows:** on a second database, the CHECK constraints accepted the writes,
+  label and risk stayed consistent (0 inconsistent), and `summary_5min` picked up the scores
+  (61 / 61 buckets) — the write path works on a second machine.
+- **What it does not show:** scoring of aligned data on a second machine. Carried in
+  `open_items_m7.md`.
