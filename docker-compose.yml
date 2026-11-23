@@ -270,8 +270,13 @@ services:
       FUSION_SHUFFLE_PARTITIONS: ${FUSION_SHUFFLE_PARTITIONS:-8}
       FUSION_CHECKPOINT_DIR: /app/checkpoints
       SPARK_STOP_TIMEOUT_MS: ${SPARK_STOP_TIMEOUT_MS:-15000}
+      # M6W26T3: alignment samples. Bind mount, not a named volume, so the host
+      # reads it without docker cp and the M6W21T2 checkpoint reset does not
+      # take the measurement with it.
+      FUSION_ALIGNMENT_LOG_PATH: /app/alignment/alignment_samples.jsonl
     volumes:
       - fusion-checkpoints:/app/checkpoints
+      - ./data/alignment:/app/alignment
       - ./schemas:/app/schemas
       # Same single-source-of-truth mount as spark-processor (M5W18T9):
       # the fused writer calls enforce() from this module.

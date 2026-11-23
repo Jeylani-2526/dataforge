@@ -53,12 +53,13 @@ TELEMETRY_DEVICE_IDS = [
     "SENSOR-UNIT-02",
     "GCS-01",
 ]
+# M7W27T1: normal ranges mirror scripts/generators/ (the M3 training corpus), so the
+# live stream is scored against the same "normal" the models were trained on.
+# Guarded by services/ml/test_feature_assembly.py.
 TELEMETRY_PARAMS = [
-    ("cpu_temp_c", lambda: round(random.uniform(40.0, 90.0), 2), "C"),
-    ("battery_pct", lambda: round(random.uniform(10.0, 100.0), 2), "%"),
-    ("voltage_v", lambda: round(random.uniform(10.0, 16.8), 2), "V"),
-    ("altitude_m", lambda: round(random.uniform(0.0, 500.0), 2), "m"),
-    ("signal_rssi", lambda: round(random.uniform(-90.0, -20.0), 2), "dBm"),
+    ("cpu_temp_c", lambda: round(random.uniform(35.0, 75.0), 2), "C"),
+    ("battery_pct", lambda: round(random.uniform(20.0, 100.0), 2), "%"),
+    ("voltage_v", lambda: round(random.uniform(11.0, 13.0), 2), "V"),
 ]
 _SENSOR_UUID_MAP: dict[str, str] = {
     label: str(uuid.uuid4())
@@ -137,9 +138,9 @@ def generate_radar() -> dict:
             "target_id": str(uuid.uuid4())[:8],
             "range_m": round(random.uniform(50.0, 5000.0), 2),
             "bearing_deg": round(random.uniform(0.0, 360.0), 2),
-            "elevation_deg": round(random.uniform(-90.0, 90.0), 2),
-            "velocity_ms": round(random.uniform(-100.0, 100.0), 2),
-            "signal_strength_db": round(random.uniform(-80.0, -20.0), 2),
+            "elevation_deg": round(random.uniform(-30.0, 30.0), 2),
+            "velocity_ms": round(random.uniform(-100.0, 300.0), 2),
+            "signal_strength_db": round(random.uniform(-90.0, -20.0), 2),
         }
     )
     return record
@@ -149,15 +150,15 @@ def generate_lidar() -> dict:
     sensor_label = random.choice(LIDAR_SENSOR_IDS)
     record = _base("LIDAR", _SENSOR_UUID_MAP[sensor_label])
     avg_i = round(random.uniform(80.0, 220.0), 2)
-    min_i = round(random.uniform(0.0, avg_i), 2)
+    min_i = round(random.uniform(20.0, min(100.0, avg_i)), 2)
     record.update(
         {
             "scan_id": str(uuid.uuid4())[:8],
-            "point_count": random.randint(500, 5000),
-            "centroid_x_m": round(random.uniform(-500.0, 500.0), 3),
-            "centroid_y_m": round(random.uniform(-500.0, 500.0), 3),
-            "centroid_z_m": round(random.uniform(0.0, 200.0), 3),
-            "max_range_m": round(random.uniform(10.0, 200.0), 2),
+            "point_count": random.randint(10_000, 200_000),
+            "centroid_x_m": round(random.uniform(-100.0, 100.0), 2),
+            "centroid_y_m": round(random.uniform(-100.0, 100.0), 2),
+            "centroid_z_m": round(random.uniform(-10.0, 50.0), 2),
+            "max_range_m": round(random.uniform(50.0, 500.0), 2),
             "avg_intensity": avg_i,
             "min_intensity": min_i,
         }

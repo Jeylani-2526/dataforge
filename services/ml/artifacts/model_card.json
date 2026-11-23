@@ -1,0 +1,245 @@
+{
+  "model_version": "iforest-m7w27t2-v1",
+  "algorithm": "IsolationForest, one per sensor stream",
+  "params": {
+    "n_estimators": 200,
+    "max_samples": "auto (256)",
+    "contamination": "not used \u2014 alarm line set from normal training scores",
+    "random_state": 42
+  },
+  "training_data": "M3 corpus, natural ~3% anomaly rate, split data/splits (seed 42)",
+  "fpr_budget_on_train_normals": 0.01,
+  "risk_threshold": 0.99,
+  "risk_score": "share of normal training scores <= this record's score",
+  "telemetry_rules": "sequence_gap, timestamp_not_advancing -> risk 1.0",
+  "sklearn_version": "1.7.2",
+  "bootstrap_resamples": 1000,
+  "streams": {
+    "radar": {
+      "auc": 0.9980243189044591,
+      "fpr": 0.009172420900752345,
+      "recall": 0.936026936026936,
+      "precision": 0.7574931880108992,
+      "tp": 278,
+      "fp": 89,
+      "fn": 19,
+      "tn": 9614,
+      "ci95": {
+        "auc": [
+          0.9971814156901108,
+          0.9987298024669236
+        ],
+        "fpr": [
+          0.007507198683669272,
+          0.011231410881996
+        ],
+        "recall": [
+          0.9084443546525052,
+          0.9614469432136905
+        ],
+        "precision": [
+          0.7108570714642679,
+          0.7963646027601641
+        ]
+      },
+      "recall_by_type": {
+        "ghost_target": {
+          "caught": 103,
+          "n": 103
+        },
+        "sensor_dropout": {
+          "caught": 100,
+          "n": 100
+        },
+        "velocity_spike": {
+          "caught": 75,
+          "n": 94
+        }
+      },
+      "n_test": 10000,
+      "n_anomalies": 297,
+      "features": [
+        "range_m",
+        "bearing_deg",
+        "elevation_deg",
+        "velocity_ms",
+        "signal_strength_db"
+      ],
+      "auc_if_only": 0.9980243189044591,
+      "train_normal_fpr": 0.01002189875048306
+    },
+    "lidar": {
+      "auc": 0.9996472679663445,
+      "fpr": 0.010718334535710606,
+      "recall": 1.0,
+      "precision": 0.7406483790523691,
+      "tp": 297,
+      "fp": 104,
+      "fn": 0,
+      "tn": 9599,
+      "ci95": {
+        "auc": [
+          0.9994109299962908,
+          0.9998587869767052
+        ],
+        "fpr": [
+          0.008773491944439266,
+          0.012767841566832226
+        ],
+        "recall": [
+          1.0,
+          1.0
+        ],
+        "precision": [
+          0.6961699033680459,
+          0.7838135415207954
+        ]
+      },
+      "recall_by_type": {
+        "ghost_point": {
+          "caught": 100,
+          "n": 100
+        },
+        "noise_burst": {
+          "caught": 100,
+          "n": 100
+        },
+        "point_cloud_dropout": {
+          "caught": 97,
+          "n": 97
+        }
+      },
+      "n_test": 10000,
+      "n_anomalies": 297,
+      "features": [
+        "log_point_count",
+        "centroid_x_m",
+        "centroid_y_m",
+        "centroid_z_m",
+        "max_range_m",
+        "avg_intensity",
+        "min_intensity",
+        "centroid_range_ratio"
+      ],
+      "auc_if_only": 0.9996472679663445,
+      "train_normal_fpr": 0.010022931643090876
+    },
+    "telemetry": {
+      "auc": 0.9919514591363829,
+      "fpr": 0.010923330585325639,
+      "recall": 0.9898648648648649,
+      "precision": 0.7343358395989975,
+      "tp": 293,
+      "fp": 106,
+      "fn": 3,
+      "tn": 9598,
+      "ci95": {
+        "auc": [
+          0.9819349822595871,
+          0.9995372881342506
+        ],
+        "fpr": [
+          0.00908677934056388,
+          0.013134420861675301
+        ],
+        "recall": [
+          0.9773369634644865,
+          1.0
+        ],
+        "precision": [
+          0.6893412195165273,
+          0.7761693005456737
+        ]
+      },
+      "recall_by_type": {
+        "missing_reading": {
+          "caught": 93,
+          "n": 93
+        },
+        "out_of_range_value": {
+          "caught": 99,
+          "n": 99
+        },
+        "timestamp_stall": {
+          "caught": 101,
+          "n": 104
+        }
+      },
+      "n_test": 10000,
+      "n_anomalies": 296,
+      "features": [
+        "value_z"
+      ],
+      "auc_if_only": 0.6873130472805864,
+      "train_normal_fpr": 0.010048179733594413
+    }
+  },
+  "pooled": {
+    "auc": 0.9964469138756904,
+    "fpr": 0.010271384403984885,
+    "recall": 0.9752808988764045,
+    "precision": 0.7437874892887746,
+    "tp": 868,
+    "fp": 299,
+    "fn": 22,
+    "tn": 28811,
+    "ci95": {
+      "auc": [
+        0.9929746843622977,
+        0.9989334782600802
+      ],
+      "fpr": [
+        0.009113050847357832,
+        0.011517212221118239
+      ],
+      "recall": [
+        0.9650263658212864,
+        0.9845072668847432
+      ],
+      "precision": [
+        0.7194054670350465,
+        0.7696849028294098
+      ]
+    },
+    "recall_by_type": {
+      "ghost_point": {
+        "caught": 100,
+        "n": 100
+      },
+      "ghost_target": {
+        "caught": 103,
+        "n": 103
+      },
+      "missing_reading": {
+        "caught": 93,
+        "n": 93
+      },
+      "noise_burst": {
+        "caught": 100,
+        "n": 100
+      },
+      "out_of_range_value": {
+        "caught": 99,
+        "n": 99
+      },
+      "point_cloud_dropout": {
+        "caught": 97,
+        "n": 97
+      },
+      "sensor_dropout": {
+        "caught": 100,
+        "n": 100
+      },
+      "timestamp_stall": {
+        "caught": 101,
+        "n": 104
+      },
+      "velocity_spike": {
+        "caught": 75,
+        "n": 94
+      }
+    },
+    "n_test": 30000,
+    "n_anomalies": 890
+  }
+}

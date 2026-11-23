@@ -1,4 +1,4 @@
-# M6W22T6 — Fused-Record Conformance Check
+﻿# M6W22T6 — Fused-Record Conformance Check
 
 ## Objective
 
@@ -38,17 +38,21 @@ python services/fusion/check_fused_conformance.py
 
 | Check | Result | Detail |
 |---|---|---|
-| Row count | — | — |
-| UUID validity | — | — |
-| timestamp_ms range | — | — |
-| fusion_window_ms value | — | — |
-| sensor_type enum | — | — |
-| data_loss_pct range | — | — |
-| latency_ms non-negative | — | — |
-| schema_version value | — | — |
-| M7 columns null | — | — |
-| Duplicate fused_event_id | — | — |
+| Row count | PASS | 34,560 rows in fused_events |
+| UUID validity — fused_event_id | PASS | all 1,000 sampled rows valid UUID |
+| UUID validity — alice_event_id | PASS | all 1,000 sampled rows valid UUID |
+| UUID validity — sensor_event_id | PASS | all 1,000 sampled rows valid UUID |
+| timestamp_ms range | PASS | all 1,000 rows > 0 |
+| fusion_window_ms value | PASS | all 1,000 rows == 500 |
+| sensor_type enum | PASS | all 1,000 rows in {RADAR, LIDAR, TELEMETRY} |
+| data_loss_pct range | PASS | all 1,000 rows in [0.0, 100.0] |
+| latency_ms non-negative | PASS | all 1,000 rows >= 0 |
+| schema_version value | PASS | all 1,000 rows == '1.0' |
+| M7 columns null — anomaly_label | PASS | all 1,000 rows NULL (M7 not yet run) |
+| M7 columns null — risk_score | PASS | all 1,000 rows NULL (M7 not yet run) |
+| M7 columns null — confidence | PASS | all 1,000 rows NULL (M7 not yet run) |
+| Duplicate fused_event_id | PASS | 0 duplicates across full table (34,560 rows) |
 
-**Executed:** —
-**Row sample size:** —
-**Pass / Fail:** —
+**Executed:** 2026-11-05
+**Row sample size:** 1,000 (of 34,560 total)
+**Pass / Fail:** PASS
