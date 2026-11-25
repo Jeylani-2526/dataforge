@@ -1,10 +1,11 @@
 # DataForge — M6 Open Items Log
 
-**Originating Task ID:** M6W26T6 (planned as M6W24T1, never written)
+**Originating Task ID:** M6W26T6 
 **Owner:** Abdalla
 **Milestone:** M6 · Week 26
-**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5.
-Items 1–8 and 11–14 open.
+**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5;
+its residual moved to `open_items_m7.md` Item 10. Items 8 and 13 closed at M7 close (M8W29T7).
+Items 1–7, 11, 12 and 14 open.
 **GitHub Path:** `/docs/milestones/milestone6/open_items_m6.md`
 
 **Amendment history:**
@@ -17,6 +18,9 @@ Items 1–8 and 11–14 open.
   was not fully resolved: the restored file had never started on an empty database
   (`summary_5min` policy window). Fixed. Item 11 gains a fresh-start case: fusion fails when it
   starts before the producers have created their topics.
+- M8W29T7 amendment (25 November 2026) — at M7 close: Item 8 closed (result committed); Item 13
+  closed (trigger met, lead's decision); Item 10's staging-retention residual missed its
+  M7W27T4 target and moved to `open_items_m7.md` Item 10.
 
 ---
 
@@ -125,6 +129,11 @@ build has run on the lead's machine only. This is the exact gap that cost M5 a c
 Unblocked since Item 9 was resolved. A second machine starts from an empty volume, so this run
 also confirms the restored `init-db.sql` end to end.
 
+**Closed (M8W29T7, 25 November 2026):** `m6w26t7_cross_machine_build.md` committed with its
+result (`f59e78b`, updated `5cbe79a`): all images built with `--no-cache`; the clean start failed
+on the `summary_5min` policy window and passed after the fix (`bf19d8e`). The failure was
+recorded, as the trigger required.
+
 ## Item 9 — `init-db.sql` Regression on `develop`
 
 **Finding (5 November):** merge `4d90452` kept an older `init-db.sql`. Its message says
@@ -175,7 +184,8 @@ a placeholder hardcoded in `spark_consumer.py`. The fused stream has no positive
   already specified.
 
 **Residual — staging retention rule:** nothing in the database stops a cleanup from orphaning
-fused rows. **Owner:** Beyza · **Target:** M7W27T4.
+fused rows. **Owner:** Beyza · **Target:** M7W27T4. **Moved (M8W29T7):** not written by
+M7W27T4; carried as `open_items_m7.md` Item 10, target M9.
 **Trigger:** the rule "no cleanup deletes staging rows referenced by `fused_events`" is written
 into the staging documentation.
 
@@ -238,6 +248,10 @@ absorbed by the lead.
 stated in the M7-closing advisor report, since weekly reports to Emrah are discontinued
 (5 November).
 
+**Closed (M8W29T7, 25 November 2026):** trigger met, by the lead's decision at M7 close. Omer
+delivered both Week 26 tasks — M6W26T7 (`f59e78b`, `5cbe79a`) and M6W26T8 (`9f2e157`) — and held
+no tasks in Weeks 27–28 under the catch-up plan. His M8 tasks are planned at the nominal 20%.
+
 ## Item 14 — Detection Is Per-Sensor, Not Cross-Sensor
 
 **Finding (M6W26T5):** each fused row holds one ALICE event and one sensor event, paired by time
@@ -283,11 +297,11 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 | 5 Fused-path latency | Open, structural | Abdalla | M10 | M10 latency framing |
 | 6 Heartbeat mismatches | Open | Beyza | M9 | Fusion Monitor work |
 | 7 Alignment side table | Deferred | Beyza | M9 | Fusion Monitor page |
-| 8 Cross-machine build | Open | Omer | M6W26T7 | Result committed |
+| 8 Cross-machine build | **Closed** (`f59e78b`, `5cbe79a`) | Omer | — | Result committed |
 | 9 `init-db.sql` regression | **Resolved** (`83d9a11` + policy fix) | Abdalla | — | Fresh start re-run clean |
 | 10 Feature access | **Closed for M7** | — | — | M6W26T5 |
-| 10 residual: staging retention | Open | Beyza | M7W27T4 | Rule documented |
+| 10 residual: staging retention | **Moved** to `open_items_m7.md` Item 10 | Beyza | M9 | Rule documented |
 | 11 Checkpoint, retention, topic race | Open | Abdalla | M8 | Retention set; non-zero exit; topics pre-exist |
 | 12 Compose operability | Open | Omer | M8 | README section + references fixed |
-| 13 Omer's capacity | Open | Abdalla | Weekly | Two delivered weeks or redistribution |
+| 13 Omer's capacity | **Closed** at M7 close | Abdalla | — | Trigger met (M8W29T7) |
 | 14 Cross-sensor detection | Open | Abdalla | M10 | Emrah's answer |
