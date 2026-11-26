@@ -274,6 +274,8 @@ services:
       # reads it without docker cp and the M6W21T2 checkpoint reset does not
       # take the measurement with it.
       FUSION_ALIGNMENT_LOG_PATH: /app/alignment/alignment_samples.jsonl
+      # M8W29T8: model v2 code imports its neighbours directly (import baseline).
+      PYTHONPATH: /app/services/ml
     volumes:
       - fusion-checkpoints:/app/checkpoints
       - ./data/alignment:/app/alignment
@@ -281,6 +283,10 @@ services:
       # Same single-source-of-truth mount as spark-processor (M5W18T9):
       # the fused writer calls enforce() from this module.
       - ./services/adaptation-layer/schema_versioning.py:/app/schema_versioning.py:ro
+      # M8W29T8: model v2 code and trained models. Mounted at the repo-relative path so
+      # ARTIFACTS ("services/ml/artifacts") resolves from WORKDIR /app. The .joblib files are
+      # gitignored: run `python services/ml/model_v2.py train` once on the host first.
+      - ./services/ml:/app/services/ml:ro
     profiles: ["m6-and-above"]
 
   # ---------------------------------------------------------------------------

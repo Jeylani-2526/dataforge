@@ -46,7 +46,7 @@ def probe(stream):
            "zscore_only": int((~fired_if & fired_z).sum()),
            "saturated_risk_1": int((r["risk_score"][a] >= 1.0).sum())}
     if X.shape[1] == 1:
-        out["shap"] = "not run: single-feature forest (TreeExplainer IndexError in shap 0.54.1)"
+        out["shap"] = "not run: single-feature forest (TreeExplainer IndexError)"
         return out
 
     names = np.array(d["feature_names"])
