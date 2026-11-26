@@ -95,14 +95,14 @@ erDiagram
 
 ## Hypertable & Retention Policy Summary
 
-| Table | HT? | Partition Col | Chunk | Retention | Rationale |
-|---|---|---|---|---|---|
-| `events` | ✅ **(HT)** | `time` | 1 day | **30 days** | Covers the M10 testing window. Raw events are the highest-volume table (~600K rows/min); beyond 30 days, continuous aggregates serve all historical queries. |
-| `fused_events` | ✅ **(HT)** | `timestamp_ms` (integer ms) | 1 day | **90 days** | Multi-week anomaly analysis requires joined ALICE+sensor records beyond the raw event window. 90 days covers the full M7 ML training period. |
-| `anomaly_alerts` | ✅ **(HT)** | `time` | 1 day | **365 days** | Full 12-month prototype trend analysis. Alerts are low-volume (~3K rows/min) and represent the primary operator record — long retention has negligible storage cost. |
-| `xai_explanations` | ✅ **(HT)** | `time` | 1 day | **365 days** | Hypertable, partitioned on the same timestamp as its paired anomaly_alerts row. An explanation has no standalone value once its alert has expired, so the two are retained together. |
-| `system_performance_metrics` | ✅ **(HT)** | `time` | 1 hour | **30 days** | Matched to events retention. Continuous aggregates (perf_1min, pipeline_health_1min) serve all long-term performance queries. Raw snapshots beyond 30 days add no value. |
-| `fusion_status` | ✅ **(HT)** | `time` | 1 hour | **7 days** | High-frequency heartbeat table — already load-bearing across six endpoints/components (GET /summary, GET /stream/info, WS /ws/fusion, GET /fusion/sensors, GET /fusion/events, Fusion Monitor page). Only the latest row per sensor matters for live display; 7 days covers operational debugging. |
+| Table                        | HT?         | Partition Col               | Chunk  | Retention    | Rationale                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | ----------- | --------------------------- | ------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events`                     | ✅ **(HT)** | `time`                      | 1 day  | **30 days**  | Covers the M10 testing window. Raw events are the highest-volume table (~600K rows/min); beyond 30 days, continuous aggregates serve all historical queries.                                                                                                                                       |
+| `fused_events`               | ✅ **(HT)** | `timestamp_ms` (integer ms) | 1 day  | **90 days**  | Multi-week anomaly analysis requires joined ALICE+sensor records beyond the raw event window. 90 days covers the full M7 ML training period.                                                                                                                                                       |
+| `anomaly_alerts`             | ✅ **(HT)** | `time`                      | 1 day  | **365 days** | Full 12-month prototype trend analysis. Alerts are low-volume (~3K rows/min) and represent the primary operator record — long retention has negligible storage cost.                                                                                                                               |
+| `xai_explanations`           | ✅ **(HT)** | `time`                      | 1 day  | **365 days** | Hypertable, partitioned on the same timestamp as its paired anomaly_alerts row. An explanation has no standalone value once its alert has expired, so the two are retained together.                                                                                                               |
+| `system_performance_metrics` | ✅ **(HT)** | `time`                      | 1 hour | **30 days**  | Matched to events retention. Continuous aggregates (perf_1min, pipeline_health_1min) serve all long-term performance queries. Raw snapshots beyond 30 days add no value.                                                                                                                           |
+| `fusion_status`              | ✅ **(HT)** | `time`                      | 1 hour | **7 days**   | High-frequency heartbeat table — already load-bearing across six endpoints/components (GET /summary, GET /stream/info, WS /ws/fusion, GET /fusion/sensors, GET /fusion/events, Fusion Monitor page). Only the latest row per sensor matters for live display; 7 days covers operational debugging. |
 
 ---
 
@@ -110,95 +110,95 @@ erDiagram
 
 ### `events` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
-| `event_id` | uuid | NOT NULL | UUID v4, system-assigned at ingestion |
-| `source_type` | VARCHAR(20) | NOT NULL | alice / radar / lidar / telemetry |
-| `run_number` | INTEGER | NULL | ALICE only; NULL for sensor records |
-| `timestamp_ms` | BIGINT | NOT NULL | Source timestamp ms |
-| `ingestion_ts_ms` | BIGINT | NOT NULL | Module 3 ingestion timestamp ms |
-| `track_count` | INTEGER | NULL | ALICE only |
-| `net_momentum_x` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `net_momentum_y` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `net_momentum_z` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `max_energy_gev` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `total_energy_gev` | REAL | NULL | ALICE only — filled M3 ROOT Docker |
-| `latency_ms` | FLOAT | NOT NULL | Pipeline-written by Module 5 |
-| `data_loss_pct` | FLOAT | NOT NULL | Pipeline-written by Module 3 |
-| `quality_flag` | VARCHAR(20) | NULL | Pipeline-written by Module 5; clean / incomplete / dropout |
-| `anomaly_label` | INT8 | NULL | NULL until M7 |
-| `risk_score` | FLOAT | NULL | NULL until M7 |
-| `raw_payload` | JSONB | NULL | Optional |
+| Column             | Type        | Null     | Notes                                                      |
+| ------------------ | ----------- | -------- | ---------------------------------------------------------- |
+| `time`             | TIMESTAMPTZ | NOT NULL | Hypertable partition column                                |
+| `event_id`         | uuid        | NOT NULL | UUID v4, system-assigned at ingestion                      |
+| `source_type`      | VARCHAR(20) | NOT NULL | alice / radar / lidar / telemetry                          |
+| `run_number`       | INTEGER     | NULL     | ALICE only; NULL for sensor records                        |
+| `timestamp_ms`     | BIGINT      | NOT NULL | Source timestamp ms                                        |
+| `ingestion_ts_ms`  | BIGINT      | NOT NULL | Module 3 ingestion timestamp ms                            |
+| `track_count`      | INTEGER     | NULL     | ALICE only                                                 |
+| `net_momentum_x`   | REAL        | NULL     | ALICE only — filled M3 ROOT Docker                         |
+| `net_momentum_y`   | REAL        | NULL     | ALICE only — filled M3 ROOT Docker                         |
+| `net_momentum_z`   | REAL        | NULL     | ALICE only — filled M3 ROOT Docker                         |
+| `max_energy_gev`   | REAL        | NULL     | ALICE only — filled M3 ROOT Docker                         |
+| `total_energy_gev` | REAL        | NULL     | ALICE only — filled M3 ROOT Docker                         |
+| `latency_ms`       | FLOAT       | NOT NULL | Pipeline-written by Module 5                               |
+| `data_loss_pct`    | FLOAT       | NOT NULL | Pipeline-written by Module 3                               |
+| `quality_flag`     | VARCHAR(20) | NULL     | Pipeline-written by Module 5; clean / incomplete / dropout |
+| `anomaly_label`    | INT8        | NULL     | NULL until M7                                              |
+| `risk_score`       | FLOAT       | NULL     | NULL until M7                                              |
+| `raw_payload`      | JSONB       | NULL     | Optional                                                   |
 
 ### `fused_events` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `timestamp_ms` | BIGINT | NOT NULL | Hypertable partition column (integer ms). Fusion timestamp: the ALICE message's Kafka timestamp (M6 design note, Section 7) |
-| `fused_event_id` | uuid | NOT NULL | PK with `timestamp_ms`. UUID v4, system-assigned by Module 6 |
-| `alice_event_id` | uuid | NOT NULL | Soft reference to the ALICE record (no DB-level FK, M6W21T7) |
-| `sensor_event_id` | uuid | NOT NULL | Soft reference to the matched sensor record (no DB-level FK, M6W21T7) |
-| `sensor_type` | VARCHAR(20) | NOT NULL | RADAR / LIDAR / TELEMETRY (uppercase, matches the Avro enum) |
-| `fusion_window_ms` | INT | NOT NULL | Default 500 ms |
-| `data_loss_pct` | REAL | NOT NULL | Default 0.0. Share of the micro-batch rejected by fused-schema enforcement |
-| `latency_ms` | BIGINT | NOT NULL | Default 0. Fused-row write time minus `timestamp_ms` |
-| `schema_version` | VARCHAR(10) | NOT NULL | Default '1.0' |
-| `anomaly_label` | INT8 | NULL | NULL until M7 |
-| `risk_score` | FLOAT | NULL | NULL until M7 |
-| `confidence` | FLOAT | NULL | NULL until M7 |
+| Column             | Type        | Null     | Notes                                                                                                                       |
+| ------------------ | ----------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `timestamp_ms`     | BIGINT      | NOT NULL | Hypertable partition column (integer ms). Fusion timestamp: the ALICE message's Kafka timestamp (M6 design note, Section 7) |
+| `fused_event_id`   | uuid        | NOT NULL | PK with `timestamp_ms`. UUID v4, system-assigned by Module 6                                                                |
+| `alice_event_id`   | uuid        | NOT NULL | Soft reference to the ALICE record (no DB-level FK, M6W21T7)                                                                |
+| `sensor_event_id`  | uuid        | NOT NULL | Soft reference to the matched sensor record (no DB-level FK, M6W21T7)                                                       |
+| `sensor_type`      | VARCHAR(20) | NOT NULL | RADAR / LIDAR / TELEMETRY (uppercase, matches the Avro enum)                                                                |
+| `fusion_window_ms` | INT         | NOT NULL | Default 500 ms                                                                                                              |
+| `data_loss_pct`    | REAL        | NOT NULL | Default 0.0. Share of the micro-batch rejected by fused-schema enforcement                                                  |
+| `latency_ms`       | BIGINT      | NOT NULL | Default 0. Fused-row write time minus `timestamp_ms`                                                                        |
+| `schema_version`   | VARCHAR(10) | NOT NULL | Default '1.0'                                                                                                               |
+| `anomaly_label`    | INT8        | NULL     | NULL until M7                                                                                                               |
+| `risk_score`       | FLOAT       | NULL     | NULL until M7                                                                                                               |
+| `confidence`       | FLOAT       | NULL     | NULL until M7                                                                                                               |
 
 ### `anomaly_alerts` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
-| `fused_event_id` | uuid | NOT NULL | FK → fused_events.fused_event_id |
-| `source_type` | VARCHAR(20) | NOT NULL | Denormalized for query performance |
-| `anomaly_label` | INT8 | NOT NULL | Always 1 |
-| `risk_score` | FLOAT | NOT NULL | 0.0–1.0 |
-| `confidence` | FLOAT | NOT NULL | 0.0–1.0 |
-| `model_version` | VARCHAR(20) | NOT NULL | |
-| `status` | VARCHAR(20) | NOT NULL | active / reviewed / closed |
-| `status_updated_at` | TIMESTAMPTZ | NULL | Set on PATCH |
-| `explanation_summary` | TEXT | NULL | From Module 8 |
+| Column                | Type        | Null     | Notes                              |
+| --------------------- | ----------- | -------- | ---------------------------------- |
+| `time`                | TIMESTAMPTZ | NOT NULL | Hypertable partition column        |
+| `fused_event_id`      | uuid        | NOT NULL | FK → fused_events.fused_event_id   |
+| `source_type`         | VARCHAR(20) | NOT NULL | Denormalized for query performance |
+| `anomaly_label`       | INT8        | NOT NULL | Always 1                           |
+| `risk_score`          | FLOAT       | NOT NULL | 0.0–1.0                            |
+| `confidence`          | FLOAT       | NOT NULL | 0.0–1.0                            |
+| `model_version`       | VARCHAR(20) | NOT NULL |                                    |
+| `status`              | VARCHAR(20) | NOT NULL | active / reviewed / closed         |
+| `status_updated_at`   | TIMESTAMPTZ | NULL     | Set on PATCH                       |
+| `explanation_summary` | TEXT        | NULL     | From Module 8                      |
 
 ### `xai_explanations` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column — matches anomaly_alerts.time for paired row |
-| `fused_event_id` | uuid | NOT NULL | PK + FK → fused_events.fused_event_id |
-| `explanation_text` | TEXT | NOT NULL | |
-| `shap_values` | JSONB | NOT NULL | [{feature, shap_value, direction}] |
-| `top_features` | JSONB | NOT NULL | Top 3 precomputed |
-| `model_version` | VARCHAR(20) | NOT NULL | |
-| `generated_at` | TIMESTAMPTZ | NOT NULL | |
+| Column             | Type        | Null     | Notes                                                                    |
+| ------------------ | ----------- | -------- | ------------------------------------------------------------------------ |
+| `time`             | TIMESTAMPTZ | NOT NULL | Hypertable partition column — matches anomaly_alerts.time for paired row |
+| `fused_event_id`   | uuid        | NOT NULL | PK + FK → fused_events.fused_event_id                                    |
+| `explanation_text` | TEXT        | NOT NULL |                                                                          |
+| `shap_values`      | JSONB       | NOT NULL | [{feature, shap_value, direction}]                                       |
+| `top_features`     | JSONB       | NOT NULL | Top 3 precomputed                                                        |
+| `model_version`    | VARCHAR(20) | NOT NULL |                                                                          |
+| `generated_at`     | TIMESTAMPTZ | NOT NULL |                                                                          |
 
 ### `system_performance_metrics` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
-| `source_type` | VARCHAR(20) | NOT NULL | |
-| `latency_p95_ms` | FLOAT | NOT NULL | Threshold ≤500ms |
-| `latency_p50_ms` | FLOAT | NOT NULL | |
-| `throughput_evts` | INT | NOT NULL | Events in 10s window |
-| `data_loss_pct` | FLOAT | NOT NULL | Threshold ≤1% |
-| `time_sync_delta_ms` | FLOAT | NOT NULL | Threshold ±1ms |
-| `active_sensors` | INT | NOT NULL | |
+| Column               | Type        | Null     | Notes                       |
+| -------------------- | ----------- | -------- | --------------------------- |
+| `time`               | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
+| `source_type`        | VARCHAR(20) | NOT NULL |                             |
+| `latency_p95_ms`     | FLOAT       | NOT NULL | Threshold ≤500ms            |
+| `latency_p50_ms`     | FLOAT       | NOT NULL |                             |
+| `throughput_evts`    | INT         | NOT NULL | Events in 10s window        |
+| `data_loss_pct`      | FLOAT       | NOT NULL | Threshold ≤1%               |
+| `time_sync_delta_ms` | FLOAT       | NOT NULL | Threshold ±1ms              |
+| `active_sensors`     | INT         | NOT NULL |                             |
 
 ### `fusion_status` (HT)
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| `time` | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
-| `source_type` | VARCHAR(20) | NOT NULL | |
-| `quality_score` | INT | NOT NULL | 0–100 |
-| `contribution_weight` | FLOAT | NOT NULL | 0.0–1.0 |
-| `data_loss` | FLOAT | NOT NULL | Alert if >1% |
-| `latency` | FLOAT | NOT NULL | |
-| `status` | VARCHAR(20) | NOT NULL | online / degraded / offline |
+| Column                | Type        | Null     | Notes                       |
+| --------------------- | ----------- | -------- | --------------------------- |
+| `time`                | TIMESTAMPTZ | NOT NULL | Hypertable partition column |
+| `source_type`         | VARCHAR(20) | NOT NULL |                             |
+| `quality_score`       | INT         | NOT NULL | 0–100                       |
+| `contribution_weight` | FLOAT       | NOT NULL | 0.0–1.0                     |
+| `data_loss`           | FLOAT       | NOT NULL | Alert if >1%                |
+| `latency`             | FLOAT       | NOT NULL |                             |
+| `status`              | VARCHAR(20) | NOT NULL | online / degraded / offline |
 
 ---
 
@@ -241,13 +241,13 @@ SELECT add_continuous_aggregate_policy('perf_1min',
     schedule_interval => INTERVAL '1 minute');
 ```
 
-| Property | Value |
-|---|---|
-| Bucket | 1 minute |
-| Refresh interval | 1 minute |
-| Lag offset | 1 minute |
-| Serves | `/api/v1/performance` — throughput + latency |
-| Requires | timescaledb-toolkit (`percentile_agg`) |
+| Property         | Value                                        |
+| ---------------- | -------------------------------------------- |
+| Bucket           | 1 minute                                     |
+| Refresh interval | 1 minute                                     |
+| Lag offset       | 1 minute                                     |
+| Serves           | `/api/v1/performance` — throughput + latency |
+| Requires         | timescaledb-toolkit (`percentile_agg`)       |
 
 ---
 
@@ -272,12 +272,12 @@ SELECT add_continuous_aggregate_policy('pipeline_health_1min',
     schedule_interval => INTERVAL '1 minute');
 ```
 
-| Property | Value |
-|---|---|
-| Bucket | 1 minute |
-| Refresh interval | 1 minute |
-| Lag offset | 1 minute |
-| Serves | `/api/v1/performance` — time sync + data loss + pipeline latency |
+| Property         | Value                                                            |
+| ---------------- | ---------------------------------------------------------------- |
+| Bucket           | 1 minute                                                         |
+| Refresh interval | 1 minute                                                         |
+| Lag offset       | 1 minute                                                         |
+| Serves           | `/api/v1/performance` — time sync + data loss + pipeline latency |
 
 ---
 
@@ -303,13 +303,13 @@ SELECT add_continuous_aggregate_policy('summary_5min',
     schedule_interval => INTERVAL '30 seconds');
 ```
 
-| Property | Value |
-|---|---|
-| Bucket | 5 minutes |
-| Refresh interval | **30 seconds** |
-| Lag offset | 30 seconds |
-| Serves | `/api/v1/summary` — Home summary cards |
-| Frontend note | Must poll at ≥30s intervals |
+| Property         | Value                                  |
+| ---------------- | -------------------------------------- |
+| Bucket           | 5 minutes                              |
+| Refresh interval | **30 seconds**                         |
+| Lag offset       | 30 seconds                             |
+| Serves           | `/api/v1/summary` — Home summary cards |
+| Frontend note    | Must poll at ≥30s intervals            |
 
 ---
 
@@ -330,22 +330,23 @@ SELECT add_continuous_aggregate_policy('alerts_daily',
     schedule_interval => INTERVAL '1 hour');
 ```
 
-| Property | Value |
-|---|---|
-| Bucket | 1 day |
-| Refresh interval | 1 hour |
-| Lag offset | 1 hour |
-| Serves | `GET /api/v1/reports` — `anomaly_trend[].bucket_ms`, `anomaly_trend[].anomaly_count` |
+| Property         | Value                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Bucket           | 1 day                                                                                |
+| Refresh interval | 1 hour                                                                               |
+| Lag offset       | 1 hour                                                                               |
+| Serves           | `GET /api/v1/reports` — `anomaly_trend[].bucket_ms`, `anomaly_trend[].anomaly_count` |
+
 ---
 
 ## CAGG Summary
 
-| View | Source | Bucket | Refresh | Serves |
-|---|---|---|---|---|
-| `perf_1min` | `events` | 1 min | 1 min | `/api/v1/performance` — throughput + latency |
-| `pipeline_health_1min` | `system_performance_metrics` | 1 min | 1 min | `/api/v1/performance` — time sync + data loss |
-| `summary_5min` | `fused_events` | 5 min | **30s** | `/api/v1/summary` — Home cards |
-| `alerts_daily` | `anomaly_alerts` | 1 day | 1 hour | `/api/v1/reports` — anomaly trend |
+| View                   | Source                       | Bucket | Refresh | Serves                                        |
+| ---------------------- | ---------------------------- | ------ | ------- | --------------------------------------------- |
+| `perf_1min`            | `events`                     | 1 min  | 1 min   | `/api/v1/performance` — throughput + latency  |
+| `pipeline_health_1min` | `system_performance_metrics` | 1 min  | 1 min   | `/api/v1/performance` — time sync + data loss |
+| `summary_5min`         | `fused_events`               | 5 min  | **30s** | `/api/v1/summary` — Home cards                |
+| `alerts_daily`         | `anomaly_alerts`             | 1 day  | 1 hour  | `/api/v1/reports` — anomaly trend             |
 
 > No cascading CAGGs in this ERD — all four views query raw hypertables directly. TimescaleDB ≥ 2.9 is listed in infrastructure requirements as a precaution for future cascading CAGG additions.
 
@@ -353,21 +354,21 @@ SELECT add_continuous_aggregate_policy('alerts_daily',
 
 ## FK Relationships
 
-| FK Column | References | Type |
-|---|---|---|
-| `fused_events.alice_event_id` | `events.event_id` | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7) |
-| `fused_events.sensor_event_id` | `events.event_id` | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7) |
-| `anomaly_alerts.fused_event_id` | `fused_events.fused_event_id` | uuid. Cannot be a DB-level FK as drawn: the `fused_events` PK is composite and TimescaleDB does not support FKs that reference a hypertable. Decide at M7 |
-| `xai_explanations.fused_event_id` | `fused_events.fused_event_id` | uuid. Cannot be a DB-level FK as drawn: the `fused_events` PK is composite and TimescaleDB does not support FKs that reference a hypertable. Decide at M7 |
+| FK Column                         | References                    | Type                                                                                                                                          |
+| --------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fused_events.alice_event_id`     | `events.event_id`             | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7)                                                                           |
+| `fused_events.sensor_event_id`    | `events.event_id`             | uuid. **Soft reference**, no DB constraint (M6W21T7, revisit at M7)                                                                           |
+| `anomaly_alerts.fused_event_id`   | `fused_events.fused_event_id` | uuid. **Soft reference**, no DB constraint — TimescaleDB cannot enforce FK into a hypertable (M6 Option C, confirmed M7, implemented M8W29T4) |
+| `xai_explanations.fused_event_id` | `fused_events.fused_event_id` | uuid. **Soft reference**, no DB constraint — TimescaleDB cannot enforce FK into a hypertable (M6 Option C, confirmed M7, implemented M8W29T4) |
 
 ---
 
 ## FK Alignment — Fused Schema v1 Cross-Check
 
-| ERD Column | Fused Schema v1 Field | Avro Type | PostgreSQL Type | Match? |
-|---|---|---|---|---|
-| `fused_events.fused_event_id` | `fused_event_id` | string (UUID v4) | uuid | ✅ |
-| `fused_events.alice_event_id` | `alice_event_id` | string (UUID v4) | uuid | ✅ |
-| `fused_events.sensor_event_id` | `sensor_event_id` | string (UUID v4) | uuid | ✅ |
-| `anomaly_alerts.fused_event_id` | FK to `fused_event_id` | string (UUID v4) | uuid | ✅ |
-| `xai_explanations.fused_event_id` | FK to `fused_event_id` | string (UUID v4) | uuid | ✅ |
+| ERD Column                        | Fused Schema v1 Field  | Avro Type        | PostgreSQL Type | Match? |
+| --------------------------------- | ---------------------- | ---------------- | --------------- | ------ |
+| `fused_events.fused_event_id`     | `fused_event_id`       | string (UUID v4) | uuid            | ✅     |
+| `fused_events.alice_event_id`     | `alice_event_id`       | string (UUID v4) | uuid            | ✅     |
+| `fused_events.sensor_event_id`    | `sensor_event_id`      | string (UUID v4) | uuid            | ✅     |
+| `anomaly_alerts.fused_event_id`   | FK to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
+| `xai_explanations.fused_event_id` | FK to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
