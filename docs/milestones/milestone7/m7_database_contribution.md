@@ -110,3 +110,51 @@ Rows scored by M7W28T3.
   (61 / 61 buckets) — the write path works on a second machine.
 - **What it does not show:** scoring of aligned data on a second machine. Carried in
   `open_items_m7.md`.
+
+---
+
+## M8W29 Database Additions (T4)
+
+**Applied:** 26 November 2026 · **Commit:** `5db790d` · **Migration:** `infrastructure/scripts/migrations/m8w29_alerts_xai_tables.sql`
+
+### New objects
+
+**`anomaly_alerts`** — hypertable, partition column `time` TIMESTAMPTZ, 1-day chunks, 365-day retention.
+
+Primary key: `(time, fused_event_id)`
+
+- `fused_event_id UUID NOT NULL` — soft reference, no DB-level FK constraint (TimescaleDB cannot enforce FK into a hypertable; M6 Option C, confirmed M7, implemented here)
+- CHECK constraints: `risk_score BETWEEN 0.0 AND 1.0`, `confidence BETWEEN 0.0 AND 1.0`, `anomaly_label = 1`, `status IN ('active','reviewed','closed')`
+- Index: `idx_alerts_fused_risk ON (fused_event_id, risk_score DESC)`
+
+**`alerts_daily`** — continuous aggregate on `anomaly_alerts`, 1-day bucket.
+
+- Refresh policy: `start_offset 3 days`, `end_offset 1 hour`, `schedule_interval 1 hour`
+- Columns: `total_alerts`, `active_count`, `critical_count`, `avg_risk_score`, `max_risk_score` per `source_type` per day
+- Consumer: `GET /api/v1/reports` (Endpoint 15)
+
+**`xai_explanations`** — hypertable, partition column `time` TIMESTAMPTZ, 1-day chunks, 365-day retention.
+
+Primary key: `(time, fused_event_id)`
+
+- `fused_event_id UUID NOT NULL` — soft reference, same rationale as `anomaly_alerts`
+- `shap_values JSONB`: array of `{feature, shap_value, direction}` — field name is `shap_value` (not `value`), per `m8w29t1_xai_design.md`
+- `top_features JSONB`: precomputed array, up to 3 features
+- Consumer: `GET /api/v1/xai/{fused_event_id}` (Endpoint 10)
+
+### ERD update
+
+`erd_final.md` FK table updated — both "Decide at M7" rows replaced with confirmed M6 Option C soft reference note. Commit `b127824`.
+
+### Verification (docker exec, not Adminer)
+
+Query: `SELECT hypertable_name, num_chunks FROM timescaledb_information.hypertables WHERE hypertable_name IN ('anomaly_alerts', 'xai_explanations');`
+
+| hypertable_name | num_chunks |
+|---|---|
+| anomaly_alerts | 0 |
+| xai_explanations | 0 |
+
+`num_chunks = 0` — expected, no data inserted yet. Tables and CAGG presence confirmed via `\dt` and `\dm`.
+
+Migration applied manually via `docker cp` + `psql -f` — `init-db.sql` skipped by existing volume (runs on first initialization only).
