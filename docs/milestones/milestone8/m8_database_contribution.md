@@ -1,3 +1,5 @@
+@'
+
 # M8 Database Contribution
 
 ---
@@ -52,22 +54,42 @@ WHERE hypertable_name IN ('anomaly_alerts', 'xai_explanations');
 
 Migration applied manually via `docker cp` + `psql -f` — `init-db.sql` skipped by existing volume (runs on first initialization only).
 
+### Constraint verification
+
+```sql
+SELECT conname FROM pg_constraint
+WHERE conrelid IN ('anomaly_alerts'::regclass, 'xai_explanations'::regclass)
+ORDER BY 1;
+```
+
+| conname                   |
+| ------------------------- |
+| chk_alerts_anomaly_label  |
+| chk_alerts_confidence     |
+| chk_alerts_risk_score     |
+| chk_alerts_status         |
+| chk_xai_shap_values_array |
+| chk_xai_top_features      |
+| pk_anomaly_alerts         |
+| pk_xai_explanations       |
+
+8 rows — 2 primary keys + 6 CHECK constraints.
+
 ### Retention and CAGG job verification
 
 ```sql
-SELECT application_name, schedule_interval, next_start
-FROM timescaledb_information.jobs
-WHERE application_name IN (
-    'Retention Policy [anomaly_alerts]',
-    'Retention Policy [xai_explanations]',
-    'Refresh Continuous Aggregate Policy [alerts_daily]'
-);
+SELECT j.job_id, j.proc_name, COALESCE(c.view_name, j.hypertable_name) AS target, j.schedule_interval
+FROM timescaledb_information.jobs j
+LEFT JOIN timescaledb_information.continuous_aggregates c
+       ON c.materialization_hypertable_name = j.hypertable_name
+WHERE COALESCE(c.view_name, j.hypertable_name) IN ('anomaly_alerts','xai_explanations','alerts_daily');
 ```
 
-Expected result:
+| job_id | proc_name                           | target           | schedule_interval |
+| ------ | ----------------------------------- | ---------------- | ----------------- |
+| 1003   | policy_retention                    | anomaly_alerts   | 1 day             |
+| 1007   | policy_refresh_continuous_aggregate | alerts_daily     | 01:00:00          |
+| 1008   | policy_retention                    | xai_explanations | 1 day             |
 
-| application_name                                   | schedule_interval | next_start  |
-| -------------------------------------------------- | ----------------- | ----------- |
-| Retention Policy [anomaly_alerts]                  | 1 day             | (scheduled) |
-| Retention Policy [xai_explanations]                | 1 day             | (scheduled) |
-| Refresh Continuous Aggregate Policy [alerts_daily] | 1 hour            | (scheduled) |
+3 rows — 2 retention policies + 1 CAGG refresh policy.
+'@ | Set-Content -Path "docs\milestones\milestone8\m8_database_contribution.md" -Encoding UTF8
