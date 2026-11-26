@@ -25,11 +25,11 @@ NULL passes all three checks — unscored rows are unaffected. Migration: `infra
 
 M3 corpus used as-is — 150,000 records across three streams, natural ~2.97% anomaly rate.
 
-| Stream    | Total  | Normal | Anomaly | Anomaly % |
-| --------- | ------ | ------ | ------- | --------- |
-| RADAR     | 50,000 | 48,518 | 1,482   | 2.96%     |
-| LIDAR     | 50,000 | 48,514 | 1,486   | 2.97%     |
-| TELEMETRY | 50,000 | 48,517 | 1,483   | 2.97%     |
+| Stream | Total | Normal | Anomaly | Anomaly % |
+|---|---|---|---|---|
+| RADAR | 50,000 | 48,518 | 1,482 | 2.96% |
+| LIDAR | 50,000 | 48,514 | 1,486 | 2.97% |
+| TELEMETRY | 50,000 | 48,517 | 1,483 | 2.97% |
 
 80/20 stratified split by `anomaly_type`, seed=42. Test IDs saved to `data/splits/` for reproducibility across team members.
 
@@ -46,11 +46,11 @@ Verified that `anomaly_label`, `risk_score`, `confidence` are absent from `fused
 
 ROLLBACK write test (11 November 2026, 34,560 rows):
 
-| Column          | DB type | API contract  | Result |
-| --------------- | ------- | ------------- | ------ |
-| `anomaly_label` | BIGINT  | int 0/1       | PASS   |
-| `risk_score`    | REAL    | float 0.0–1.0 | PASS   |
-| `confidence`    | REAL    | float 0.0–1.0 | PASS   |
+| Column | DB type | API contract | Result |
+|---|---|---|---|
+| `anomaly_label` | BIGINT | int 0/1 | PASS |
+| `risk_score` | REAL | float 0.0–1.0 | PASS |
+| `confidence` | REAL | float 0.0–1.0 | PASS |
 
 Finding: no CHECK constraints on scored columns at time of test — added on 12 November via migration above (commit fe0175b).
 NULL count: 34,560 / 34,560 rows unscored (confirmed full table, not sample).
@@ -82,20 +82,20 @@ contributes write-path evidence on pre-alignment data only.
 Window from 2026-11-12 07:06:00 UTC — after the producer alignment (`8af19aa`) and image rebuild.
 Rows scored by M7W28T3.
 
-| Stream    | Rows  | Scored | Alarms | Rate  | risk_score    | confidence    |
-| --------- | ----- | ------ | ------ | ----- | ------------- | ------------- |
-| LIDAR     | 4,077 | 4,077  | 42     | 1.03% | 0.0006–1.0000 | 0.0004–1.0000 |
-| RADAR     | 4,053 | 4,053  | 44     | 1.09% | 0.0005–1.0000 | 0.0001–0.9995 |
-| TELEMETRY | 3,993 | 3,993  | 40     | 1.00% | 0.0176–1.0000 | 0.0018–1.0000 |
+| Stream | Rows | Scored | Alarms | Rate | risk_score | confidence |
+|---|---|---|---|---|---|---|
+| LIDAR | 4,077 | 4,077 | 42 | 1.03% | 0.0006–1.0000 | 0.0004–1.0000 |
+| RADAR | 4,053 | 4,053 | 44 | 1.09% | 0.0005–1.0000 | 0.0001–0.9995 |
+| TELEMETRY | 3,993 | 3,993 | 40 | 1.00% | 0.0176–1.0000 | 0.0018–1.0000 |
 
-| Check                                                 | Result                                                                                          | PASS / FAIL |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------- |
-| Every fused row in the window scored                  | 12,123 / 12,123                                                                                 | PASS        |
-| Values inside the CHECK ranges                        | risk 0.0005–1.0000, confidence 0.0001–1.0000                                                    | PASS        |
-| `anomaly_label` = 1 exactly when `risk_score` ≥ 0.995 | 0 inconsistent                                                                                  | PASS        |
-| CHECK constraints present                             | 3 constraints, on the hypertable and each of its 3 daily chunks (12 entries in `pg_constraint`) | PASS        |
-| `summary_5min.anomaly_rate` populated                 | 20 / 20 buckets per stream; mean 0.0103 / 0.0111 / 0.0099                                       | PASS        |
-| Rows before the window untouched                      | 37,060 rows, 0 scored                                                                           | PASS        |
+| Check | Result | PASS / FAIL |
+|---|---|---|
+| Every fused row in the window scored | 12,123 / 12,123 | PASS |
+| Values inside the CHECK ranges | risk 0.0005–1.0000, confidence 0.0001–1.0000 | PASS |
+| `anomaly_label` = 1 exactly when `risk_score` ≥ 0.995 | 0 inconsistent | PASS |
+| CHECK constraints present | 3 constraints, on the hypertable and each of its 3 daily chunks (12 entries in `pg_constraint`) | PASS |
+| `summary_5min.anomaly_rate` populated | 20 / 20 buckets per stream; mean 0.0103 / 0.0111 / 0.0099 | PASS |
+| Rows before the window untouched | 37,060 rows, 0 scored | PASS |
 
 ### B. Second machine — Beyza's, pre-alignment data
 
