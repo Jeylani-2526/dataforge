@@ -1,5 +1,7 @@
 -- DataForge — TimescaleDB Init
 
+---
+
 CREATE TABLE IF NOT EXISTS raw_alice_events_staging (
     load_id           BIGSERIAL       PRIMARY KEY,
     load_timestamp    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -168,6 +170,8 @@ SELECT add_continuous_aggregate_policy('summary_5min',
     end_offset   => BIGINT '300000',
     schedule_interval => INTERVAL '5 minutes',
     if_not_exists => TRUE);
+
+-- ---------------------------------------------------------------------------
 -- anomaly_alerts (Hypertable — TIMESTAMPTZ partition, 365-day retention)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS anomaly_alerts (
@@ -205,15 +209,10 @@ CREATE INDEX IF NOT EXISTS idx_alerts_fused_risk
 CREATE MATERIALIZED VIEW IF NOT EXISTS alerts_daily
 WITH (timescaledb.continuous) AS
 SELECT
-    time_bucket('1 day', time)                         AS bucket,
-    source_type,
-    COUNT(*)                                           AS total_alerts,
-    COUNT(*) FILTER (WHERE status = 'active')         AS active_count,
-    COUNT(*) FILTER (WHERE anomaly_label = 1)         AS critical_count,
-    AVG(risk_score)                                    AS avg_risk_score,
-    MAX(risk_score)                                    AS max_risk_score
+    time_bucket('1 day', time) AS bucket,
+    COUNT(*)                   AS anomaly_count
 FROM anomaly_alerts
-GROUP BY bucket, source_type
+GROUP BY bucket
 WITH NO DATA;
 
 SELECT add_continuous_aggregate_policy('alerts_daily',
@@ -229,12 +228,17 @@ CREATE TABLE IF NOT EXISTS xai_explanations (
     time             TIMESTAMPTZ  NOT NULL,
     fused_event_id   UUID         NOT NULL,
     explanation_text TEXT         NOT NULL,
-    shap_values      JSONB        NOT NULL DEFAULT '[]'::jsonb,
-    top_features     JSONB        NOT NULL DEFAULT '[]'::jsonb,
+    shap_values      JSONB        NOT NULL,
+    top_features     JSONB        NOT NULL,
     model_version    VARCHAR(20)  NOT NULL,
     generated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT pk_xai_explanations PRIMARY KEY (time, fused_event_id)
+    CONSTRAINT pk_xai_explanations     PRIMARY KEY (time, fused_event_id),
+    CONSTRAINT chk_xai_shap_values_array CHECK (jsonb_typeof(shap_values) = 'array'),
+    CONSTRAINT chk_xai_top_features      CHECK (
+        CASE WHEN jsonb_typeof(top_features) = 'array'
+             THEN jsonb_array_length(top_features) BETWEEN 1 AND 3
+             ELSE FALSE END)
 );
 
 SELECT create_hypertable('xai_explanations', 'time',

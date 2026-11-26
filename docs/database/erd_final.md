@@ -150,28 +150,28 @@ erDiagram
 
 ### `anomaly_alerts` (HT)
 
-| Column                | Type        | Null     | Notes                              |
-| --------------------- | ----------- | -------- | ---------------------------------- |
-| `time`                | TIMESTAMPTZ | NOT NULL | Hypertable partition column        |
-| `fused_event_id`      | uuid        | NOT NULL | FK → fused_events.fused_event_id   |
-| `source_type`         | VARCHAR(20) | NOT NULL | Denormalized for query performance |
-| `anomaly_label`       | INT8        | NOT NULL | Always 1                           |
-| `risk_score`          | FLOAT       | NOT NULL | 0.0–1.0                            |
-| `confidence`          | FLOAT       | NOT NULL | 0.0–1.0                            |
-| `model_version`       | VARCHAR(20) | NOT NULL |                                    |
-| `status`              | VARCHAR(20) | NOT NULL | active / reviewed / closed         |
-| `status_updated_at`   | TIMESTAMPTZ | NULL     | Set on PATCH                       |
-| `explanation_summary` | TEXT        | NULL     | From Module 8                      |
+| Column                | Type        | Null     | Notes                                           |
+| --------------------- | ----------- | -------- | ----------------------------------------------- |
+| `time`                | TIMESTAMPTZ | NOT NULL | Hypertable partition column                     |
+| `fused_event_id`      | uuid        | NOT NULL | Soft reference — no DB constraint (M6 Option C) |
+| `source_type`         | VARCHAR(20) | NOT NULL | Denormalized for query performance              |
+| `anomaly_label`       | INT8        | NOT NULL | Always 1                                        |
+| `risk_score`          | FLOAT       | NOT NULL | 0.0–1.0                                         |
+| `confidence`          | FLOAT       | NOT NULL | 0.0–1.0                                         |
+| `model_version`       | VARCHAR(20) | NOT NULL |                                                 |
+| `status`              | VARCHAR(20) | NOT NULL | active / reviewed / closed                      |
+| `status_updated_at`   | TIMESTAMPTZ | NULL     | Set on PATCH                                    |
+| `explanation_summary` | TEXT        | NULL     | From Module 8                                   |
 
 ### `xai_explanations` (HT)
 
 | Column             | Type        | Null     | Notes                                                                    |
 | ------------------ | ----------- | -------- | ------------------------------------------------------------------------ |
 | `time`             | TIMESTAMPTZ | NOT NULL | Hypertable partition column — matches anomaly_alerts.time for paired row |
-| `fused_event_id`   | uuid        | NOT NULL | PK + FK → fused_events.fused_event_id                                    |
+| `fused_event_id`   | uuid        | NOT NULL | Part of composite PK. Soft reference — no DB constraint (M6 Option C)    |
 | `explanation_text` | TEXT        | NOT NULL |                                                                          |
 | `shap_values`      | JSONB       | NOT NULL | [{feature, shap_value, direction}]                                       |
-| `top_features`     | JSONB       | NOT NULL | Top 3 precomputed                                                        |
+| `top_features`     | JSONB       | NOT NULL | up to 3 precomputed                                                      |
 | `model_version`    | VARCHAR(20) | NOT NULL |                                                                          |
 | `generated_at`     | TIMESTAMPTZ | NOT NULL |                                                                          |
 
