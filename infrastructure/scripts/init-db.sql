@@ -1,7 +1,5 @@
 -- DataForge — TimescaleDB Init
 
----
-
 CREATE TABLE IF NOT EXISTS raw_alice_events_staging (
     load_id           BIGSERIAL       PRIMARY KEY,
     load_timestamp    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),

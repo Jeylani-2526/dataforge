@@ -1,6 +1,6 @@
-@'
-
 # M8 Database Contribution
+
+_Owner:_ Beyza · _Milestone:_ M8 · _Tasks:_ M8W29T4 (W31T4 ve W32T6 sonra eklenecek)
 
 ---
 
@@ -33,6 +33,8 @@ Primary key: `(time, fused_event_id)`
 - `top_features JSONB NOT NULL` — precomputed array, up to 3 features; CHECK `jsonb_array_length BETWEEN 1 AND 3`
 - Consumer: `GET /api/v1/xai/{fused_event_id}` (Endpoint 10)
 
+> `xai_explanations` and `alerts_daily` were dropped and recreated from migration on 26 November 2026 — no data existed at the time.
+
 ### ERD update
 
 `erd_final.md` column notes updated — `anomaly_alerts.fused_event_id` and `xai_explanations.fused_event_id` now show soft reference note; `xai_explanations.top_features` corrected to "up to 3 precomputed".
@@ -50,7 +52,7 @@ WHERE hypertable_name IN ('anomaly_alerts', 'xai_explanations');
 | anomaly_alerts   | 0          |
 | xai_explanations | 0          |
 
-`num_chunks = 0` — expected, no data inserted yet. Tables and CAGG presence confirmed via `\dt` and `\dm`.
+`num_chunks = 0` — expected, no data inserted yet.
 
 Migration applied manually via `docker cp` + `psql -f` — `init-db.sql` skipped by existing volume (runs on first initialization only).
 
@@ -82,7 +84,8 @@ SELECT j.job_id, j.proc_name, COALESCE(c.view_name, j.hypertable_name) AS target
 FROM timescaledb_information.jobs j
 LEFT JOIN timescaledb_information.continuous_aggregates c
        ON c.materialization_hypertable_name = j.hypertable_name
-WHERE COALESCE(c.view_name, j.hypertable_name) IN ('anomaly_alerts','xai_explanations','alerts_daily');
+WHERE COALESCE(c.view_name, j.hypertable_name) IN ('anomaly_alerts','xai_explanations','alerts_daily')
+ORDER BY 3;
 ```
 
 | job_id | proc_name                           | target           | schedule_interval |
@@ -92,4 +95,31 @@ WHERE COALESCE(c.view_name, j.hypertable_name) IN ('anomaly_alerts','xai_explana
 | 1008   | policy_retention                    | xai_explanations | 1 day             |
 
 3 rows — 2 retention policies + 1 CAGG refresh policy.
-'@ | Set-Content -Path "docs\milestones\milestone8\m8_database_contribution.md" -Encoding UTF8
+
+### alerts_daily column verification
+
+```sql
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'alerts_daily' ORDER BY ordinal_position;
+```
+
+| column_name   |
+| ------------- |
+| bucket        |
+| anomaly_count |
+
+2 rows — no extra columns.
+
+### xai_explanations JSONB default verification
+
+```sql
+SELECT column_name, column_default FROM information_schema.columns
+WHERE table_name = 'xai_explanations' AND column_name IN ('shap_values','top_features');
+```
+
+| column_name  | column_default |
+| ------------ | -------------- |
+| shap_values  |                |
+| top_features |                |
+
+No defaults — values must be supplied explicitly.
