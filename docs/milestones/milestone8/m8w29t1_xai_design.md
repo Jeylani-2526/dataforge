@@ -7,6 +7,7 @@
 **Builds on:** model v2 (`services/ml/model_v2.py`), M8 decisions D1–D4, `erd_final.md`,
 `api_contracts_final.md` Sections 8 and 10
 **Figures:** `services/ml/xai_probe.py` (test-set alarms, model v2)
+**Amended:** M8W29T8 (25 November 2026) — shap pinned to 0.51.0 (Section 12)
 **Used by:** M8W29T4 (tables), M8W29T5 (contract), M8W30T1 (`xai.py`), M8W30T2 (live writer),
 M8W30T4 (write-path conformance), M8W31T1–T2 (fidelity, cause-effect text)
 
@@ -117,7 +118,7 @@ feature in its own sentence; nothing is hidden.
 ### 5.2 TELEMETRY — no SHAP
 
 The TELEMETRY forest has one feature, `value_z`. `shap.TreeExplainer` raises `IndexError` on a
-single-feature Isolation Forest (shap 0.54.1), and with one feature an attribution would be 100%
+single-feature Isolation Forest (shap 0.51.0 and 0.54.1 alike), and with one feature an attribution would be 100%
 that feature anyway.
 
 | Alarm source | `shap_values` | `top_features` | Text |
@@ -263,5 +264,10 @@ For M8W29T4 and M8W29T5:
 python services/ml/model_v2.py train     # rebuilds the gitignored .joblib models
 python services/ml/xai_probe.py          # Sections 3, 5 and 8
 ```
-`shap==0.54.1` is needed locally (`pip install shap==0.54.1`); M8W29T8 adds it to
-`services/ml/requirements.txt`.
+`shap==0.51.0` is needed locally (`pip install shap==0.51.0`); M8W29T8 adds it to
+`services/ml/requirements.txt` and the fusion image.
+
+**Version (M8W29T8 amendment):** the figures were first produced with shap 0.54.1. shap 0.52 and
+later require Python 3.12, and the fusion image and CI run Python 3.11, so shap is pinned to
+0.51.0. Re-run under 0.51.0 on Python 3.11, every figure in this note is identical, and the raw
+SHAP values match 0.54.1 exactly (maximum difference 0.0).

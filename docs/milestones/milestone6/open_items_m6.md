@@ -21,6 +21,8 @@ Items 1–7, 11, 12 and 14 open.
 - M8W29T7 amendment (25 November 2026) — at M7 close: Item 8 closed (result committed); Item 13
   closed (trigger met, lead's decision); Item 10's staging-retention residual missed its
   M7W27T4 target and moved to `open_items_m7.md` Item 10.
+- M8W29T8 amendment (26 November 2026) — Item 11 recurrence recorded (exit code 0, checkpoint
+  reset); item stays open for M8W30T3.
 
 ---
 
@@ -212,6 +214,11 @@ the query dies, and nothing restarts it.
 document the reset as the recovery procedure; (b) a terminated query exits non-zero, so a
 `restart: on-failure` policy can recover it; (c) topics exist before fusion subscribes —
 pre-created at Kafka start, or fusion waits for them.
+
+**Recurrence (M8W29T8, 26 November 2026):** on Abdalla's machine, fusion stopped with
+`OffsetOutOfRangeException` on `sensor-radar-0` (checkpoint offset 4,706,503 past retention)
+and exited with code 0. Recovered by the M6W21T2 checkpoint reset. Recorded in
+`m8w29t8_fusion_ml_runtime.md` Section 5.2. Fix scheduled as M8W30T3.
 
 ## Item 12 — Compose and Environment Operability
 
