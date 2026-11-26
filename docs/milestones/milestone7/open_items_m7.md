@@ -3,13 +3,16 @@
 **Originating Task ID:** M8W29T7 (planned as M7W28T4)
 **Owner:** Abdalla
 **Milestone:** M7 · closed 22 November 2026, package written in M8 Week 29
-**Status:** Open — eleven items. Item 3 closed by design. Items 1, 2 and 4–11 open.
+**Status:** Open — eleven items. Item 2 closed (M8W29T3), Item 3 closed by design. Items 1 and 4–11
+open.
 **GitHub Path:** `/docs/milestones/milestone7/open_items_m7.md`
 
 **Amendment history:**
 - M8W29T7 (25 November 2026) — Document created. Items 1–3 from M7W28T3, Item 4 from M7W28T8,
   Items 5–9 from the M7 evaluation report (Section 10), Item 10 moved from `open_items_m6.md`
   Item 10, Item 11 found while writing the package.
+- M8W29T3 (26 November 2026) — Item 2 closed: cause established; 2,058 further orphans from
+  26 November recorded.
 
 ---
 
@@ -47,6 +50,47 @@ machine.
 **Trigger:** staging checked for rows from 15 October and 5 November. None → the cause is
 `open_items_m6.md` Item 12.3 (fusion ran without `spark-processor`) and this item closes. Rows
 that exist but do not match → re-logged as a new orphan cause.
+
+**Closed (M8W29T3, 26 November 2026) — cause established.** Read-only SQL through `docker exec`
+on Abdalla's database:
+
+```sql
+-- staging rows by the day spark-processor wrote them
+SELECT load_timestamp::date AS load_day, COUNT(*), MIN(load_id), MAX(load_id)
+FROM raw_sensor_events_staging GROUP BY 1 ORDER BY 1;
+```
+
+| Load day | Staging rows | `load_id` range |
+|---|---|---|
+| 1 October | 16,566 | 6,085,349 – 6,101,914 |
+| 2 October | 81 | 6,101,915 – 6,101,995 |
+| *3 October – 11 November* | *none* | — |
+| 12 November | 30,225 | 6,101,996 – 6,132,220 |
+
+- **spark-processor wrote no staging rows between 2 October and 12 November.** The `load_id`
+  sequence runs on without a gap (6,101,995 → 6,101,996), and its last value equals the highest
+  id, so no rows were written on 15 October or 5 November and deleted later. Deletion is ruled
+  out.
+- The three `load_id` gaps that do exist (2,117,500 ids, 20–24 September) and the missing first
+  450,000 ids (the M6W22T7 cleanup) all predate 15 October.
+- The orphans' `alice_event_id` values all resolve in `events` (37,060 of 37,060); none of their
+  `sensor_event_id` values is in `events` or staging. Only the sensor side is missing.
+
+**Cause:** fusion and `spark-processor` read Kafka independently. On 15 October and 5 November
+fusion wrote fused rows while `spark-processor` wrote nothing. The data cannot tell whether it
+was not started (`open_items_m6.md` Item 12.3) or had stopped (Item 11).
+
+**Reproduced on 26 November** during M8W29T8's verification: `spark-processor` started, failed
+with `OffsetOutOfRangeException` on `sensor-telemetry-0` (checkpoint offset 4,706,410 past
+Kafka's 7-day retention) and exited with code 0. Fusion, recovered by its own checkpoint reset,
+kept writing alone — **2,058 more orphans** (`fused_events` on 26 November, none resolving).
+Fusion was stopped to end it. Orphans on this machine now total 39,118; all lie outside the
+scoring window or cannot be scored, and stay NULL.
+
+**Carried, not closed:** preventing it is `open_items_m6.md` Item 11 (silent exit, retention),
+extended to `spark-processor` (M8W30T3), and Item 12.3 (README, M8W29T6). Input to M8W30T2:
+scoring that joins back to staging (M6W26T5) finds no features whenever `spark-processor` is
+down, so live scoring must not assume a staging row exists.
 
 ## Item 3 — Rows Before the Producer Alignment Stay Unscored — Closed by Design
 
@@ -154,7 +198,7 @@ residual moved here by the M8W29T7 amendment to that log.
 | Item | Status | Owner | Target | Trigger |
 |---|---|---|---|---|
 | 1 Live scoring in fusion | Open | Abdalla | M8 | Working by 2 December, else M9 |
-| 2 37,060 orphaned rows | Open | Abdalla | M8 | Staging checked for 15 Oct and 5 Nov |
+| 2 37,060 orphaned rows | **Closed** (M8W29T3) — cause established | Abdalla | — | Met: staging empty 3 Oct – 11 Nov |
 | 3 Pre-alignment rows unscored | **Closed by design** | — | — | — |
 | 4 Second-machine aligned scoring | Open | Beyza | M8 | Model card matches; Section A checks pass |
 | 5 Saturated risk scores | Open | Abdalla | M8 | Tie-break in the explanation layer |

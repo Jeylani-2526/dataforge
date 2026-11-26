@@ -23,6 +23,8 @@ Items 1–7, 11, 12 and 14 open.
   M7W27T4 target and moved to `open_items_m7.md` Item 10.
 - M8W29T8 amendment (26 November 2026) — Item 11 recurrence recorded (exit code 0, checkpoint
   reset); item stays open for M8W30T3.
+- M8W29T3 amendment (26 November 2026) — Item 11 extended to `spark-processor`, which failed
+  the same way the same day.
 
 ---
 
@@ -219,6 +221,12 @@ pre-created at Kafka start, or fusion waits for them.
 `OffsetOutOfRangeException` on `sensor-radar-0` (checkpoint offset 4,706,503 past retention)
 and exited with code 0. Recovered by the M6W21T2 checkpoint reset. Recorded in
 `m8w29t8_fusion_ml_runtime.md` Section 5.2. Fix scheduled as M8W30T3.
+
+**Also hits `spark-processor` (M8W29T3, 26 November 2026):** the same day, `spark-processor`
+failed with `OffsetOutOfRangeException` on `sensor-telemetry-0` and exited with code 0 — the
+same silent stop. With fusion still running, every fused row from then on had no staging row
+(2,058 orphans; `open_items_m7.md` Item 2). **Scope extended:** the fix covers
+`spark-processor` as well as fusion — fixing fusion alone does not prevent orphans.
 
 ## Item 12 — Compose and Environment Operability
 
