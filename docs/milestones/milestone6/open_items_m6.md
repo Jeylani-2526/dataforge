@@ -5,7 +5,7 @@
 **Milestone:** M6 · Week 26
 **Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5;
 its residual moved to `open_items_m7.md` Item 10. Items 8 and 13 closed at M7 close (M8W29T7).
-Items 1–7, 11, 12 and 14 open.
+Item 2 closed as superseded (M8W29T2). Items 1, 3–7, 11, 12 and 14 open.
 **GitHub Path:** `/docs/milestones/milestone6/open_items_m6.md`
 
 **Amendment history:**
@@ -25,6 +25,8 @@ Items 1–7, 11, 12 and 14 open.
   reset); item stays open for M8W30T3.
 - M8W29T3 amendment (26 November 2026) — Item 11 extended to `spark-processor`, which failed
   the same way the same day.
+- M8W29T2 amendment (26 November 2026) — Item 1 decided (adaptive threshold, `min` kept, 30 s
+  warning), implementation stays M10; Item 2 closed as superseded.
 
 ---
 
@@ -53,6 +55,11 @@ sensors, "how late is too late" is a specification question.
 **Trigger:** decide whether an adaptive lateness threshold is acceptable, and whether
 `multipleWatermarkPolicy` stays at `min`. Changing it reintroduces the M5 Item 8 caveat it fixed.
 
+**Decided (M8W29T2, 26 November 2026):** `m8w29t2_watermark_decision.md`. The adaptive threshold
+is the specification — 5 s floor + slowest-stream lag + up to one batch, measured and reported;
+`multipleWatermarkPolicy` stays `min`; a gap above 30 s raises a warning.
+**Remaining for M10 — trigger:** the watermark gap logged per batch and the 30 s warning working.
+
 ## Item 2 — Watermark Drop Boundary Not Narrowed
 
 **Finding (M6W23T4):** 9 s shift accepted, 30 s shift dropped (160 rows). The transition
@@ -60,6 +67,10 @@ between them was not located.
 
 **Owner:** Abdalla · **Target:** with Item 1
 **Trigger:** only meaningful once Item 1's decision is taken.
+
+**Closed — superseded (M8W29T2, 26 November 2026):** under Item 1's adaptive specification there
+is no fixed boundary to narrow; the threshold moves with stream lag. Per-batch measurement of the
+watermark gap (Item 1, M10) replaces it.
 
 ## Item 3 — Batch Commit 8–10 s Against a 5 s Trigger
 
@@ -305,8 +316,8 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 
 | Item | Status | Owner | Target | Trigger |
 |---|---|---|---|---|
-| 1 Effective watermark | Open | Abdalla | M8 → M10 | Lateness specification decision |
-| 2 Drop boundary | Open | Abdalla | With 1 | Item 1 decided |
+| 1 Effective watermark | Decided (M8W29T2); open for M10 | Abdalla | M10 | Gap logged per batch, 30 s warning |
+| 2 Drop boundary | **Closed** — superseded (M8W29T2) | Abdalla | — | — |
 | 3 Batch commit lag | Open | Abdalla | M10 | Next throughput benchmark |
 | 4 Silent mis-pairing | Open, unquantified | Abdalla | M8 | Payload-timestamp comparison under injection |
 | 5 Fused-path latency | Open, structural | Abdalla | M10 | M10 latency framing |
