@@ -6,7 +6,7 @@
 **Brief example:** `'event_timestamp' | datetime | Module 4 (Kafka) | real-time | table column`  
 **Format note:** Source Module uses `Module N - Name` full format (aligned with brief example). Widget Type uses brief categories `chart / table / badge / gauge` with parenthetical refinements.  
 **Aligned with:** Abdullah's `data_flow_spec.md` (authoritative module mapping)  
-**Status:** v3 — critical_alerts field added to Home; sort order clarified; reconciliation notes updated  
+**Status:** v4 — XAI Panel field names and colour direction corrected; top_features count corrected to "up to 3"  
 **Output paths:** `/dashboard/specs/dashboard_data_fields.{xlsx,md}`
 
 ---
@@ -46,8 +46,8 @@ Brief categories: `chart`, `table`, `badge`, `gauge`. Refinements appear in pare
 - **Module ordering:** T2 used inferred M1=Sensor / M2=ALICE; M3 spec is M1=ALICE, M2=Sensor (synthetic). T9 follows M3.
 - **Source field naming:** Field 'sensor_type' from T2 poster -> unified as 'source_type' (enum: alice/radar/lidar/telemetry) in M3 spec. T9 follows M3.
 - **anomaly_label type:** M3 spec: int8 (0/1) — not VARCHAR as assumed in T2. T9 follows M3.
-- **API endpoint refresh intervals (T10):** Task 4 API poster will need same refresh-interval reconciliation (Home 30s->5s, Performance 10s->30s). ✅ Applied in T10 v2.
-- **critical_alerts field added (v3):** `critical_alerts` (COUNT where risk_score>0.7 AND status=open) was present in T10 `/api/v1/summary` response but missing from this T9 Home page table. Added as field #5. `active_alerts` (field #4) remains the total open alert count; `critical_alerts` is the high-severity subset. Both are returned in a single `/summary` poll.
+- **API endpoint refresh intervals (T10):** Task 4 API poster will need same refresh-interval reconciliation (Home 30s->5s, Performance 10s->30s). ✓ Applied in T10 v2.
+- **critical_alerts field added (v3):** `critical_alerts` (COUNT where risk_score>0.7 AND status=active) was present in T10 `/api/v1/summary` response but missing from this T9 Home page table. Added as field #5. `active_alerts` (field #4) remains the total active alert count; `critical_alerts` is the high-severity subset. Both are returned in a single `/summary` poll.
 - **recent_alerts sort order clarified (v3):** Home page "Recent Alerts" table is sorted `timestamp DESC` (newest first) — consistent with the widget name "Recent". Severity sort (`risk_desc`) is available via query parameter on T10's `/api/v1/alerts/recent` endpoint for AI Alerts use.
 
 ---
@@ -61,12 +61,12 @@ Brief categories: `chart`, `table`, `badge`, `gauge`. Refinements appear in pare
 | 1 | `system_status` | enum (active/warning/critical) | Module 9 - Dashboard (derived from M7) | 5s | badge (status band) | Driven by avg risk_score threshold |
 | 2 | `active_sensors` | int | Module 2 - Sensor Source | 5s | badge (metric card) | Sensor count with status != dropout |
 | 3 | `events_today` | int | Module 6 - Data Fusion | 5s | badge (metric card) | Total fused events since midnight |
-| 4 | `active_alerts` | int | Module 7 - AI/ML | 5s | badge (metric card) | COUNT of anomaly_label=1 AND status=open alerts |
-| 5 | `critical_alerts` | int | Module 7 - AI/ML | 5s | badge (metric card) | COUNT where risk_score > 0.7 AND status=open; 0 when none (never null) |
+| 4 | `active_alerts` | int | Module 7 - AI/ML | 5s | badge (metric card) | COUNT of anomaly_label=1 AND status=active alerts |
+| 5 | `critical_alerts` | int | Module 7 - AI/ML | 5s | badge (metric card) | COUNT where risk_score > 0.7 AND status=active; 0 when none (never null) |
 | 6 | `avg_risk_score_1h` | float (0-1) | Module 7 - AI/ML (aggregated) | 5s | badge (metric card) | Continuous aggregate from anomaly_alerts |
 | 7 | `latency_p95_ms` | float | Module 10 - Testing | 5s | badge (metric card) | Threshold: <=500ms (prototype bar) |
 | 8 | `throughput_evt_per_sec` | int | Module 5 - Cleaning / Module 4 - Kafka | 5s | chart (sparkline) | Recent event throughput visualization |
-| 9 | `critical_alert.event_id` | string (UUID) | Module 7 - AI/ML | 5s | badge (alert banner) | Conditional render: risk_score>0.7 AND status=open |
+| 9 | `critical_alert.event_id` | string (UUID) | Module 7 - AI/ML | 5s | badge (alert banner) | Conditional render: risk_score>0.7 AND status=active |
 | 10 | `critical_alert.risk_score` | float (0-1) | Module 7 - AI/ML | 5s | badge (alert banner) | Color-coded display |
 | 11 | `critical_alert.source_type` | enum (alice/radar/lidar/telemetry) | Module 3 - Adaptation | 5s | badge (alert banner) | Helps operator identify origin |
 | 12 | `recent_alerts[].event_id` | string (UUID) | Module 7 - AI/ML | 5s | table column | Clickable -> AI Alerts page |
@@ -130,7 +130,7 @@ Brief categories: `chart`, `table`, `badge`, `gauge`. Refinements appear in pare
 
 | # | Field Name | Data Type | Source Module | Refresh | Widget | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `summary.active_count` | int | Module 7 - AI/ML (status=open) | 5s | badge (metric card) | Total open alerts |
+| 1 | `summary.active_count` | int | Module 7 - AI/ML (status=active) | 5s | badge (metric card) | Total active alerts |
 | 2 | `summary.critical_count` | int | Module 7 - AI/ML (risk_score>0.7) | 5s | badge (metric card) | Critical alerts |
 | 3 | `summary.closed_today` | int | Module 9 - Dashboard (state) | 5s | badge (metric card) | Daily reset at midnight |
 | 4 | `filter.date_range` | datetime range | Module 9 - Dashboard (frontend state) | N/A | table (date filter) | Server-side filter |
@@ -164,10 +164,10 @@ Brief categories: `chart`, `table`, `badge`, `gauge`. Refinements appear in pare
 | 5 | `event.confidence` | float (0-1) | Module 7 - AI/ML | on load | badge (sub-text) | Below risk gauge |
 | 6 | `event.anomaly_label` | int (0/1) | Module 7 - AI/ML | on load | badge | Anomalous / nominal |
 | 7 | `explanation_text` | string (natural language) | Module 8 - XAI | on load | badge (paragraph box) | Plain-language operator-facing |
-| 8 | `top_features` | array<string> | Module 8 - XAI | on load | badge (chip list) | Top 3 contributing features |
+| 8 | `top_features` | array<string> | Module 8 - XAI | on load | badge (chip list) | Up to 3 contributing features |
 | 9 | `shap_values.feature` | string | Module 8 - XAI | on load | chart (horizontal bar label) | Feature name |
-| 10 | `shap_values.value` | float | Module 8 - XAI | on load | chart (horizontal bar value) | SHAP magnitude |
-| 11 | `shap_values.direction` | enum (positive/negative) | Module 8 - XAI (derived from sign) | on load | chart (bar colour) | Green=positive, red=negative |
+| 10 | `shap_values.shap_value` | float | Module 8 - XAI | on load | chart (horizontal bar value) | SHAP magnitude |
+| 11 | `shap_values.direction` | enum (positive/negative) | Module 8 - XAI (derived from sign) | on load | chart (bar colour) | Red=positive (toward alarm), green=negative (toward normal) |
 | 12 | `feature_detail.feature` | string | Module 7 - AI/ML (features used) | on toggle | table column | Inline expand |
 | 13 | `feature_detail.raw_value` | float | Module 7 - AI/ML | on toggle | table column | Original feature value |
 | 14 | `xai_version` | string (semver) | Module 8 - XAI | on load | badge (footer text) | e.g. 1.0.0 |
