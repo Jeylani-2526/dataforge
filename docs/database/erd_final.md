@@ -325,7 +325,7 @@ FROM anomaly_alerts
 GROUP BY bucket;
 
 SELECT add_continuous_aggregate_policy('alerts_daily',
-    start_offset      => INTERVAL '2 days',
+    start_offset      => INTERVAL '3 days',
     end_offset        => INTERVAL '1 hour',
     schedule_interval => INTERVAL '1 hour');
 ```
@@ -365,10 +365,10 @@ SELECT add_continuous_aggregate_policy('alerts_daily',
 
 ## FK Alignment — Fused Schema v1 Cross-Check
 
-| ERD Column                        | Fused Schema v1 Field  | Avro Type        | PostgreSQL Type | Match? |
-| --------------------------------- | ---------------------- | ---------------- | --------------- | ------ |
-| `fused_events.fused_event_id`     | `fused_event_id`       | string (UUID v4) | uuid            | ✅     |
-| `fused_events.alice_event_id`     | `alice_event_id`       | string (UUID v4) | uuid            | ✅     |
-| `fused_events.sensor_event_id`    | `sensor_event_id`      | string (UUID v4) | uuid            | ✅     |
-| `anomaly_alerts.fused_event_id`   | FK to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
-| `xai_explanations.fused_event_id` | FK to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
+| ERD Column                        | Fused Schema v1 Field        | Avro Type        | PostgreSQL Type | Match? |
+| --------------------------------- | ---------------------------- | ---------------- | --------------- | ------ |
+| `fused_events.fused_event_id`     | `fused_event_id`             | string (UUID v4) | uuid            | ✅     |
+| `fused_events.alice_event_id`     | `alice_event_id`             | string (UUID v4) | uuid            | ✅     |
+| `fused_events.sensor_event_id`    | `sensor_event_id`            | string (UUID v4) | uuid            | ✅     |
+| `anomaly_alerts.fused_event_id`   | Soft ref to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
+| `xai_explanations.fused_event_id` | Soft ref to `fused_event_id` | string (UUID v4) | uuid            | ✅     |
