@@ -45,7 +45,7 @@ defence sensor systems.
 
 ---
 
-## ⚙️ How it works
+## 🔧 How it works
 
 ```mermaid
 flowchart LR
@@ -293,7 +293,7 @@ validates `docker-compose.yml` and runs the Python tests. JavaScript lint switch
 
 ---
 
-## 🗂️ Repository layout
+## 📁 Repository layout
 
 ```text
 dataforge/
