@@ -69,3 +69,6 @@ SELECT create_hypertable('xai_explanations', 'time',
 
 SELECT add_retention_policy('xai_explanations', INTERVAL '365 days',
     if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_xai_fused
+    ON xai_explanations (fused_event_id);

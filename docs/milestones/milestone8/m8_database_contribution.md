@@ -31,6 +31,7 @@ Primary key: `(time, fused_event_id)`
 - `fused_event_id UUID NOT NULL` — soft reference, same rationale as `anomaly_alerts`
 - `shap_values JSONB NOT NULL` — array of `{feature, shap_value, direction}`; CHECK `jsonb_typeof(shap_values) = 'array'`
 - `top_features JSONB NOT NULL` — precomputed array, up to 3 features; CHECK `jsonb_array_length BETWEEN 1 AND 3`
+- Index: `idx_xai_fused ON (fused_event_id)` — Endpoint 10 looks up by `fused_event_id` alone; the PK leads with `time`, so without this index every lookup scans each chunk
 - Consumer: `GET /api/v1/xai/{fused_event_id}` (Endpoint 10)
 
 > `xai_explanations` and `alerts_daily` were dropped and recreated from migration on 26 November 2026 — no data existed at the time.
