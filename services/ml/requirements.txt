@@ -4,3 +4,5 @@ numpy>=2.0,<3
 scikit-learn==1.7.2
 joblib>=1.4
 psycopg2-binary==2.9.9
+# M8 — explanations. 0.51.0 is the last release for Python 3.11 (fusion image, CI).
+shap==0.51.0

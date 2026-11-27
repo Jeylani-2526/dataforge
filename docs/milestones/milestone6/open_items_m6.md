@@ -1,10 +1,11 @@
 # DataForge — M6 Open Items Log
 
-**Originating Task ID:** M6W26T6 (planned as M6W24T1, never written)
+**Originating Task ID:** M6W26T6 
 **Owner:** Abdalla
 **Milestone:** M6 · Week 26
-**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5.
-Items 1–8 and 11–14 open.
+**Status:** Open — fourteen items. Item 9 resolved (`83d9a11`, completed after M6W26T7). Item 10 closed for M7 by M6W26T5;
+its residual moved to `open_items_m7.md` Item 10. Items 8 and 13 closed at M7 close (M8W29T7).
+Item 2 closed as superseded (M8W29T2). Items 1, 3–7, 11, 12 and 14 open.
 **GitHub Path:** `/docs/milestones/milestone6/open_items_m6.md`
 
 **Amendment history:**
@@ -17,6 +18,15 @@ Items 1–8 and 11–14 open.
   was not fully resolved: the restored file had never started on an empty database
   (`summary_5min` policy window). Fixed. Item 11 gains a fresh-start case: fusion fails when it
   starts before the producers have created their topics.
+- M8W29T7 amendment (25 November 2026) — at M7 close: Item 8 closed (result committed); Item 13
+  closed (trigger met, lead's decision); Item 10's staging-retention residual missed its
+  M7W27T4 target and moved to `open_items_m7.md` Item 10.
+- M8W29T8 amendment (26 November 2026) — Item 11 recurrence recorded (exit code 0, checkpoint
+  reset); item stays open for M8W30T3.
+- M8W29T3 amendment (26 November 2026) — Item 11 extended to `spark-processor`, which failed
+  the same way the same day.
+- M8W29T2 amendment (26 November 2026) — Item 1 decided (adaptive threshold, `min` kept, 30 s
+  warning), implementation stays M10; Item 2 closed as superseded.
 
 ---
 
@@ -45,6 +55,11 @@ sensors, "how late is too late" is a specification question.
 **Trigger:** decide whether an adaptive lateness threshold is acceptable, and whether
 `multipleWatermarkPolicy` stays at `min`. Changing it reintroduces the M5 Item 8 caveat it fixed.
 
+**Decided (M8W29T2, 26 November 2026):** `m8w29t2_watermark_decision.md`. The adaptive threshold
+is the specification — 5 s floor + slowest-stream lag + up to one batch, measured and reported;
+`multipleWatermarkPolicy` stays `min`; a gap above 30 s raises a warning.
+**Remaining for M10 — trigger:** the watermark gap logged per batch and the 30 s warning working.
+
 ## Item 2 — Watermark Drop Boundary Not Narrowed
 
 **Finding (M6W23T4):** 9 s shift accepted, 30 s shift dropped (160 rows). The transition
@@ -52,6 +67,10 @@ between them was not located.
 
 **Owner:** Abdalla · **Target:** with Item 1
 **Trigger:** only meaningful once Item 1's decision is taken.
+
+**Closed — superseded (M8W29T2, 26 November 2026):** under Item 1's adaptive specification there
+is no fixed boundary to narrow; the threshold moves with stream lag. Per-batch measurement of the
+watermark gap (Item 1, M10) replaces it.
 
 ## Item 3 — Batch Commit 8–10 s Against a 5 s Trigger
 
@@ -125,6 +144,11 @@ build has run on the lead's machine only. This is the exact gap that cost M5 a c
 Unblocked since Item 9 was resolved. A second machine starts from an empty volume, so this run
 also confirms the restored `init-db.sql` end to end.
 
+**Closed (M8W29T7, 25 November 2026):** `m6w26t7_cross_machine_build.md` committed with its
+result (`f59e78b`, updated `5cbe79a`): all images built with `--no-cache`; the clean start failed
+on the `summary_5min` policy window and passed after the fix (`bf19d8e`). The failure was
+recorded, as the trigger required.
+
 ## Item 9 — `init-db.sql` Regression on `develop`
 
 **Finding (5 November):** merge `4d90452` kept an older `init-db.sql`. Its message says
@@ -175,7 +199,8 @@ a placeholder hardcoded in `spark_consumer.py`. The fused stream has no positive
   already specified.
 
 **Residual — staging retention rule:** nothing in the database stops a cleanup from orphaning
-fused rows. **Owner:** Beyza · **Target:** M7W27T4.
+fused rows. **Owner:** Beyza · **Target:** M7W27T4. **Moved (M8W29T7):** not written by
+M7W27T4; carried as `open_items_m7.md` Item 10, target M9.
 **Trigger:** the rule "no cleanup deletes staging rows referenced by `fused_events`" is written
 into the staging documentation.
 
@@ -202,6 +227,17 @@ the query dies, and nothing restarts it.
 document the reset as the recovery procedure; (b) a terminated query exits non-zero, so a
 `restart: on-failure` policy can recover it; (c) topics exist before fusion subscribes —
 pre-created at Kafka start, or fusion waits for them.
+
+**Recurrence (M8W29T8, 26 November 2026):** on Abdalla's machine, fusion stopped with
+`OffsetOutOfRangeException` on `sensor-radar-0` (checkpoint offset 4,706,503 past retention)
+and exited with code 0. Recovered by the M6W21T2 checkpoint reset. Recorded in
+`m8w29t8_fusion_ml_runtime.md` Section 5.2. Fix scheduled as M8W30T3.
+
+**Also hits `spark-processor` (M8W29T3, 26 November 2026):** the same day, `spark-processor`
+failed with `OffsetOutOfRangeException` on `sensor-telemetry-0` and exited with code 0 — the
+same silent stop. With fusion still running, every fused row from then on had no staging row
+(2,058 orphans; `open_items_m7.md` Item 2). **Scope extended:** the fix covers
+`spark-processor` as well as fusion — fixing fusion alone does not prevent orphans.
 
 ## Item 12 — Compose and Environment Operability
 
@@ -237,6 +273,10 @@ absorbed by the lead.
 **Trigger:** two consecutive delivered weeks, or a formal redistribution of the 20 percent —
 stated in the M7-closing advisor report, since weekly reports to Emrah are discontinued
 (5 November).
+
+**Closed (M8W29T7, 25 November 2026):** trigger met, by the lead's decision at M7 close. Omer
+delivered both Week 26 tasks — M6W26T7 (`f59e78b`, `5cbe79a`) and M6W26T8 (`9f2e157`) — and held
+no tasks in Weeks 27–28 under the catch-up plan. His M8 tasks are planned at the nominal 20%.
 
 ## Item 14 — Detection Is Per-Sensor, Not Cross-Sensor
 
@@ -276,18 +316,18 @@ change. Labels in the live stream (M6W26T5 option B2) travel with it.
 
 | Item | Status | Owner | Target | Trigger |
 |---|---|---|---|---|
-| 1 Effective watermark | Open | Abdalla | M8 → M10 | Lateness specification decision |
-| 2 Drop boundary | Open | Abdalla | With 1 | Item 1 decided |
+| 1 Effective watermark | Decided (M8W29T2); open for M10 | Abdalla | M10 | Gap logged per batch, 30 s warning |
+| 2 Drop boundary | **Closed** — superseded (M8W29T2) | Abdalla | — | — |
 | 3 Batch commit lag | Open | Abdalla | M10 | Next throughput benchmark |
 | 4 Silent mis-pairing | Open, unquantified | Abdalla | M8 | Payload-timestamp comparison under injection |
 | 5 Fused-path latency | Open, structural | Abdalla | M10 | M10 latency framing |
 | 6 Heartbeat mismatches | Open | Beyza | M9 | Fusion Monitor work |
 | 7 Alignment side table | Deferred | Beyza | M9 | Fusion Monitor page |
-| 8 Cross-machine build | Open | Omer | M6W26T7 | Result committed |
+| 8 Cross-machine build | **Closed** (`f59e78b`, `5cbe79a`) | Omer | — | Result committed |
 | 9 `init-db.sql` regression | **Resolved** (`83d9a11` + policy fix) | Abdalla | — | Fresh start re-run clean |
 | 10 Feature access | **Closed for M7** | — | — | M6W26T5 |
-| 10 residual: staging retention | Open | Beyza | M7W27T4 | Rule documented |
+| 10 residual: staging retention | **Moved** to `open_items_m7.md` Item 10 | Beyza | M9 | Rule documented |
 | 11 Checkpoint, retention, topic race | Open | Abdalla | M8 | Retention set; non-zero exit; topics pre-exist |
 | 12 Compose operability | Open | Omer | M8 | README section + references fixed |
-| 13 Omer's capacity | Open | Abdalla | Weekly | Two delivered weeks or redistribution |
+| 13 Omer's capacity | **Closed** at M7 close | Abdalla | — | Trigger met (M8W29T7) |
 | 14 Cross-sensor detection | Open | Abdalla | M10 | Emrah's answer |
